@@ -1,5 +1,5 @@
 <script setup>
-  import { reactive, toRaw } from "vue";
+  import { reactive, toRaw, ref } from "vue";
   import { useRouter } from "vue-router";
   import axios from "axios";
   import Icon from '@/assets/cuteicon.png';
@@ -17,6 +17,8 @@
     email: null,
     password: null,
   });
+  
+  const showPassword = ref(false);
   
   // Form validation function
   const validateForm = () => {
@@ -45,11 +47,14 @@
     return isValid;
   };
   
+  // Reactive state for visibility toggle
+  const togglePasswordVisibility = () => {
+    showPassword.value = !showPassword.value;
+};
+
   // Form submission handler
   const handleSubmit = async () => {
     if (validateForm()) {
-      alert("Form submitted successfully");
-      console.log("Form data:", toRaw(form));
 
       try {
       const response = await axios.post('http://127.0.0.1:8000/api/v1/login', {
@@ -57,12 +62,20 @@
         password: form.password,
       });
 
+      Object.keys(errors).forEach((key) => {
+        errors[key] = null;
+      })
+
       localStorage.setItem('user', JSON.stringify(response.data.user))
       localStorage.setItem('token', response.data.token)
       router.push('/');
     } catch (error) {
       console.error('Error during Login:', error.response || error);
-      alert('Login failed. Please try again.');
+      const errorData = error.response.data.data
+      Object.keys(errors).forEach((key) => {
+        errors[key] = errorData[key] ? errorData[key][0] : null;
+      })
+      // alert('Login failed. Please try again.');
     }
     }
   };
@@ -95,7 +108,7 @@ function redirectToSignup() {
                 <div>
                 <label class="block text-sm mb-1">Email</label>
                 <input
-                    type="email"
+                    type="text"
                     v-model="form.email"
                     class="form-input"
                     :class="{ error: errors.email }"
@@ -105,17 +118,29 @@ function redirectToSignup() {
                 </div>
     
                 <!-- Password Field -->
-                <div>
-                <label class="block text-sm mb-1">Password</label>
-                <input
-                    type="password"
-                    v-model="form.password"
-                    class="form-input"
-                    :class="{ error: errors.password }"
-                    placeholder="Password"
-                />
+            <div>
+            <div class="relative">
+              <label class="block text-sm mb-1">Password</label>
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                class="form-input"
+                :class="{ error: errors.password }"
+                placeholder="Password"
+              />
+              <button
+                type="button"
+                @click="togglePasswordVisibility()"
+                class="absolute right-2 bottom-2 text-gray-500"
+              >
+                <i v-if="showPassword" class="fas fa-eye-slash"></i>
+                <i v-else class="fas fa-eye"></i>
+              </button>
+              </div>
+              <div>
                 <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
-                </div>
+              </div>
+          </div>
 
                 <div class="text-right mt-1">
                 <a href="#" class="text-sm text-gray-600 hover:underline">

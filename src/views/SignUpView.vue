@@ -1,5 +1,5 @@
 <script setup>
-  import { reactive, toRaw } from "vue";
+  import { reactive, toRaw, ref } from "vue";
   import { useRouter } from "vue-router";
   import axios from "axios";
 
@@ -11,32 +11,37 @@
     lastName: "",
     email: "",
     password: "",
+    passwordConfirmation: ""
   });
   
   // Reactive state for error messages
   const errors = reactive({
-    firstName: null,
-    lastName: null,
+    first_name: null,
+    last_name: null,
     email: null,
     password: null,
+    password_confirmation: null
   });
+
+  const showPassword = ref(false);
+  const showPasswordConfirmation = ref(false);
   
   // Form validation function
   const validateForm = () => {
     let isValid = true;
   
     if (!form.firstName) {
-      errors.firstName = "First name is required";
+      errors.first_name = "First name is required";
       isValid = false;
     } else {
-      errors.firstName = null;
+      errors.first_name = null;
     }
   
     if (!form.lastName) {
-      errors.lastName = "Last name is required";
+      errors.last_name = "Last name is required";
       isValid = false;
     } else {
-      errors.lastName = null;
+      errors.last_name = null;
     }
   
     if (!form.email) {
@@ -58,9 +63,31 @@
     } else {
       errors.password = null;
     }
+
+    if (!form.passwordConfirmation) {
+      errors.password_confirmation = "Password Confirmation is required";
+      isValid = false;
+    } else if (form.passwordConfirmation.length < 6 ) {
+      errors.password_confirmation = "Password must be at least 6 characters";
+      isValid = false;
+    } else if (form.passwordConfirmation != form.password) {
+      errors.password_confirmation = "Password confirmation is not match"
+      isValid = false
+    } else {
+      errors.password_confirmation = null
+    }
   
     return isValid;
   };
+
+  // Reactive state for visibility toggle
+  const togglePasswordVisibility = (field) => {
+  if (field === "password") {
+    showPassword.value = !showPassword.value;
+  } else if (field === "passwordConfirmation") {
+    showPasswordConfirmation.value = !showPasswordConfirmation.value;
+  }
+};
   
   // Form submission handler
   const handleSubmit = async () => {
@@ -74,6 +101,7 @@
           last_name: form.lastName,
           email: form.email,
           password: form.password,
+          password_confirmation : form.passwordConfirmation
           
         },
         {
@@ -82,13 +110,19 @@
           },
         });
 
+        Object.keys(errors).forEach((key) => {
+          errors[key] = null;
+        });
+
         // alert('Registration successful!');
         console.log('Response:', response.data);
 
       router.push('/')
       } catch (error) {
-        console.error('Error during registration:', error.response.data.message || error);
-        alert('Registration failed. Please try again.');
+        const errorData = error.response.data.errors;
+        Object.keys(errors).forEach((key) => {
+          errors[key] = errorData[key] ? errorData[key][0] : null
+        }) 
     }
     }
   };
@@ -118,10 +152,10 @@ function redirectToLogin() {
                   type="text"
                   v-model="form.firstName"
                   class="form-input"
-                  :class="{ error: errors.firstName }"
+                  :class="{ error: errors.first_name }"
                   placeholder="First name"
                 />
-                <p v-if="errors.firstName" class="error-message">{{ errors.firstName }}</p>
+                <p v-if="errors.first_name" class="error-message">{{ errors.first_name }}</p>
               </div>
               <div>
                 <label class="block text-sm mb-1">Last name</label>
@@ -129,10 +163,10 @@ function redirectToLogin() {
                   type="text"
                   v-model="form.lastName"
                   class="form-input"
-                  :class="{ error: errors.lastName }"
+                  :class="{ error: errors.last_name }"
                   placeholder="Last name"
                 />
-                <p v-if="errors.lastName" class="error-message">{{ errors.lastName }}</p>
+                <p v-if="errors.last_name" class="error-message">{{ errors.last_name }}</p>
               </div>
             </div>
   
@@ -140,7 +174,7 @@ function redirectToLogin() {
             <div>
               <label class="block text-sm mb-1">Email</label>
               <input
-                type="email"
+                type="text"
                 v-model="form.email"
                 class="form-input"
                 :class="{ error: errors.email }"
@@ -151,16 +185,53 @@ function redirectToLogin() {
   
             <!-- Password Field -->
             <div>
+            <div class="relative">
               <label class="block text-sm mb-1">Password</label>
               <input
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 v-model="form.password"
                 class="form-input"
                 :class="{ error: errors.password }"
                 placeholder="Password"
               />
-              <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
+              <button
+                type="button"
+                @click="togglePasswordVisibility('password')"
+                class="absolute right-2 bottom-2 text-gray-500"
+              >
+                <i v-if="showPassword" class="fas fa-eye-slash"></i>
+                <i v-else class="fas fa-eye"></i>
+              </button>
+              </div>
+              <div>
+                <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
+              </div>
+          </div>
+
+             <!-- Password Confirmation Field -->
+            <div>
+             <div class="relative">
+              <label class="block text-sm mb-1">Password Confirmation</label>
+              <input
+                :type="showPasswordConfirmation ? 'text' : 'password'"
+                v-model="form.passwordConfirmation"
+                class="form-input"
+                :class="{ error: errors.password_confirmation }"
+                placeholder="Password"
+              />
+              <button
+                type="button"
+                @click="togglePasswordVisibility('passwordConfirmation')"
+                class="absolute right-2 bottom-2 text-gray-500"
+              >
+                <i v-if="showPasswordConfirmation" class="fas fa-eye-slash"></i>
+                <i v-else class="fas fa-eye"></i>
+              </button>
             </div>
+            <div>
+              <p v-if="errors.password_confirmation" class="error-message">{{ errors.password_confirmation }}</p>
+            </div>
+          </div>
   
             <!-- Submit Button -->
             <button
@@ -217,22 +288,26 @@ function redirectToLogin() {
   
   <style scoped>
   .form-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 0.5px solid #e5e7eb;
-    border-radius: 0.45rem;
-    background-color: #e7e9eb;
-    font-size: 0.875rem; /* Ubah font size menjadi lebih kecil */
-    transition: border-color 0.3s, box-shadow 0.3s;
-  }
-  .form-input.error {
-    border-color: #f87171;
-    background-color: #fee2e2;
-  }
-  .error-message {
-    color: #f87171;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-  }
+  width: 100%;
+  padding: 0.5rem;
+  padding-right: 2.5rem;
+  border: 0.5px solid #e5e7eb;
+  border-radius: 0.45rem;
+  background-color: #e7e9eb;
+  font-size: 0.875rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.form-input.error {
+  border-color: #f87171;
+  background-color: #fee2e2;
+}
+.error-message {
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+.relative {
+  position: relative;
+}
   </style>
   
