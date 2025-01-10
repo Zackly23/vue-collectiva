@@ -1,148 +1,152 @@
 <script setup>
-  import { reactive, toRaw, ref } from "vue";
-  import { useRouter } from "vue-router";
-  import axios from "axios";
+import { reactive, toRaw, ref } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
 
-  const router = useRouter();
+const router = useRouter();
 
-  // Reactive state for form data
-  const form = reactive({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    passwordConfirmation: ""
-  });
-  
-  // Reactive state for error messages
-  const errors = reactive({
-    first_name: null,
-    last_name: null,
-    email: null,
-    password: null,
-    password_confirmation: null
-  });
+// Reactive state for form data
+const form = reactive({
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  passwordConfirmation: "",
+});
 
-  const showPassword = ref(false);
-  const showPasswordConfirmation = ref(false);
-  
-  // Form validation function
-  const validateForm = () => {
-    let isValid = true;
-  
-    if (!form.firstName) {
-      errors.first_name = "First name is required";
-      isValid = false;
-    } else {
-      errors.first_name = null;
-    }
-  
-    if (!form.lastName) {
-      errors.last_name = "Last name is required";
-      isValid = false;
-    } else {
-      errors.last_name = null;
-    }
-  
-    if (!form.email) {
-      errors.email = "Email is required";
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Invalid email format";
-      isValid = false;
-    } else {
-      errors.email = null;
-    }
-  
-    if (!form.password) {
-      errors.password = "Password is required";
-      isValid = false;
-    } else if (form.password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-      isValid = false;
-    } else {
-      errors.password = null;
-    }
+// Reactive state for error messages
+const errors = reactive({
+  first_name: null,
+  last_name: null,
+  email: null,
+  password: null,
+  password_confirmation: null,
+});
 
-    if (!form.passwordConfirmation) {
-      errors.password_confirmation = "Password Confirmation is required";
-      isValid = false;
-    } else if (form.passwordConfirmation.length < 6 ) {
-      errors.password_confirmation = "Password must be at least 6 characters";
-      isValid = false;
-    } else if (form.passwordConfirmation != form.password) {
-      errors.password_confirmation = "Password confirmation is not match"
-      isValid = false
-    } else {
-      errors.password_confirmation = null
-    }
-  
-    return isValid;
-  };
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
 
-  // Reactive state for visibility toggle
-  const togglePasswordVisibility = (field) => {
+// Form validation function
+const validateForm = () => {
+  let isValid = true;
+
+  if (!form.firstName) {
+    errors.first_name = "First name is required";
+    isValid = false;
+  } else {
+    errors.first_name = null;
+  }
+
+  if (!form.lastName) {
+    errors.last_name = "Last name is required";
+    isValid = false;
+  } else {
+    errors.last_name = null;
+  }
+
+  if (!form.email) {
+    errors.email = "Email is required";
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = "Invalid email format";
+    isValid = false;
+  } else {
+    errors.email = null;
+  }
+
+  if (!form.password) {
+    errors.password = "Password is required";
+    isValid = false;
+  } else if (form.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+    isValid = false;
+  } else {
+    errors.password = null;
+  }
+
+  if (!form.passwordConfirmation) {
+    errors.password_confirmation = "Password Confirmation is required";
+    isValid = false;
+  } else if (form.passwordConfirmation.length < 6) {
+    errors.password_confirmation = "Password must be at least 6 characters";
+    isValid = false;
+  } else if (form.passwordConfirmation != form.password) {
+    errors.password_confirmation = "Password confirmation is not match";
+    isValid = false;
+  } else {
+    errors.password_confirmation = null;
+  }
+
+  return isValid;
+};
+
+// Reactive state for visibility toggle
+const togglePasswordVisibility = (field) => {
   if (field === "password") {
     showPassword.value = !showPassword.value;
   } else if (field === "passwordConfirmation") {
     showPasswordConfirmation.value = !showPasswordConfirmation.value;
   }
 };
-  
-  // Form submission handler
-  const handleSubmit = async () => {
-    if (validateForm()) {
-      // alert("Form submitted successfully");
-      console.log("Form data:", toRaw(form));
 
-      try {
-        const response = await axios.post('http://127.0.0.1:8000/api/v1/sign-up', {
+// Form submission handler
+const handleSubmit = async () => {
+  if (validateForm()) {
+    // alert("Form submitted successfully");
+    console.log("Form data:", toRaw(form));
+
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/v1/sign-up",
+        {
           first_name: form.firstName,
           last_name: form.lastName,
           email: form.email,
           password: form.password,
-          password_confirmation : form.passwordConfirmation
-          
+          password_confirmation: form.passwordConfirmation,
         },
         {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        });
+        }
+      );
 
-        Object.keys(errors).forEach((key) => {
-          errors[key] = null;
-        });
+      Object.keys(errors).forEach((key) => {
+        errors[key] = null;
+      });
 
-        // alert('Registration successful!');
-        console.log('Response:', response.data);
+      // alert('Registration successful!');
+      console.log("Response:", response.data);
 
-      router.push('/')
-      } catch (error) {
-        const errorData = error.response.data.errors;
-        Object.keys(errors).forEach((key) => {
-          errors[key] = errorData[key] ? errorData[key][0] : null
-        }) 
+      router.push("/");
+    } catch (error) {
+      const errorData = error.response.data.errors;
+      Object.keys(errors).forEach((key) => {
+        errors[key] = errorData[key] ? errorData[key][0] : null;
+      });
     }
-    }
-  };
+  }
+};
 
 // Redirect to log-in page
 function redirectToLogin() {
   // console.log('Redirecting to Log In...');
-  router.push('/login');
+  router.push("/login");
 }
 </script>
 
 <template>
-   <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="container-split w-full max-w-5xl flex items-center justify-center">
+  <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div
+      class="container-split w-full max-w-5xl flex items-center justify-center"
+    >
       <!-- Left side - Registration Form -->
-      <div class="w-full md:w-1/2 max-w-md">  
+      <div class="w-full md:w-1/2 max-w-md">
         <!-- Main Card -->
         <div class="bg-white p-8 rounded-lg shadow-sm">
           <h1 class="text-2xl font-semibold mb-6 font-sans">Sign up</h1>
-  
+
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Name Fields -->
             <div class="grid grid-cols-2 gap-4">
@@ -155,7 +159,9 @@ function redirectToLogin() {
                   :class="{ error: errors.first_name }"
                   placeholder="First name"
                 />
-                <p v-if="errors.first_name" class="error-message">{{ errors.first_name }}</p>
+                <p v-if="errors.first_name" class="error-message">
+                  {{ errors.first_name }}
+                </p>
               </div>
               <div>
                 <label class="block text-sm mb-1">Last name</label>
@@ -166,10 +172,12 @@ function redirectToLogin() {
                   :class="{ error: errors.last_name }"
                   placeholder="Last name"
                 />
-                <p v-if="errors.last_name" class="error-message">{{ errors.last_name }}</p>
+                <p v-if="errors.last_name" class="error-message">
+                  {{ errors.last_name }}
+                </p>
               </div>
             </div>
-  
+
             <!-- Email Field -->
             <div>
               <label class="block text-sm mb-1">Email</label>
@@ -180,59 +188,68 @@ function redirectToLogin() {
                 :class="{ error: errors.email }"
                 placeholder="Email address"
               />
-              <p v-if="errors.email" class="error-message">{{ errors.email }}</p>
+              <p v-if="errors.email" class="error-message">
+                {{ errors.email }}
+              </p>
             </div>
-  
+
             <!-- Password Field -->
             <div>
-            <div class="relative">
-              <label class="block text-sm mb-1">Password</label>
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="form.password"
-                class="form-input"
-                :class="{ error: errors.password }"
-                placeholder="Password"
-              />
-              <button
-                type="button"
-                @click="togglePasswordVisibility('password')"
-                class="absolute right-2 bottom-2 text-gray-500"
-              >
-                <i v-if="showPassword" class="fas fa-eye-slash"></i>
-                <i v-else class="fas fa-eye"></i>
-              </button>
+              <div class="relative">
+                <label class="block text-sm mb-1">Password</label>
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="form.password"
+                  class="form-input"
+                  :class="{ error: errors.password }"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  @click="togglePasswordVisibility('password')"
+                  class="absolute right-2 bottom-2 text-gray-500"
+                >
+                  <i v-if="showPassword" class="fas fa-eye-slash"></i>
+                  <i v-else class="fas fa-eye"></i>
+                </button>
               </div>
               <div>
-                <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
+                <p v-if="errors.password" class="error-message">
+                  {{ errors.password }}
+                </p>
               </div>
-          </div>
+            </div>
 
-             <!-- Password Confirmation Field -->
+            <!-- Password Confirmation Field -->
             <div>
-             <div class="relative">
-              <label class="block text-sm mb-1">Password Confirmation</label>
-              <input
-                :type="showPasswordConfirmation ? 'text' : 'password'"
-                v-model="form.passwordConfirmation"
-                class="form-input"
-                :class="{ error: errors.password_confirmation }"
-                placeholder="Password"
-              />
-              <button
-                type="button"
-                @click="togglePasswordVisibility('passwordConfirmation')"
-                class="absolute right-2 bottom-2 text-gray-500"
-              >
-                <i v-if="showPasswordConfirmation" class="fas fa-eye-slash"></i>
-                <i v-else class="fas fa-eye"></i>
-              </button>
+              <div class="relative">
+                <label class="block text-sm mb-1">Password Confirmation</label>
+                <input
+                  :type="showPasswordConfirmation ? 'text' : 'password'"
+                  v-model="form.passwordConfirmation"
+                  class="form-input"
+                  :class="{ error: errors.password_confirmation }"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  @click="togglePasswordVisibility('passwordConfirmation')"
+                  class="absolute right-2 bottom-2 text-gray-500"
+                >
+                  <i
+                    v-if="showPasswordConfirmation"
+                    class="fas fa-eye-slash"
+                  ></i>
+                  <i v-else class="fas fa-eye"></i>
+                </button>
+              </div>
+              <div>
+                <p v-if="errors.password_confirmation" class="error-message">
+                  {{ errors.password_confirmation }}
+                </p>
+              </div>
             </div>
-            <div>
-              <p v-if="errors.password_confirmation" class="error-message">{{ errors.password_confirmation }}</p>
-            </div>
-          </div>
-  
+
             <!-- Submit Button -->
             <button
               type="submit"
@@ -242,14 +259,20 @@ function redirectToLogin() {
             </button>
           </form>
 
-                    <!-- Terms -->
+          <!-- Terms -->
           <p class="text-xs text-gray-600 mt-4">
-            By clicking "Create account" above, you acknowledge that you will receive updates from the Relume team and that you have read, understood, and agreed to Relume Library's 
-            <a href="#" class="text-black hover:underline">Terms & Conditions</a>,
-            <a href="#" class="text-black hover:underline">Licensing Agreement</a> and
+            By clicking "Create account" above, you acknowledge that you will
+            receive updates from the Relume team and that you have read,
+            understood, and agreed to Relume Library's
+            <a href="#" class="text-black hover:underline">Terms & Conditions</a
+            >,
+            <a href="#" class="text-black hover:underline"
+              >Licensing Agreement</a
+            >
+            and
             <a href="#" class="text-black hover:underline">Privacy Policy</a>.
-        </p>
-  
+          </p>
+
           <!-- Login Link -->
           <div class="mt-6 flex items-center justify-between space-x-2">
             <span class="text-sm">Already have an Account?</span>
@@ -257,37 +280,58 @@ function redirectToLogin() {
               @click="redirectToLogin"
               class="py-1 px-3 bg-white text-black border border-black rounded-md hover:bg-gray-100 transition-colors text-sm"
             >
-            Login
-           </button>
-        </div>
+              Login
+            </button>
+          </div>
         </div>
       </div>
-  
-      <!-- Right side - Testimonial and Logos -->
-      <div class="hidden md:flex w-1/2 flex-col items-center justify-center pl-16">
+
+      <!-- Bagian Kanan - Testimoni dan Logo -->
+      <div
+        class="hidden md:flex w-1/2 flex-col items-center justify-center pl-16"
+      >
         <div class="text-center mb-12">
-          <img src="https://via.placeholder.com/48" alt="User" class="rounded-full mx-auto mb-4" />
-          <p class="font-medium text-lg mb-2">Nothing short of groundbreaking for designers.</p>
-          <p class="text-gray-600 mb-2">
-            It immediately changes how I work and makes me 10x more productive as a web designer.
+          <img
+            src="https://via.placeholder.com/48"
+            alt="Pengguna"
+            class="rounded-full mx-auto mb-4"
+          />
+          <p class="font-medium text-lg mb-2">
+            "Membangun jembatan kepedulian dan kebaikan bersama SHCUnion."
           </p>
-          <p class="font-medium">@ransegall</p>
-          <p class="text-sm text-gray-600">Founder, Flux Academy</p>
+          <p class="text-gray-600 mb-2">
+            SHCUnion mengubah cara kita terhubung dan memberdayakan komunitas
+            untuk membuat perubahan nyata bersama-sama.
+          </p>
+          <p class="text-gray-800">ikuti di</p>
+          <a href="http://instagram.com" class="hover:underline"
+            ><p class="font-medium">@pahlawankomunitas</p></a
+          >
         </div>
         <div class="grid grid-cols-3 gap-8">
-          <img src="https://via.placeholder.com/80x40?text=Nike" alt="Nike" class="opacity-50" />
-          <img src="https://via.placeholder.com/80x40?text=Webflow" alt="Webflow" class="opacity-50" />
-          <img src="https://via.placeholder.com/80x40?text=Rokt" alt="Rokt" class="opacity-50" />
+          <img
+            src="https://via.placeholder.com/80x40?text=OrganisasiPeduli"
+            alt="Organisasi Peduli"
+            class="opacity-50"
+          />
+          <img
+            src="https://via.placeholder.com/80x40?text=SenyumBersama"
+            alt="Senyum Bersama"
+            class="opacity-50"
+          />
+          <img
+            src="https://via.placeholder.com/80x40?text=PelukanHangat"
+            alt="Pelukan Hangat"
+            class="opacity-50"
+          />
         </div>
       </div>
     </div>
-    </div>
-  </template>
-  
-  
-  
-  <style scoped>
-  .form-input {
+  </div>
+</template>
+
+<style scoped>
+.form-input {
   width: 100%;
   padding: 0.5rem;
   padding-right: 2.5rem;
@@ -309,5 +353,4 @@ function redirectToLogin() {
 .relative {
   position: relative;
 }
-  </style>
-  
+</style>
