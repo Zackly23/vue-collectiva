@@ -11,6 +11,7 @@ import "../../src/assets/vendor_assets/css/svgMap.min.css";
 import AsideComponent from "@/components/dashboard/AsideComponent.vue";
 import HeaderComponent from "@/components/dashboard/HeaderComponent.vue";
 import PreloaderComponent from "@/components/dashboard/PreloaderComponent.vue";
+import FooterComponent from "@/components/dashboard/FooterComponent.vue";
 
 import { ref } from "vue";
 
@@ -36,6 +37,7 @@ const toggleAside = () => {
     >
       <HeaderComponent @toggle-aside="toggleAside" :isCollapsed="isCollapsed" />
       <router-view />
+      <FooterComponent />
     </div>
     <PreloaderComponent />
   </div>

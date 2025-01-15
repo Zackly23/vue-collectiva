@@ -19,12 +19,12 @@ const flow = ref(["year", "month", "calendar"]);
           <div
             class="leading-[1.8571428571] flex flex-wrap sm:justify-between justify-center items-center ssm:mb-[33px] mb-[18px] max-sm:flex-col gap-x-[15px] gap-y-[5px]"
           >
-            <!-- Title -->
+            <!-- Title
             <h4
               class="capitalize text-[20px] text-dark dark:text-title-dark font-semibold"
             >
               calendar
-            </h4>
+            </h4> -->
             <!-- Breadcrumb Navigation -->
             <div class="flex flex-wrap justify-center">
               <nav>
@@ -84,23 +84,94 @@ const flow = ref(["year", "month", "calendar"]);
             >
               <VDatePicker class="my-calendar" v-model="mainDate" expanded />
             </div>
+
+            <!-- Create Event  -->
             <div
               class="w-[25%] relative main-calendar dark:bg-box-dark rounded-10 overflow-x-auto scrollbar"
             >
-              <div class="bg-white p-[25px] rounded-10 grid grid-rows-2">
+              <!-- Header untuk konteks -->
+              <div
+                class="bg-primary text-white text-center py-[10px] rounded-t-10 font-bold"
+              >
+                Agenda Kalender
+              </div>
+
+              <!-- Kontainer utama -->
+              <div class="bg-white p-[25px] rounded-b-10 grid gap-[15px]">
+                <!-- Pemilihan Tanggal -->
                 <div>
-                  <span class="mb-[4px]">Pilih Tanggal</span>
+                  <span class="mb-[4px] text-gray-700 block font-medium"
+                    >Pilih Tanggal</span
+                  >
                   <VueDatePicker
                     v-model="date"
                     :flow="flow"
                     placeholder="Pilih Tanggal Agenda"
+                    class="w-full rounded-[8px] border border-gray-300"
                   ></VueDatePicker>
                 </div>
+
+                <!-- Input Waktu Agenda -->
+                <div>
+                  <span class="mb-[4px] text-gray-700 block font-medium"
+                    >Waktu Agenda</span
+                  >
+                  <input
+                    v-model="time"
+                    type="time"
+                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700"
+                  />
+                </div>
+
+                <!-- Input Kategori Agenda -->
+                <div>
+                  <span class="mb-[4px] text-gray-700 block font-medium"
+                    >Kategori Agenda</span
+                  >
+                  <select
+                    v-model="category"
+                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700"
+                  >
+                    <option value="" disabled>Pilih Kategori</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="deadline">Deadline</option>
+                    <option value="other">Lainnya</option>
+                  </select>
+                </div>
+
+                <!-- Input Deskripsi Agenda -->
+                <div>
+                  <span class="mb-[4px] text-gray-700 block font-medium"
+                    >Deskripsi Agenda</span
+                  >
+                  <textarea
+                    v-model="description"
+                    placeholder="Tulis deskripsi agenda"
+                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700 resize-none"
+                    rows="3"
+                  ></textarea>
+                </div>
+
+                <!-- Validasi dan Notifikasi -->
+                <p
+                  v-if="!date || !category || !description || !time"
+                  class="text-sm text-red-500 mb-[4px]"
+                >
+                  * Harap lengkapi semua bidang sebelum membuat acara
+                </p>
+
+                <!-- Tombol Create Event -->
                 <button
                   type="button"
                   data-te-toggle="modal"
                   data-te-target="#evenModal"
-                  class="h-[50px] text-[14px] font-medium w-full rounded-[8px] mb-[25px] bg-primary border-primary text-white flex items-center justify-center gap-[6px] px-[30px]"
+                  class="h-[50px] text-[14px] font-medium w-full rounded-[8px] bg-primary border-primary text-white flex items-center justify-center gap-[6px] px-[30px]"
+                  :disabled="!date || !category || !description || !time"
+                  :class="{
+                    'opacity-50 cursor-not-allowed':
+                      !date || !category || !description || !time,
+                  }"
                   data-te-ripple-init=""
                   data-te-ripple-color="light"
                 >
@@ -112,272 +183,12 @@ const flow = ref(["year", "month", "calendar"]);
           </div>
         </div>
       </div>
-
-      <div
-        data-te-modal-init
-        class="fixed left-0 top-0 z-[1070] hidden h-full w-full overflow-y-auto overflow-x-hidden outline-none"
-        id="evenModal"
-        tabindex="-1"
-        aria-labelledby="evenModalLabel"
-        aria-modal="true"
-        role="dialog"
-      >
-        <div
-          data-te-modal-dialog-ref
-          class="pointer-events-none relative flex min-h-[calc(100%-1rem)] w-auto translate-y-[-50px] items-center opacity-0 transition-all duration-300 ease-in-out min-[576px]:mx-auto min-[576px]:mt-7 min-[576px]:min-h-[calc(100%-3.5rem)] min-[576px]:max-w-[500px]"
-        >
-          <div
-            class="relative flex flex-col w-full text-current bg-white border-none rounded-md shadow-lg outline-none pointer-events-auto bg-clip-padding dark:bg-box-dark"
-          >
-            <div
-              class="flex items-center justify-between flex-shrink-0 py-4 border-b-1 px-[25px] rounded-t-md border-neutral-100 dark:border-box-dark-up"
-            >
-              <!--Modal title-->
-              <h5
-                class="text-[17px] font-medium text-dark dark:text-title-dark leading-[22px] capitalize"
-                id="evenModal"
-              >
-                Create New event
-              </h5>
-              <!--Close button-->
-              <button
-                type="button"
-                class="w-[34px] h-[34px] bg-normalBG text-dark border-1 border-regular dark:border-box-dark-up rounded-full flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary duration-200 ease-in-out text-[15px] dark:bg-box-dark-up dark:text-title-dark dark:hover:bg-primary dark:hover:text-white dark:hover:border-primary hover:no-underline hover:opacity-75 focus:opacity-100 focus:shadow-none focus:outline-none"
-                data-te-modal-dismiss
-                aria-label="Close"
-                data-te-ripple-init
-                data-te-ripple-color="light"
-              >
-                <i class="uil uil-multiply"></i>
-              </button>
-            </div>
-
-            <!--Modal body-->
-            <div class="relative p-[25px]">
-              <form action="">
-                <div
-                  class="flex max-ssm:flex-col mb-[20px] gap-x-[40px] max-ssm:gap-y-[5px]"
-                >
-                  <div class="min-w-[70px] flex items-center">
-                    <label
-                      for="title"
-                      class="text-[14px] text-light dark:text-subtitle-dark font-normal capitalize"
-                    >
-                      Title:
-                    </label>
-                  </div>
-                  <div class="flex-1">
-                    <input
-                      id="title"
-                      type="text"
-                      placeholder="Select Event title"
-                      class="border-regular border dark:border-box-dark-up rounded-6 h-[46px] flex items-center w-full text-[14px] px-[20px] outline-none text-body dark:text-subtitle-dark dark:bg-box-dark-up"
-                    />
-                  </div>
-                </div>
-                <div
-                  class="flex max-ssm:flex-col mb-[20px] gap-x-[40px] max-ssm:gap-y-[5px]"
-                >
-                  <div class="min-w-[70px] flex items-center">
-                    <label
-                      for="title"
-                      class="text-[14px] text-light dark:text-subtitle-dark font-normal capitalize"
-                    >
-                      Event Type:
-                    </label>
-                  </div>
-                  <div
-                    class="flex flex-wrap items-center flex-1 radio-group gap-[15px]"
-                  >
-                    <div class="mb-[0.125rem] block min-h-[1.5rem] ps-[1.5rem]">
-                      <input
-                        class="relative ltr:float-left rtl:float-right -ms-[1.5rem] me-1 mt-0.5 h-5 w-5 appearance-none rounded-full border-2 border-solid border-neutral-300 before:pointer-events-none before:absolute before:h-4 before:w-4 before:scale-0 before:rounded-full before:bg-transparent before:opacity-0 before:shadow-[0px_0px_0px_13px_transparent] before:content-[''] after:absolute after:z-[1] after:block after:h-4 after:w-4 after:rounded-full after:content-[''] checked:border-primary checked:before:opacity-[0.16] checked:after:absolute checked:after:left-1/2 checked:after:top-1/2 checked:after:h-[0.625rem] checked:after:w-[0.625rem] checked:after:rounded-full checked:after:border-primary checked:after:bg-primary checked:after:content-[''] checked:after:[transform:translate(-50%,-50%)] hover:cursor-pointer hover:before:opacity-[0.04] hover:before:shadow-[0px_0px_0px_13px_rgba(0,0,0,0.6)] dark:border-neutral-600 dark:checked:border-primary dark:checked:after:border-primary dark:checked:after:bg-primary"
-                        type="radio"
-                        value=""
-                        id="checkboxDefault"
-                        name="checkbox-group"
-                      />
-                      <label
-                        class="inline-block ps-[0.15rem] hover:cursor-pointer text-light dark:text-subtitle-dark text-[15px]"
-                        for="checkboxDefault"
-                      >
-                        Event
-                      </label>
-                    </div>
-                    <div class="mb-[0.125rem] block min-h-[1.5rem] ps-[1.5rem]">
-                      <input
-                        class="relative ltr:float-left rtl:float-right -ms-[1.5rem] me-1 mt-0.5 h-5 w-5 appearance-none rounded-full border-2 border-solid border-neutral-300 before:pointer-events-none before:absolute before:h-4 before:w-4 before:scale-0 before:rounded-full before:bg-transparent before:opacity-0 before:shadow-[0px_0px_0px_13px_transparent] before:content-[''] after:absolute after:z-[1] after:block after:h-4 after:w-4 after:rounded-full after:content-[''] checked:border-primary checked:before:opacity-[0.16] checked:after:absolute checked:after:left-1/2 checked:after:top-1/2 checked:after:h-[0.625rem] checked:after:w-[0.625rem] checked:after:rounded-full checked:after:border-primary checked:after:bg-primary checked:after:content-[''] checked:after:[transform:translate(-50%,-50%)] hover:cursor-pointer hover:before:opacity-[0.04] hover:before:shadow-[0px_0px_0px_13px_rgba(0,0,0,0.6)] dark:border-neutral-600 dark:checked:border-primary dark:checked:after:border-primary dark:checked:after:bg-primary"
-                        type="radio"
-                        value=""
-                        id="checkboxDefault2"
-                        name="checkbox-group"
-                      />
-                      <label
-                        class="inline-block ps-[0.15rem] hover:cursor-pointer text-light dark:text-subtitle-dark text-[15px]"
-                        for="checkboxDefault2"
-                      >
-                        Reminder
-                      </label>
-                    </div>
-                    <div class="mb-[0.125rem] block min-h-[1.5rem] ps-[1.5rem]">
-                      <input
-                        class="relative ltr:float-left rtl:float-right -ms-[1.5rem] me-1 mt-0.5 h-5 w-5 appearance-none rounded-full border-2 border-solid border-neutral-300 before:pointer-events-none before:absolute before:h-4 before:w-4 before:scale-0 before:rounded-full before:bg-transparent before:opacity-0 before:shadow-[0px_0px_0px_13px_transparent] before:content-[''] after:absolute after:z-[1] after:block after:h-4 after:w-4 after:rounded-full after:content-[''] checked:border-primary checked:before:opacity-[0.16] checked:after:absolute checked:after:left-1/2 checked:after:top-1/2 checked:after:h-[0.625rem] checked:after:w-[0.625rem] checked:after:rounded-full checked:after:border-primary checked:after:bg-primary checked:after:content-[''] checked:after:[transform:translate(-50%,-50%)] hover:cursor-pointer hover:before:opacity-[0.04] hover:before:shadow-[0px_0px_0px_13px_rgba(0,0,0,0.6)] dark:border-neutral-600 dark:checked:border-primary dark:checked:after:border-primary dark:checked:after:bg-primary"
-                        type="radio"
-                        value=""
-                        id="checkboxDefault3"
-                        name="checkbox-group"
-                      />
-                      <label
-                        class="inline-block ps-[0.15rem] hover:cursor-pointer text-light dark:text-subtitle-dark text-[15px]"
-                        for="checkboxDefault3"
-                      >
-                        Task
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="flex max-ssm:flex-col mb-[20px] gap-x-[40px] max-ssm:gap-y-[5px]"
-                  id="dateRangePicker"
-                >
-                  <div class="min-w-[70px] flex items-center">
-                    <label
-                      for="start"
-                      class="text-[14px] text-light dark:text-subtitle-dark font-normal capitalize"
-                    >
-                      Date:
-                    </label>
-                  </div>
-                  <div class="flex flex-1 gap-[15px]">
-                    <input
-                      id="start"
-                      type="text"
-                      placeholder="Star date"
-                      name="start"
-                      class="border-regular border dark:border-box-dark-up rounded-6 h-[46px] flex items-center w-full text-[14px] px-[20px] outline-none text-body dark:text-subtitle-dark dark:bg-box-dark-up"
-                    />
-                    <input
-                      type="text"
-                      placeholder="End date"
-                      name="end"
-                      class="border-regular border dark:border-box-dark-up rounded-6 h-[46px] flex items-center w-full text-[14px] px-[20px] outline-none text-body dark:text-subtitle-dark dark:bg-box-dark-up"
-                    />
-                  </div>
-                </div>
-                <div
-                  class="flex max-ssm:flex-col mb-[20px] gap-x-[40px] max-ssm:gap-y-[5px]"
-                >
-                  <div class="min-w-[70px] flex items-center">
-                    <label
-                      for="textareafrom"
-                      class="text-[14px] text-light dark:text-subtitle-dark font-normal capitalize"
-                    >
-                      Description:
-                    </label>
-                  </div>
-                  <div class="flex-1">
-                    <textarea
-                      id="textareafrom"
-                      rows="3"
-                      placeholder="Add description"
-                      class="border-regular dark:bg-box-dark-up border dark:border-box-dark-up rounded-6 flex items-center w-full text-[14px] py-[15px] px-[20px] outline-none text-body dark:text-subtitle-dark resize-none"
-                    ></textarea>
-                  </div>
-                </div>
-                <div
-                  class="flex max-ssm:flex-col gap-x-[40px] max-ssm:gap-y-[5px]"
-                >
-                  <div class="min-w-[70px] flex items-center">
-                    <label
-                      for="textareafrom"
-                      class="text-[14px] text-light dark:text-subtitle-dark font-normal capitalize"
-                    >
-                      Labe:
-                    </label>
-                  </div>
-                  <div class="flex-1">
-                    <select
-                      data-te-select-init
-                      data-te-class-select-input="py-[11px] px-[20px] w-full capitalize [&~span]:top-[15px] [&~span]:w-[15px] [&~span]:h-[15px] [&~span]:text-body dark:[&~span]:text-white ltr:[&~span]:right-[0.75rem] rtl:[&~span]:left-[0.75rem] rtl:[&~span]:right-auto text-light dark:text-subtitle-dark border-regular dark:border-box-dark-up border-1 rounded-6 dark:bg-box-dark-up outline-none"
-                      data-te-class-notch-leading="!border-0 !shadow-none group-data-[te-input-focused]:shadow-none group-data-[te-input-focused]:border-none"
-                      data-te-class-notch-middle="!border-0 !shadow-none !outline-none"
-                      data-te-class-notch-trailing="!border-0 !shadow-none !outline-none"
-                    >
-                      <option value="primary">Primary</option>
-                      <option value="secondary">Secondary</option>
-                      <option value="info">Info</option>
-                      <option value="warning">Warning</option>
-                      <option value="success">Success</option>
-                      <option value="danger">Danger</option>
-                    </select>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <!--Modal footer-->
-            <div
-              class="flex flex-wrap items-center justify-end flex-shrink-0 px-[25px] pb-[20px] rounded-b-md"
-            >
-              <button
-                type="button"
-                class="inline-block rounded bg-primary-100 px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal text-dark dark:text-title-dark transition duration-150 ease-in-out hover:bg-primary-accent-100"
-                data-te-modal-dismiss
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                class="ms-1 inline-block rounded bg-primary px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal text-white transition duration-150 ease-in-out hover:bg-primary-600"
-              >
-                Create event
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="px-[25px] bg-white dark:bg-box-dark">
-      <!-- Footer content -->
-      <div
-        class="flex justify-between flex-wrap py-[22px] gap-x-[30px] gap-y-[15px] max-ssm:gap-y-[8px] items-center max-md:flex-col"
-      >
-        <!-- Copyright information -->
-        <div
-          class="flex items-center gap-[4px] text-[14px] font-medium max-md:text-center text-body dark:text-subtitle-dark"
-        >
-          © <span class="current-year">2022</span>
-          <a href="#" class="text-primary">SovWare</a>
-        </div>
-
-        <!-- Footer navigation links -->
-        <div class="justify-end md:justify-center items-center flex gap-[15px]">
-          <a
-            href="#"
-            class="text-body dark:text-subtitle-dark text-[14px] hover:text-primary dark:hover:text-title-dark"
-            >About</a
-          >
-          <a
-            href="#"
-            class="text-body dark:text-subtitle-dark text-[14px] hover:text-primary dark:hover:text-title-dark"
-            >Team</a
-          >
-          <a
-            href="#"
-            class="text-body dark:text-subtitle-dark text-[14px] hover:text-primary dark:hover:text-title-dark"
-            >Contact</a
-          >
-        </div>
-      </div>
-    </footer>
-    <!-- end: Footer -->
   </main>
 </template>
 
 <style>
-
 .vc-pane-container .vc-pane {
   height: auto;
 }
@@ -391,6 +202,24 @@ const flow = ref(["year", "month", "calendar"]);
   /* background-color: red; */
   height: 100px;
   /* background-color: aqua; */
-  
 }
+
+
+.vc-container .vc-weekday-1,
+.vc-container .vc-weekday-7,
+.vc-container .vc-weekday-2,
+.vc-container .vc-weekday-3,
+.vc-container .vc-weekday-4,
+.vc-container .vc-weekday-5,
+.vc-container .vc-weekday-6 {
+  /* Tambahkan properti gaya di sini */
+  background-color: #f8f9fa;
+  color: #333;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  border-right: 1px solid #ddd; /* Pembatas tipis di kanan */
+
+}
+
 </style>
