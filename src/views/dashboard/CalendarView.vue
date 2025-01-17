@@ -25,7 +25,7 @@ const attributesEventAgendaList = computed(() => [
     },
     popover: {
       label: `${agenda.description} - ${agenda.dates.start}`,
-      visibility: 'click'
+      visibility: "click",
     },
   })),
 ]);
@@ -146,7 +146,6 @@ const fetchAgendas = async () => {
       dates: { start: agenda.date, end: agenda.date },
       color: agenda.color,
     }));
-
   } catch (error) {
     console.error("Gagal mengambil data agenda:", error);
   }
@@ -171,7 +170,10 @@ const saveNewAgenda = async () => {
     };
 
     // Kirim data ke API
-    const response = await axios.post("http://localhost:8000/api/v1/agenda", newAgenda);
+    const response = await axios.post(
+      "http://localhost:8000/api/v1/agenda",
+      newAgenda
+    );
 
     // Jika berhasil, tambahkan agenda ke `eventAgendaList`
     // eventAgendaList.value.push({
@@ -204,13 +206,17 @@ const getCategoryColor = (category) => {
   return categoryColors[category] || "gray";
 };
 
+const refreshPage = () => {
+  // Refresh halaman
+  window.location.reload();
+};
+
 onMounted(() => {
   fetchAgendas();
   setTimeout(() => {
     modifyDotsLayout();
     todayisTheDay();
-  }, 100);
-
+  }, 1000);
 });
 </script>
 
@@ -279,7 +285,15 @@ onMounted(() => {
       <!-- Responsive Toggler -->
       <div
         class="flex items-center justify-center 4xl:hidden ssm:mb-[30px] mb-[15px]"
-      ></div>
+      >
+        <!-- Tombol Refresh -->
+        <button
+          @click="dotsModifier"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
+          Refresh
+        </button>
+      </div>
       <div class="w-full mx-auto">
         <div class="flex mx-[-15px]">
           <div class="flex gap-4 4xl:w-[75%] w-full px-[15px] mb-[30px]">

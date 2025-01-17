@@ -1,4 +1,74 @@
-<script setup></script>
+<script setup>
+import { ref, onMounted, onUnmounted } from "vue";
+
+// State
+const activeTab = ref("private-chat");
+const isSidebarCollapse = ref(false);
+const isMdScreen = ref(false);
+
+const messages = [
+  {
+    idMessage: 1,
+    sender: "John Doe",
+    date: "2025-01-16",
+    message: "Hello, how are you?",
+    avatar: "../../assets/images/avatars/t1.jpg",
+  },
+  {
+    idMessage: 2,
+    sender: "Jane Doe",
+    date: "2025-01-16",
+    message: "I am fine, thank you!",
+    avatar: "../../assets/images/avatars/t2.jpg",
+  },
+];
+
+const groupMessages = [
+  {
+    id: 1,
+    name: "Group 1",
+    date: "2025-01-16",
+    message: "Welcome to the group!",
+    avatar: "../../assets/images/avatars/t3.jpg",
+  },
+  {
+    id: 2,
+    name: "Group 2",
+    date: "2025-01-16",
+    message: "Let’s discuss the project.",
+    avatar: "../../assets/images/avatars/t4.jpg",
+  },
+];
+
+const sidebarCollapse = () => {
+  isSidebarCollapse.value = !isSidebarCollapse.value;
+  console.log('Sidebar Collapse ', isSidebarCollapse.value)
+};
+
+// Fungsi untuk mengecek ukuran layar
+const checkScreenSize = () => {
+  isMdScreen.value = window.matchMedia("(min-width: 989px)").matches;
+  if(isMdScreen.value) {
+    isSidebarCollapse.value = false;
+  }
+  console.log('Screen Medium ',isMdScreen.value)
+};
+
+// Methods
+const switchTab = (tab) => {
+  activeTab.value = tab;
+};
+
+// Set up event listener untuk resize
+onMounted(() => {
+  checkScreenSize();
+  window.addEventListener("resize", checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkScreenSize);
+});
+</script>
 
 <template>
   <!-- Main Content -->
@@ -68,6 +138,7 @@
         class="flex items-center justify-center lg:hidden ssm:mb-[30px] mb-[15px]"
       >
         <button
+          @click="sidebarCollapse"
           id="chat-sidebar-selector"
           type="button"
           class="text-danger text-sm font-semibold inline-flex justify-center items-center w-[40px] h-[40px] bg-white rounded-6 dark:bg-box-dark-up"
@@ -80,7 +151,11 @@
         <div class="w-full col-span-12 3xl:col-span-3 lg:col-span-4">
           <div
             id="chat-sidebar-target"
-            class="bg-white dark:bg-box-dark lg:rounded-[10px] max-lg:rounded-e-[10px] max-lg:w-[260px] max-lg:fixed max-lg:z-[11] max-lg:start-0 [&.nav-open]:translate-x-0 max-lg:top-[70px] max-lg:h-full ltr:max-lg:translate-x-[-260px] rtl:max-lg:translate-x-[260px] max-lg:shadow-lg duration-200 pt-[30px]"
+            :class="{
+              'bg-white dark:bg-box-dark lg:rounded-[10px] max-lg:rounded-e-[10px] max-lg:w-[260px] max-lg:fixed max-lg:z-[111] max-lg:start-0 [&.nav-open]:translate-x-0 max-lg:top-[70px] max-lg:h-full  rtl:max-lg:translate-x-[260px] max-lg:shadow-lg duration-200 pt-[30px]': true,
+              'translate-x-[-260px]': isSidebarCollapse,
+              'translate-x-0': !isSidebarCollapse || !isMdScreen, // Reset jika bukan md
+            }"
           >
             <!-- search -->
             <div
@@ -99,1466 +174,119 @@
             <!-- Nav -->
             <ul
               role="tablist"
-              data-te-nav-ref
-              class="listItemActive flex justify-between border-b border-regular dark:border-box-dark-up 3xl:[&>li>a]:py-[18px] max-3xl:[&>li]:py-[10px] max-2xl:py-0 mx-[25px] max-2xl:flex-col max-2xl:items-center max-2xl:[&>li]:gap-y-[10px]"
+              class="listItemActive flex justify-center gap-6 border-b border-regular dark:border-box-dark-up mx-[25px] mt-3"
             >
-              <li role="presentation">
+              <li role="presentation" class="flex items-center gap-2">
+                <a
+                  v-if="isMdScreen"
+                  href="#"
+                  class="relative flex items-center capitalize text-light dark:text-subtitle-dark"
+                  :class="{ active: activeTab === 'private-chat' }"
+                  @click.prevent="switchTab('private-chat')"
+                >
+                  Private Chat
+                </a>
+                <a
+                  v-if="!isMdScreen"
+                  href="#"
+                  class="relative flex items-center capitalize text-light dark:text-subtitle-dark"
+                  :class="{ active: activeTab === 'private-chat' }"
+                  @click.prevent="switchTab('private-chat')"
+                >
+                  Private
+                </a>
+                <span
+                  class="me-auto inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center align-baseline text-[10px] font-bold leading-none text-white group-[.active]:hidden"
+                >
+                  5
+                </span>
+              </li>
+              <li role="presentation" class="flex items-center gap-2">
                 <a
                   href="#"
-                  data-te-toggle="pill"
-                  data-te-target=".private-chat"
-                  role="tab"
-                  aria-controls="private-chat"
-                  aria-selected="true"
-                  data-te-nav-active
-                  class="relative flex items-center capitalize after:absolute ltr:after:left-0 rtl:after:right-0 after:bottom-0 after:h-[1px] after:w-full text-light dark:text-subtitle-dark [&.active]:text-primary 2xl:[&.active]:after:bg-primary [&.active]:dark:text-primary active"
-                >
-                  private chat
-                </a>
-              </li>
-              <li role="presentation">
-                <a
-                  href="#t"
-                  data-te-toggle="pill"
-                  data-te-target=".group-chat"
-                  role="tab"
-                  aria-controls="group-chat"
-                  aria-selected="false"
-                  class="relative flex items-center capitalize after:absolute ltr:after:left-0 rtl:after:right-0 after:bottom-0 after:h-[1px] after:w-full text-light dark:text-subtitle-dark [&.active]:text-primary 2xl:[&.active]:after:bg-primary [&.active]:dark:text-primary gap-[4px] group"
+                  class="relative flex items-center capitalize text-light dark:text-subtitle-dark"
+                  :class="{ active: activeTab === 'group-chat' }"
+                  @click.prevent="switchTab('group-chat')"
                 >
                   Group Chat
-                  <span
-                    class="me-auto inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center align-baseline text-[10px] font-bold leading-none text-white group-[.active]:hidden"
-                  >
-                    5
-                  </span>
                 </a>
-              </li>
-              <li role="presentation">
-                <a
-                  href="#"
-                  data-te-toggle="pill"
-                  data-te-target=".all-contacts"
-                  role="tab"
-                  aria-controls="all-contacts"
-                  aria-selected="false"
-                  class="relative flex items-center capitalize after:absolute ltr:after:left-0 rtl:after:right-0 after:bottom-0 after:h-[1px] after:w-full text-light dark:text-subtitle-dark [&.active]:text-primary 2xl:[&.active]:after:bg-primary [&.active]:dark:text-primary"
+                <span
+                  class="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center text-[10px] font-bold leading-none text-white group-[.active]:hidden"
                 >
-                  All Contacts
-                </a>
+                  5
+                </span>
               </li>
             </ul>
-            <!-- End nav -->
-            <!-- user chat List -->
-            <ul
-              id="private-chat"
-              role="tabpanel"
-              aria-labelledby="private-chat-tab"
-              data-te-tab-active=""
-              class="private-chat hidden opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
-            >
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t1.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Erin Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Jam nonumy eirmod tempor invidunt ut labore et
-                          dol...</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t2.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Saturday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Okay! Thank you</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t4.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Marshall Nichols
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Sunday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >It's me... can you hear me...!!</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Virgil Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Wednesday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >but I wan to party</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Pamela Wanda
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Oh yeah? well I enjoy a nice steak. how about
-                          you?</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >The strongest man in the world</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t12.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        DevOps Team
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Okay! Thank you</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        HR Management
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Outdoor Activities
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Learning Resources
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t8.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Off Topic
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t9.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Close Friends
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-            </ul>
-            <ul
-              id="group-chat"
-              role="tabpanel"
-              aria-labelledby="group-chat-tab"
-              class="group-chat hidden transition-opacity duration-150 ease-linear data-[te-tab-active]:block p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px] opacity-0"
-            >
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t1.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Erin Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Jam nonumy eirmod tempor invidunt ut labore et
-                          dol...</span
-                        >
+            <!-- End Nav -->
 
-                        <span
-                          class="inline-flex items-center justify-center min-w-[16px] h-4 text-white rounded-full bg-success dark:text-white/[.87 text-10"
-                          >3</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
+            <!-- Private Chat -->
+            <ul
+              v-show="activeTab === 'private-chat'"
+              class="private-chat p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
+            >
+              <li v-for="message in messages" :key="message.idMessage">
                 <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
+                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body"
                 >
                   <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
+                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px]"
                   >
                     <div
                       class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
                     >
                       <img
                         class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t2.jpg"
+                        :src="message.avatar"
+                        alt="Avatar"
                       />
                     </div>
                     <figcaption class="w-full -mt-1 text-start">
                       <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
+                        class="flex items-center justify-between mb-0.5 text-sm font-semibold"
                       >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
+                        {{ message.sender }}
+                        <span class="text-xs font-normal">{{
+                          message.date
+                        }}</span>
                       </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-
-                        <span
-                          class="inline-flex items-center justify-center min-w-[16px] h-4 text-white rounded-full bg-success dark:text-white/[.87 text-10"
-                          >2</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t4.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Marshall Nichols
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Virgil Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Pamela Wanda
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Oh yeah? well I enjoy a nice steak. how about
-                          you?</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t8.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Marshall Nichols
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t9.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Frontend Team
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t10.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Plugin Developers
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t11.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Backend Team
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t12.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        DevOps Team
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        HR Management
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Outdoor Activities
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Learning Resources
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t8.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Off Topic
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t9.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Close Friends
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
+                      <span class="text-body">{{ message.message }}</span>
                     </figcaption>
                   </figure>
                 </div>
               </li>
             </ul>
+
+            <!-- Group Chat -->
             <ul
-              id="all-contacts"
-              role="tabpanel"
-              aria-labelledby="all-contacts-tab"
-              class="all-contacts hidden opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
+              v-show="activeTab === 'group-chat'"
+              class="group-chat p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
             >
-              <li>
+              <li v-for="groupMessage in groupMessages" :key="groupMessage.id">
                 <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
+                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body"
                 >
                   <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
+                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px]"
                   >
                     <div
                       class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
                     >
                       <img
                         class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t1.jpg"
+                        :src="groupMessage.avatar"
+                        alt="Avatar"
                       />
                     </div>
                     <figcaption class="w-full -mt-1 text-start">
                       <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
+                        class="flex items-center justify-between mb-0.5 text-sm font-semibold"
                       >
-                        Erin Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
+                        {{ groupMessage.name }}
+                        <span class="text-xs font-normal">{{
+                          groupMessage.date
+                        }}</span>
                       </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Jam nonumy eirmod tempor invidunt ut labore et
-                          dol...</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t2.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Okay! Thank you</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t4.jpg"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Marshall Nichols
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >It's me... can you hear me...!!</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Virgil Gonzales
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >but I wan to party</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Pamela Wanda
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Oh yeah? well I enjoy a nice steak. how about
-                          you?</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Darryl Day
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >The strongest man in the world</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t12.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        DevOps Team
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                          >Okay! Thank you</span
-                        >
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t5.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        HR Management
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t6.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Outdoor Activities
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t7.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Learning Resources
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t8.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Off Topic
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
-                    </figcaption>
-                  </figure>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                >
-                  <figure
-                    class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                  >
-                    <div
-                      class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                    >
-                      <img
-                        class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                        src="../../assets/images/avatars/t9.png"
-                      />
-                    </div>
-                    <figcaption class="w-full -mt-1 text-start">
-                      <h1
-                        class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                      >
-                        Close Friends
-                        <span
-                          class="text-xs font-normal text-light dark:text-subtitle-dark"
-                          >Monday</span
-                        >
-                      </h1>
-                      <div class="flex items-center gap-[30px] justify-between">
-                        <span
-                          class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                        ></span>
-                      </div>
+                      <span class="text-body">{{ groupMessage.message }}</span>
                     </figcaption>
                   </figure>
                 </div>
@@ -2617,7 +1345,7 @@
         <!-- End Content -->
       </div>
     </div>
->
+    >
   </main>
   <!-- End: Main Content -->
 </template>

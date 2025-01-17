@@ -254,6 +254,7 @@ defineProps({
               <i class="uil uil-chat"></i>
             </span>
             <span class="capitalize title">e-Commerce</span>
+            <span class="text-gray-400">(Soon)</span>
             <span
               class="arrow-down absolute end-0 me-[0.8rem] ms-auto inline-flex items-center whitespace-nowrap rounded-full bg-success px-[0.65em] pb-[0.25em] pt-[0.30em] text-center align-baseline text-[10px] font-bold leading-none text-white group-[&.active]:hidden"
             >
