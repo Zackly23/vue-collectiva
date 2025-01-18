@@ -1,57 +1,122 @@
 <script setup>
+import axios from "axios";
 import { ref, onMounted, onUnmounted } from "vue";
 
 // State
 const activeTab = ref("private-chat");
 const isSidebarCollapse = ref(false);
 const isMdScreen = ref(false);
+const bodyChatContentType = ref('private-chat');
 
-const messages = [
-  {
-    idMessage: 1,
-    sender: "John Doe",
-    date: "2025-01-16",
-    message: "Hello, how are you?",
-    avatar: "../../assets/images/avatars/t1.jpg",
-  },
-  {
-    idMessage: 2,
-    sender: "Jane Doe",
-    date: "2025-01-16",
-    message: "I am fine, thank you!",
-    avatar: "../../assets/images/avatars/t2.jpg",
-  },
-];
+const userID = '513b1797-1a54-4188-a7c4-5e9d0732a2ff'
 
-const groupMessages = [
+const messages = ref();
+
+const groupMessages = ref();
+
+const chats = ref([
   {
     id: 1,
-    name: "Group 1",
-    date: "2025-01-16",
-    message: "Welcome to the group!",
-    avatar: "../../assets/images/avatars/t3.jpg",
+    sender: "John Doe",
+    avatar: "https://via.placeholder.com/46", // Gambar dummy
+    message: "Hi, how are you doing today?",
+    date: "2025-01-17 10:15 AM",
+    isSender: false,
+  },
+  {
+    id: 1,
+    sender: "John Doe",
+    avatar: "https://via.placeholder.com/46", // Gambar dummy
+    message: "Hi, How about go OUT?",
+    date: "2025-01-17 10:15 AM",
+    isSender: false,
   },
   {
     id: 2,
-    name: "Group 2",
-    date: "2025-01-16",
-    message: "Let’s discuss the project.",
-    avatar: "../../assets/images/avatars/t4.jpg",
+    sender: "You",
+    avatar: "https://via.placeholder.com/46",
+    message: "I'm good, thank you! What about you?",
+    date: "2025-01-17 10:16 AM",
+    isSender: true,
   },
-];
+  {
+    id: 3,
+    sender: "John Doe",
+    avatar: "https://via.placeholder.com/46",
+    message: "I'm doing great. Are we still on for the meeting later?",
+    date: "2025-01-17 10:17 AM",
+    isSender: false,
+  },
+  {
+    id: 4,
+    sender: "You",
+    avatar: "https://via.placeholder.com/46",
+    message: "Yes, I'll join the meeting at 2 PM.",
+    date: "2025-01-17 10:18 AM",
+    isSender: true,
+  },
+  {
+    id: 5,
+    sender: "John Doe",
+    avatar: "https://via.placeholder.com/46",
+    message: "Perfect. See you then!",
+    date: "2025-01-17 10:19 AM",
+    isSender: false,
+  },
+]);
 
 const sidebarCollapse = () => {
   isSidebarCollapse.value = !isSidebarCollapse.value;
-  console.log('Sidebar Collapse ', isSidebarCollapse.value)
+  console.log("Sidebar Collapse ", isSidebarCollapse.value);
 };
 
 // Fungsi untuk mengecek ukuran layar
 const checkScreenSize = () => {
   isMdScreen.value = window.matchMedia("(min-width: 989px)").matches;
-  if(isMdScreen.value) {
+  if (isMdScreen.value) {
     isSidebarCollapse.value = false;
   }
-  console.log('Screen Medium ',isMdScreen.value)
+  console.log("Screen Medium ", isMdScreen.value);
+};
+
+//GetMessages and replace
+const getChatMessage = async (messageType, key) => {
+  if (messageType == "private-chat") {
+    bodyChatContentType.value = 'private-chat';
+    const response = await axios.get(
+      "http://localhost:8000/api/v1/private-chat"
+    );
+    console.log("pri");
+    console.log(response);
+    const newChat = response.data.map((chat) => ({
+      id: chat.message_id,
+      sender: "You",
+      avatar: chat.avatar,
+      message: chat.message,
+      date: chat.created_at,
+      isSender: true,
+    }));
+
+    chats.value = newChat;
+  } else if (messageType == "group-chat") {
+    bodyChatContentType.value = 'group-chat';
+    console.log("key : ", key);
+    const response = await axios.get(
+      `http://localhost:8000/api/v1/testId/${key}`
+    );
+    console.log(response.data.chats);
+    const newChat = response.data.chats.map((chat) => ({
+      id: chat.chat_id,
+      sender: chat.sender_name,
+      avatar: chat.avatar,
+      message: chat.chat_text,
+      date: formattedDate(chat.chat_send_time),
+      isSender:
+        chat.sender_id == userID ? true : false,
+    }));
+
+    chats.value = newChat;
+  }
 };
 
 // Methods
@@ -59,8 +124,58 @@ const switchTab = (tab) => {
   activeTab.value = tab;
 };
 
+const formattedDate = (date) => {
+  return new Date(date).toISOString().split("T")[0];
+};
+
+// {
+//     idMessage: 1,
+//     sender: "John Doe",
+//     date: "2025-01-16",
+//     message: "Hello, how are you?",
+//     avatar: "../../assets/images/avatars/t1.jpg",
+//   },
+//
+const groupMessageList = async () => {
+  const response = await axios.get(
+    `http://localhost:8000/api/v1/test/${userID}`
+  );
+  console.log('group: ',response.data.group_chat);
+  const groupChatList = response.data.group_chats.map((gcl) => ({
+    groupChatId: gcl.group_chat_id,
+    groupName: gcl.group_chat_name,
+    date: formattedDate(gcl.latest_time_chat),
+    message: gcl.latest_chat,
+    avatar: gcl.avatar,
+  }));
+
+  groupMessages.value = groupChatList;
+  console.log("list: ", groupMessages.value);
+};
+
+const privateMessageList = async () => {
+  const response = await axios.get(
+    `http://localhost:8000/api/v1/test-private/${userID}`
+  );
+
+  console.log("priv: ", response.data);
+  const privateChatList = response.data.map((pcl) => ({
+    privateChatId: pcl.message_private_chat_id,
+    senderId: pcl,
+    senderName: pcl.sender_name,
+    date: formattedDate(pcl.latest_time_chat),
+    message: pcl.latest_chat,
+    avatar: pcl.avatar,
+  }));
+
+  messages.value = privateChatList;
+  console.log("list: ", messages.value);
+};
+
 // Set up event listener untuk resize
 onMounted(() => {
+  groupMessageList();
+  privateMessageList();
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
 });
@@ -224,7 +339,7 @@ onUnmounted(() => {
               v-show="activeTab === 'private-chat'"
               class="private-chat p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
             >
-              <li v-for="message in messages" :key="message.idMessage">
+              <li v-for="message in messages" :key="message.privateChatId">
                 <div
                   class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body"
                 >
@@ -240,11 +355,16 @@ onUnmounted(() => {
                         alt="Avatar"
                       />
                     </div>
-                    <figcaption class="w-full -mt-1 text-start">
+                    <figcaption
+                      @click="
+                        getChatMessage('private-chat', message.privateChatId)
+                      "
+                      class="w-full -mt-1 text-start cursor-pointer"
+                    >
                       <h1
                         class="flex items-center justify-between mb-0.5 text-sm font-semibold"
                       >
-                        {{ message.sender }}
+                        {{ message.senderName }}
                         <span class="text-xs font-normal">{{
                           message.date
                         }}</span>
@@ -261,7 +381,10 @@ onUnmounted(() => {
               v-show="activeTab === 'group-chat'"
               class="group-chat p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
             >
-              <li v-for="groupMessage in groupMessages" :key="groupMessage.id">
+              <li
+                v-for="groupMessage in groupMessages"
+                :key="groupMessage.groupChatId"
+              >
                 <div
                   class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body"
                 >
@@ -277,11 +400,16 @@ onUnmounted(() => {
                         alt="Avatar"
                       />
                     </div>
-                    <figcaption class="w-full -mt-1 text-start">
+                    <figcaption
+                      @click="
+                        getChatMessage('group-chat', groupMessage.groupChatId)
+                      "
+                      class="w-full -mt-1 text-start cursor-pointer"
+                    >
                       <h1
                         class="flex items-center justify-between mb-0.5 text-sm font-semibold"
                       >
-                        {{ groupMessage.name }}
+                        {{ groupMessage.groupName }}
                         <span class="text-xs font-normal">{{
                           groupMessage.date
                         }}</span>
@@ -397,902 +525,85 @@ onUnmounted(() => {
               </div>
               <!-- body -->
               <div
-                class="h-[479px] pt-[25px] relative overflow-x-hidden overflow-y-auto scrollbar chat-wrapper"
+                class="h-[479px] pt-[25px] relative overflow-x-hidden overflow-y-auto chat-wrapper scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
               >
-                <!-- item -->
+                <!-- Iterasi data chat -->
                 <div
-                  class="flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-start"
+                  v-for="(chat, index) in chats"
+                  :key="index"
+                  :class="[
+                    'flex w-full mb-[30px] px-[15px] last:mb-0',
+                    chat.isSender ? 'justify-end' : 'justify-start',
+                  ]"
                 >
-                  <div class="me-[15px]">
-                    <img
-                      class="min-w-[46px] h-[46px] rounded-full"
-                      src="../../assets/images/avatars/t1.jpg"
-                      alt="User chat"
-                    />
-                  </div>
-                  <div>
-                    <h6
-                      class="text-sm font-semibold text-dark dark:text-title-dark"
-                    >
-                      Erin Gonzales
-                      <span
-                        class="text-light dark:text-subtitle-dark text-xs font-normal mx-[15px]"
-                        >March 30, 2020</span
-                      >
-                    </h6>
-                    <div class="flex flex-wrap items-center gap-4">
-                      <p
-                        class="bg-primary dark:bg-box-dark-up dark:text-title-dark max-w-[670px] mt-[10px] px-5 py-[18px] rounded-[15px] rounded-br-0 text-base text-white"
-                      >
-                        Jam nonumy eirmod tempor invidunt ut labore et dolore
-                        magna aliquyam erat consetetur sadipscing elitr sed diam
-                        nonumy eirmod tempor invidunt ut labore et dolore magna
-                        aliquyam erat sed diam voluptua.
-                      </p>
-                      <div class="flex items-center gap-[15px]">
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="emoji11"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-smile"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                            aria-labelledby="emoji11"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/cool.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy2.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/shocked.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/like.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/heart.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="settings11"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-ellipsis-h"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                            aria-labelledby="settings11"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >Copy</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >edit</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >forward</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >remove</a
-                              >
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- item -->
-                <div
-                  class="relative mb-[30px] w-full text-center capitalize z-10 after:absolute after:top-1/2 after:-translate-y-1/2 ltr:after:left-0 rtl:after:right-0 after:bg-regular dark:after:bg-box-dark-up after:w-full after:h-[1px] after:-z-10"
-                >
-                  <span
-                    class="bg-white dark:bg-box-dark px-6 text-light dark:text-subtitle-dark text-[13px]"
-                    >7:57 PM</span
+                  <!-- Chat Bubble -->
+                  <div
+                    :class="[
+                      'flex items-center gap-4 max-w-[670px]',
+                      chat.isSender
+                        ? 'flex-row-reverse text-right'
+                        : 'flex-row text-left',
+                    ]"
                   >
-                </div>
-                <!-- item -->
-                <div
-                  class="flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-end"
-                >
-                  <div class="flex flex-wrap items-center justify-end gap-4">
-                    <span
-                      class="w-full text-xs font-normal text-light dark:text-subtitle-dark text-end"
-                      >March 30, 2020</span
-                    >
-                    <div class="flex items-center gap-[15px]">
-                      <div class="relative" data-te-dropdown-ref>
-                        <button
-                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                          type="button"
-                          id="emoji12"
-                          data-te-dropdown-toggle-ref
-                          aria-expanded="false"
-                        >
-                          <i class="uil uil-smile"></i>
-                        </button>
-                        <ul
-                          class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                          aria-labelledby="emoji12"
-                          data-te-dropdown-menu-ref
-                        >
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/cool.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/happy2.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/happy.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/shocked.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/like.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/heart.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="relative" data-te-dropdown-ref>
-                        <button
-                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                          type="button"
-                          id="settings12"
-                          data-te-dropdown-toggle-ref
-                          aria-expanded="false"
-                        >
-                          <i class="uil uil-ellipsis-h"></i>
-                        </button>
-                        <ul
-                          class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                          aria-labelledby="settings12"
-                          data-te-dropdown-menu-ref
-                        >
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >Copy</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >edit</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >forward</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >remove</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <p
-                      class="bg-section dark:bg-dark dark:text-title-dark max-w-[670px] mt-0 order-last px-5 py-[18px] rounded-[15px] rounded-br-0 text-base"
-                    >
-                      Oh! What is it?
-                    </p>
-                  </div>
-                </div>
-                <!-- item -->
-                <div
-                  class="flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-start"
-                >
-                  <div class="me-[15px]">
-                    <img
-                      class="min-w-[46px] h-[46px] rounded-full"
-                      src="../../assets/images/avatars/t1.jpg"
-                      alt="User chat"
-                    />
-                  </div>
-                  <div>
-                    <h6
-                      class="text-sm font-semibold text-dark dark:text-title-dark"
-                    >
-                      Erin Gonzales
-                    </h6>
-                    <div class="flex flex-wrap items-center gap-4">
+                    <!-- Avatar (hanya untuk penerima) -->
+                    <div v-if="!chat.isSender" class="me-[10px]">
                       <img
-                        class="p-5 mt-[10px] bg-deepBG dark:bg-box-dark-up rounded-10"
-                        src="../../assets/images/admin/admin-preview.png"
-                        alt="admin"
+                        class="w-[46px] h-[46px] rounded-full object-cover shadow-lg"
+                        src="../../assets/images/avatars/t1.jpg"
+                        alt="User chat"
                       />
-                      <div class="flex items-center gap-[15px]">
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="emoji13"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-smile"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                            aria-labelledby="emoji13"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/cool.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy2.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/shocked.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/like.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/heart.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="settings13"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-ellipsis-h"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                            aria-labelledby="settings13"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >Copy</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >edit</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >forward</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >remove</a
-                              >
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                </div>
-                <!-- item -->
-                <div
-                  class="flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-start"
-                >
-                  <div class="me-[15px]">
-                    <img
-                      class="min-w-[46px] h-[46px] rounded-full"
-                      src="../../assets/images/avatars/t1.jpg"
-                      alt="User chat"
-                    />
-                  </div>
-                  <div>
-                    <h6
-                      class="text-sm font-semibold text-dark dark:text-title-dark"
-                    >
-                      Erin Gonzales
-                      <span
-                        class="text-light dark:text-subtitle-dark text-xs font-normal mx-[15px]"
-                        >March 30, 2020</span
+
+                    <!-- Chat Content -->
+                    <div class="flex flex-col">
+                      <!-- Sender Name (hanya untuk penerima) -->
+                      <h6
+                        v-if="!chat.isSender"
+                        class="text-sm font-semibold text-gray-700 dark:text-gray-300"
                       >
-                    </h6>
-                    <div class="flex flex-wrap items-center gap-4">
+                        {{ chat.sender }}
+                      </h6>
+
+                      <!-- Chat Message -->
                       <p
-                        class="bg-primary dark:bg-box-dark-up dark:text-title-dark max-w-[670px] mt-[10px] px-5 py-[18px] rounded-[15px] rounded-br-0 text-base text-white"
+                        :class="[
+                          'px-5 py-[12px] text-base shadow-lg rounded-[15px]',
+                          chat.isSender
+                            ? 'bg-blue-500 text-white rounded-br-0'
+                            : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-bl-0',
+                        ]"
                       >
-                        HexaDash - Best Admin Dashboard Template
+                        {{ chat.message }}
                       </p>
-                      <div class="flex items-center gap-[15px]">
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="emoji14"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-smile"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                            aria-labelledby="emoji14"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/cool.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy2.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/shocked.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/like.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/heart.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="settings15"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-ellipsis-h"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                            aria-labelledby="settings15"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >Copy</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >edit</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >forward</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >remove</a
-                              >
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- item -->
-                <div
-                  class="flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-start"
-                >
-                  <div class="me-[15px]">
-                    <img
-                      class="min-w-[46px] h-[46px] rounded-full"
-                      src="../../assets/images/avatars/t1.jpg"
-                      alt="User chat"
-                    />
-                  </div>
-                  <div>
-                    <h6
-                      class="text-sm font-semibold text-dark dark:text-title-dark"
-                    >
-                      Erin Gonzales
+
+                      <!-- Chat Date -->
                       <span
-                        class="text-light dark:text-subtitle-dark text-xs font-normal mx-[15px]"
-                        >March 30, 2020</span
+                        class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                        :class="chat.isSender ? 'self-end' : 'self-start'"
                       >
-                    </h6>
-                    <div class="flex flex-wrap items-center gap-4">
-                      <p
-                        class="bg-primary dark:bg-box-dark-up dark:text-title-dark max-w-[670px] mt-[10px] px-5 py-[18px] rounded-[15px] rounded-br-0 text-base text-white"
+                        {{ chat.date }}
+                      </span>
+                    </div>
+
+                    <!-- Actions (Emoji & Options) untuk pengirim -->
+                    <div v-if="chat.isSender" class="flex gap-2 items-center">
+                      <button
+                        class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                        type="button"
                       >
-                        A creative, responsive and highly customizable admin
-                        template
-                      </p>
-                      <div class="flex items-center gap-[15px]">
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="emoji16"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-smile"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                            aria-labelledby="emoji16"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/cool.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy2.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/happy.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/shocked.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/like.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                            <li class="flex items-center">
-                              <button type="button" class="group">
-                                <img
-                                  class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                  src="../../assets/images/emoji/heart.png"
-                                  alt="emotions"
-                                />
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
-                        <div class="relative" data-te-dropdown-ref>
-                          <button
-                            class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                            type="button"
-                            id="settings17"
-                            data-te-dropdown-toggle-ref
-                            aria-expanded="false"
-                          >
-                            <i class="uil uil-ellipsis-h"></i>
-                          </button>
-                          <ul
-                            class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                            aria-labelledby="settings17"
-                            data-te-dropdown-menu-ref
-                          >
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >Copy</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >edit</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >forward</a
-                              >
-                            </li>
-                            <li>
-                              <a
-                                class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                                href="#"
-                                data-te-dropdown-item-ref=""
-                                >remove</a
-                              >
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
+                        <i class="uil uil-smile text-xl"></i>
+                      </button>
+                      <button
+                        class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                        type="button"
+                      >
+                        <i class="uil uil-ellipsis-h text-xl"></i>
+                      </button>
                     </div>
-                  </div>
-                </div>
-                <!-- item -->
-                <div
-                  class="chat-last-message flex w-full mb-[30px] ssm:px-[25px] px-[15px] last:mb-0 justify-end"
-                >
-                  <div class="flex flex-wrap items-center justify-end gap-4">
-                    <span
-                      class="w-full text-xs font-normal text-light dark:text-subtitle-dark text-end"
-                      >March 30, 2020</span
-                    >
-                    <div class="flex items-center gap-[15px]">
-                      <div class="relative" data-te-dropdown-ref>
-                        <button
-                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                          type="button"
-                          id="emoji18"
-                          data-te-dropdown-toggle-ref
-                          aria-expanded="false"
-                        >
-                          <i class="uil uil-smile"></i>
-                        </button>
-                        <ul
-                          class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:flex item-center dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
-                          aria-labelledby="emoji18"
-                          data-te-dropdown-menu-ref
-                        >
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/cool.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/happy2.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/happy.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/shocked.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/like.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                          <li class="flex items-center">
-                            <button type="button" class="group">
-                              <img
-                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
-                                src="../../assets/images/emoji/heart.png"
-                                alt="emotions"
-                              />
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="relative" data-te-dropdown-ref>
-                        <button
-                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
-                          type="button"
-                          id="settings18"
-                          data-te-dropdown-toggle-ref
-                          aria-expanded="false"
-                        >
-                          <i class="uil uil-ellipsis-h"></i>
-                        </button>
-                        <ul
-                          class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden border-none bg-white bg-clip-padding text-left text-base [&[data-te-dropdown-show]]:block dark:bg-box-dark-up shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md gap-[8px]"
-                          aria-labelledby="settings18"
-                          data-te-dropdown-menu-ref
-                        >
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >Copy</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >edit</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >forward</a
-                            >
-                          </li>
-                          <li>
-                            <a
-                              class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                              href="#"
-                              data-te-dropdown-item-ref=""
-                              >remove</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <p
-                      class="bg-section dark:bg-dark dark:text-title-dark max-w-[670px] mt-0 order-last px-5 py-[18px] rounded-[15px] rounded-br-0 text-base"
-                    >
-                      Wow, that was cool! What was that?
-                    </p>
                   </div>
                 </div>
               </div>
+
               <!-- footer -->
               <div
                 class="relative flex items-center gap-[15px] max-sm:gap-[15px] max-sm:justify-center max-sm:flex-wrap py-[20px] mx-[25px]"
