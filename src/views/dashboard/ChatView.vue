@@ -1,69 +1,85 @@
 <script setup>
 import axios from "axios";
-import { ref, onMounted, onUnmounted } from "vue";
-
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import Echo from "laravel-echo";
 // State
 const activeTab = ref("private-chat");
 const isSidebarCollapse = ref(false);
 const isMdScreen = ref(false);
-const bodyChatContentType = ref('private-chat');
-
-const userID = '513b1797-1a54-4188-a7c4-5e9d0732a2ff'
+const isChatBodyDropdown = ref(false);
+const activeChatId = ref();
+const messageText = ref("");
+const userID = "480fcad0-aec0-4269-8fe3-8fea6dc0a99c";
 
 const messages = ref();
 
 const groupMessages = ref();
 
-const chats = ref([
-  {
-    id: 1,
-    sender: "John Doe",
-    avatar: "https://via.placeholder.com/46", // Gambar dummy
-    message: "Hi, how are you doing today?",
-    date: "2025-01-17 10:15 AM",
-    isSender: false,
-  },
-  {
-    id: 1,
-    sender: "John Doe",
-    avatar: "https://via.placeholder.com/46", // Gambar dummy
-    message: "Hi, How about go OUT?",
-    date: "2025-01-17 10:15 AM",
-    isSender: false,
-  },
-  {
-    id: 2,
-    sender: "You",
-    avatar: "https://via.placeholder.com/46",
-    message: "I'm good, thank you! What about you?",
-    date: "2025-01-17 10:16 AM",
-    isSender: true,
-  },
-  {
-    id: 3,
-    sender: "John Doe",
-    avatar: "https://via.placeholder.com/46",
-    message: "I'm doing great. Are we still on for the meeting later?",
-    date: "2025-01-17 10:17 AM",
-    isSender: false,
-  },
-  {
-    id: 4,
-    sender: "You",
-    avatar: "https://via.placeholder.com/46",
-    message: "Yes, I'll join the meeting at 2 PM.",
-    date: "2025-01-17 10:18 AM",
-    isSender: true,
-  },
-  {
-    id: 5,
-    sender: "John Doe",
-    avatar: "https://via.placeholder.com/46",
-    message: "Perfect. See you then!",
-    date: "2025-01-17 10:19 AM",
-    isSender: false,
-  },
-]);
+const chats = ref();
+const chatWrapper = ref(null);
+
+var channel = window.Echo.channel("chat-channel");
+
+channel.listen(".chat-event", function (data) {
+  console.log("from channel:", data);
+
+  const chat = {
+    id: data.chats.user_id, // Sesuaikan dengan field yang relevan
+    sender: data.chats.sender_name, // Sesuaikan dengan field yang relevan
+    avatar: chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
+    message: data.chats.chat_text,
+    date: formattedDate(data.chats.chat_send_time),
+    isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
+  };
+
+  // Tambahkan chat baru ke chats
+  chats.value.push(chat);
+
+  scrollToBottom();
+
+  console.log(chats.value);
+});
+
+const bodyChatContentType = ref({
+  key: "private-chat",
+  keyCount: 0,
+});
+
+const scrollToBottom = async () => {
+  if (chatWrapper.value) {
+    await nextTick(); // Tunggu DOM selesai di-render
+    chatWrapper.value.scrollTop = 2 * chatWrapper.value.scrollHeight;
+  }
+};
+
+// Daftar emoji
+const emojis = [
+  "../../assets/images/emoji/cool.png",
+  "../../assets/images/emoji/happy.png",
+  "../../assets/images/emoji/like.png",
+  "../../assets/images/emoji/shocked.png",
+  // '/path/to/emoji3.png',
+];
+
+// State untuk melacak dropdown yang aktif
+const activeEmojiDropdown = ref(null); // Untuk dropdown emoji
+const activeEditorDropdown = ref(null); // Untuk dropdown editor
+
+// Toggle dropdown emoji
+function toggleEmoji(chatId) {
+  activeEmojiDropdown.value =
+    activeEmojiDropdown.value === chatId ? null : chatId;
+}
+
+// Toggle dropdown editor
+function toggleEditor(chatId) {
+  activeEditorDropdown.value =
+    activeEditorDropdown.value === chatId ? null : chatId;
+}
+
+const bodyChatDropfdown = () => {
+  isChatBodyDropdown.value = !isChatBodyDropdown.value;
+};
 
 const sidebarCollapse = () => {
   isSidebarCollapse.value = !isSidebarCollapse.value;
@@ -79,30 +95,21 @@ const checkScreenSize = () => {
   console.log("Screen Medium ", isMdScreen.value);
 };
 
+//Leave Group Chat
+const leaveGroupChat = async () => {
+  const response = await axios.delete(
+    `http://localhost:8000/api/v1/test-delete-user-group/${userID}/${activeChatId.value}`
+  );
+
+  console.log(response.data.message);
+  window.location.reload();
+};
+
 //GetMessages and replace
 const getChatMessage = async (messageType, key) => {
   if (messageType == "private-chat") {
-    bodyChatContentType.value = 'private-chat';
     const response = await axios.get(
-      "http://localhost:8000/api/v1/private-chat"
-    );
-    console.log("pri");
-    console.log(response);
-    const newChat = response.data.map((chat) => ({
-      id: chat.message_id,
-      sender: "You",
-      avatar: chat.avatar,
-      message: chat.message,
-      date: chat.created_at,
-      isSender: true,
-    }));
-
-    chats.value = newChat;
-  } else if (messageType == "group-chat") {
-    bodyChatContentType.value = 'group-chat';
-    console.log("key : ", key);
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/testId/${key}`
+      `http://localhost:8000/api/v1/test-private-id/${userID}/${key}`
     );
     console.log(response.data.chats);
     const newChat = response.data.chats.map((chat) => ({
@@ -111,36 +118,96 @@ const getChatMessage = async (messageType, key) => {
       avatar: chat.avatar,
       message: chat.chat_text,
       date: formattedDate(chat.chat_send_time),
-      isSender:
-        chat.sender_id == userID ? true : false,
+      isSender: chat.sender_id == userID ? true : false,
+    }));
+
+    chats.value = newChat;
+  } else if (messageType == "group-chat") {
+    console.log("key : ", key);
+    const response = await axios.get(
+      `http://localhost:8000/api/v1/test-group-id/${key}`
+    );
+    console.log(response.data.chats);
+    const newChat = response.data.chats.map((chat) => ({
+      id: chat.chat_id,
+      sender: chat.sender_name,
+      avatar: chat.avatar,
+      message: chat.chat_text,
+      date: formattedDate(chat.chat_send_time),
+      isSender: chat.sender_id == userID ? true : false,
     }));
 
     chats.value = newChat;
   }
+
+  activeChatId.value = key;
+};
+
+//Initial BodyChatContent
+const initialBodyChat = async () => {
+  const response = await axios.get(
+    `http://localhost:8000/api/v1/testbodychat/${userID}/private-chat`
+  );
+
+  console.log(response.data);
+
+  const bodyContent = response.data.chats.map((chat) => ({
+    id: chat.chat_id,
+    sender: chat.sender_name,
+    avatar: chat.avatar,
+    message: chat.chat_text,
+    date: formattedDate(chat.chat_send_time),
+    isSender: chat.sender_id == userID ? true : false,
+  }));
+
+  chats.value = bodyContent;
+  activeChatId.value = response.data.chat_id;
 };
 
 // Methods
-const switchTab = (tab) => {
+const switchTab = async (tab) => {
   activeTab.value = tab;
+  isChatBodyDropdown.value = false;
+  console.log("bodyContent key : ", bodyChatContentType.value.key);
+
+  try {
+    const response = await axios.get(
+      `http://localhost:8000/api/v1/testbodychat/${userID}/${tab}`
+    );
+
+    console.log("switch tab: ", response.data);
+
+    const bodyContent = response.data.chats.map((chat) => ({
+      id: chat.chat_id,
+      sender: chat.sender_name,
+      avatar: chat.avatar,
+      message: chat.chat_text,
+      date: formattedDate(chat.chat_send_time),
+      isSender: chat.sender_id == userID ? true : false,
+    }));
+
+    chats.value = bodyContent;
+    activeChatId.value = response.data.chat_id;
+  } catch (error) {
+    console.error("Error sending data:", error.response?.data || error.message);
+  }
+
+  // if (bodyChatContentType.value.key == "group-chat") {
+  //   bodyChatContentType.value.key = "private-chat";
+  // } else if (bodyChatContentType.value.key == "private-chat") {
+  //   bodyChatContentType.value.key = "group-chat";
+  // }
 };
 
 const formattedDate = (date) => {
   return new Date(date).toISOString().split("T")[0];
 };
 
-// {
-//     idMessage: 1,
-//     sender: "John Doe",
-//     date: "2025-01-16",
-//     message: "Hello, how are you?",
-//     avatar: "../../assets/images/avatars/t1.jpg",
-//   },
-//
 const groupMessageList = async () => {
   const response = await axios.get(
     `http://localhost:8000/api/v1/test/${userID}`
   );
-  console.log('group: ',response.data.group_chat);
+  console.log("group: ", response.data);
   const groupChatList = response.data.group_chats.map((gcl) => ({
     groupChatId: gcl.group_chat_id,
     groupName: gcl.group_chat_name,
@@ -159,9 +226,9 @@ const privateMessageList = async () => {
   );
 
   console.log("priv: ", response.data);
-  const privateChatList = response.data.map((pcl) => ({
+  const privateChatList = response.data.private_chat.map((pcl) => ({
     privateChatId: pcl.message_private_chat_id,
-    senderId: pcl,
+    senderId: pcl.sender_id,
     senderName: pcl.sender_name,
     date: formattedDate(pcl.latest_time_chat),
     message: pcl.latest_chat,
@@ -172,8 +239,70 @@ const privateMessageList = async () => {
   console.log("list: ", messages.value);
 };
 
+const sendMessage = async () => {
+  if (activeTab.value == "group-chat") {
+    console.log("send data to group chat");
+    try {
+      console.log("userid : ", userID, "dan sender : ", activeChatId.value);
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/test-send-group/${activeChatId.value}`, // Pastikan userID valid
+        {
+          sender_id: userID, // ID pengirim
+          group_chat_text: messageText.value, // Konsisten dengan key di server
+          media_path: "localhost::4113", // Path media
+        },
+        {
+          headers: {
+            "Content-Type": "application/json", // Perbaikan pada huruf kecil
+          },
+        }
+      );
+
+      console.log(response.data); // Log respons dari server
+      console.log("Active key: ", activeChatId.value); // Log active key
+    } catch (error) {
+      console.error(
+        "Error sending data:",
+        error.response?.data || error.message
+      );
+    }
+    messageText.value = "";
+
+    console.log("active key : ", activeChatId.value);
+  } else if (activeTab.value == "private-chat") {
+    console.log("Send data to private chat");
+
+    try {
+      console.log("userid : ", userID, "dan sender : ", activeChatId.value);
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/test-send-private/${activeChatId.value}`, // Pastikan userID valid
+        {
+          sender_id: userID, // ID pengirim
+          private_chat_text: messageText.value, // Konsisten dengan key di server
+          media_path: "localhost::4113", // Path media
+        },
+        {
+          headers: {
+            "Content-Type": "application/json", // Perbaikan pada huruf kecil
+          },
+        }
+      );
+
+      console.log(response.data); // Log respons dari server
+      console.log("Active key: ", activeChatId.value); // Log active key
+    } catch (error) {
+      console.error(
+        "Error sending data:",
+        error.response?.data || error.message
+      );
+    }
+    messageText.value = "";
+  }
+};
+
 // Set up event listener untuk resize
 onMounted(() => {
+  initialBodyChat();
   groupMessageList();
   privateMessageList();
   checkScreenSize();
@@ -339,7 +468,7 @@ onUnmounted(() => {
               v-show="activeTab === 'private-chat'"
               class="private-chat p-0 max-h-[535px] relative overflow-x-hidden overflow-y-auto scrollbar pt-[16px]"
             >
-              <li v-for="message in messages" :key="message.privateChatId">
+              <li v-for="message in messages" :key="message.senderId">
                 <div
                   class="group relative block w-full px-[25px] sm:py-3.5 max-sm:py-1.5 text-body"
                 >
@@ -356,9 +485,7 @@ onUnmounted(() => {
                       />
                     </div>
                     <figcaption
-                      @click="
-                        getChatMessage('private-chat', message.privateChatId)
-                      "
+                      @click="getChatMessage('private-chat', message.senderId)"
                       class="w-full -mt-1 text-start cursor-pointer"
                     >
                       <h1
@@ -479,6 +606,7 @@ onUnmounted(() => {
                   </div>
                   <div class="relative" data-te-dropdown-ref>
                     <button
+                      @click="bodyChatDropfdown"
                       class="text-[18px] text-light dark:text-subtitle-dark"
                       type="button"
                       id="inboxEllipsis"
@@ -488,17 +616,28 @@ onUnmounted(() => {
                       <i class="uil uil-ellipsis-v"></i>
                     </button>
                     <ul
-                      class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block"
+                      :class="{ hidden: !isChatBodyDropdown }"
+                      class="absolute z-[1000] ltr:float-left rtl:float-right m-0 right-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block"
                       aria-labelledby="inboxEllipsis"
                       data-te-dropdown-menu-ref
                     >
-                      <li>
+                      <li v-if="activeTab == 'group-chat'">
+                        <a
+                          @click="leaveGroupChat"
+                          class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up gap-[6px]"
+                          href="#"
+                          data-te-dropdown-item-ref
+                        >
+                          <i class="uil uil-users-alt"></i> Leave group chat
+                        </a>
+                      </li>
+                      <li v-else-if="activeTab == 'private-chat'">
                         <a
                           class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up gap-[6px]"
                           href="#"
                           data-te-dropdown-item-ref
                         >
-                          <i class="uil uil-users-alt"></i> create new group
+                          <i class="uil uil-users-alt"></i> Block user
                         </a>
                       </li>
                       <li>
@@ -507,7 +646,7 @@ onUnmounted(() => {
                           href="#"
                           data-te-dropdown-item-ref
                         >
-                          <i class="uil uil-trash-alt"></i> Delete conversation
+                          <i class="uil uil-trash-alt"></i> Mute notification
                         </a>
                       </li>
                       <li>
@@ -516,7 +655,7 @@ onUnmounted(() => {
                           href="#"
                           data-te-dropdown-item-ref
                         >
-                          <i class="uil uil-ban"></i> Block and report
+                          <i class="uil uil-ban"></i> Report
                         </a>
                       </li>
                     </ul>
@@ -525,6 +664,8 @@ onUnmounted(() => {
               </div>
               <!-- body -->
               <div
+                ref="chatWrapper"
+                style="scroll-behavior: smooth"
                 class="h-[479px] pt-[25px] relative overflow-x-hidden overflow-y-auto chat-wrapper scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
               >
                 <!-- Iterasi data chat -->
@@ -549,7 +690,7 @@ onUnmounted(() => {
                     <div v-if="!chat.isSender" class="me-[10px]">
                       <img
                         class="w-[46px] h-[46px] rounded-full object-cover shadow-lg"
-                        src="../../assets/images/avatars/t1.jpg"
+                        :src="chat.avatar"
                         alt="User chat"
                       />
                     </div>
@@ -587,23 +728,109 @@ onUnmounted(() => {
 
                     <!-- Actions (Emoji & Options) untuk pengirim -->
                     <div v-if="chat.isSender" class="flex gap-2 items-center">
-                      <button
-                        class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                        type="button"
-                      >
-                        <i class="uil uil-smile text-xl"></i>
-                      </button>
-                      <button
-                        class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                        type="button"
-                      >
-                        <i class="uil uil-ellipsis-h text-xl"></i>
-                      </button>
+                      <!-- Dropdown Emoji -->
+                      <div class="relative">
+                        <button
+                          @click="toggleEmoji(chat.id)"
+                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
+                        >
+                          <i class="uil uil-smile"></i>
+                        </button>
+                        <ul
+                          v-if="activeEmojiDropdown === chat.id"
+                          class="absolute z-[1000] right-0 m-0 min-w-max list-none flex items-center overflow-hidden border-none bg-white bg-clip-padding text-left text-base dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
+                        >
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/cool.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/happy2.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/happy.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/shocked.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/like.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                          <li class="flex items-center">
+                            <button type="button" class="group">
+                              <img
+                                class="group-hover:scale-[1.3] min-w-25px] max-w-[25px] transition-all duration-300 ease-linear"
+                                src="../../assets/images/emoji/heart.png"
+                                alt="emotions"
+                              />
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <!-- Dropdown Actions -->
+                      <div class="relative">
+                        <button
+                          @click="toggleEditor(chat.id)"
+                          class="text-[18px] text-light-extra dark:text-subtitle-dark"
+                        >
+                          <i class="uil uil-ellipsis-h"></i>
+                        </button>
+                        <ul
+                          v-if="activeEditorDropdown === chat.id"
+                          class="absolute z-[1000] right-0 m-0 min-w-max list-none bg-white dark:bg-box-dark-up py-2 shadow-md rounded-md gap-[8px]"
+                        >
+                          <li>
+                            <a href="#" class="block px-4 py-2 text-sm">Copy</a>
+                          </li>
+                          <li>
+                            <a href="#" class="block px-4 py-2 text-sm">Edit</a>
+                          </li>
+                          <li>
+                            <a href="#" class="block px-4 py-2 text-sm"
+                              >Forward</a
+                            >
+                          </li>
+                          <li>
+                            <a href="#" class="block px-4 py-2 text-sm"
+                              >Remove</a
+                            >
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
               <!-- footer -->
               <div
                 class="relative flex items-center gap-[15px] max-sm:gap-[15px] max-sm:justify-center max-sm:flex-wrap py-[20px] mx-[25px]"
@@ -613,38 +840,56 @@ onUnmounted(() => {
                 >
                   <i
                     class="uil uil-smile text-[20px] text-[#8C90A4] dark:text-subtitle-dark"
+                    aria-hidden="true"
                   ></i>
                   <input
+                    v-model="messageText"
+                    @keyup.enter="sendMessage"
                     type="text"
                     placeholder="Type a message..."
                     class="w-full bg-transparent h-[68px] text-[16px] text-dark dark:text-title-dark outline-none shadow-none border-none dark:placeholder-shown:text-title-dark"
+                    aria-label="Type a message"
                   />
                 </div>
                 <div class="flex items-center gap-2">
-                  <a
-                    href="#"
+                  <!-- Button for camera -->
+                  <button
+                    type="button"
                     class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full"
+                    aria-label="Attach photo"
                   >
                     <i
                       class="uil uil-camera text-[18px] text-light dark:text-subtitle-dark"
+                      aria-hidden="true"
                     ></i>
-                  </a>
-                  <a
-                    href="#"
+                  </button>
+
+                  <!-- Button for link -->
+                  <button
+                    type="button"
                     class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full"
+                    aria-label="Attach link"
                   >
                     <i
                       class="uil uil-link text-[18px] text-light dark:text-subtitle-dark"
+                      aria-hidden="true"
                     ></i>
-                  </a>
-                  <a
-                    href="#"
+                  </button>
+
+                  <!-- Button for send message -->
+                  <button
+                    @click="sendMessage"
+                    type="button"
                     class="flex items-center justify-center bg-primary w-[50px] h-[50px] rounded-full text-white dark:text-title-dark"
                     data-te-ripple-init=""
                     data-te-ripple-color="light"
+                    aria-label="Send message"
                   >
-                    <i class="uil uil-message text-[18px] text-white"></i>
-                  </a>
+                    <i
+                      class="uil uil-message text-[18px] text-white"
+                      aria-hidden="true"
+                    ></i>
+                  </button>
                 </div>
               </div>
             </div>

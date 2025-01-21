@@ -5,6 +5,7 @@ import "./index.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import VCalendar from "v-calendar";
 import "v-calendar/style.css";
+import './echo.js';
 
 const app = createApp(App);
 
