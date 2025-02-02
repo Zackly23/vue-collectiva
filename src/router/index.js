@@ -7,6 +7,7 @@ import ProjectView from "@/views/dashboard/ProjectView.vue";
 import ChatView from "@/views/dashboard/ChatView.vue";
 import CalenderView from "@/views/dashboard/CalendarView.vue";
 import DashboardView from "@/views/dashboard/DashboardView.vue";
+import ProjectDetailView from "@/views/dashboard/ProjectDetailView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,6 +42,11 @@ const router = createRouter({
         path: 'project',
         name: 'dashboard-project',
         component: ProjectView
+      },
+      {
+        path: 'project/:projectid',
+        name: 'projetct-detail',
+        component: ProjectDetailView
       },
       {
         path: 'chat',

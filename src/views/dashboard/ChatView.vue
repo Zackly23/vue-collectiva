@@ -1,7 +1,11 @@
 <script setup>
 import axios from "axios";
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick, onBeforeUnmount } from "vue";
 import Echo from "laravel-echo";
+import EmojiPicker from "vue3-emoji-picker";
+
+import "vue3-emoji-picker/css";
+
 // State
 const activeTab = ref("private-chat");
 const isSidebarCollapse = ref(false);
@@ -9,7 +13,15 @@ const isMdScreen = ref(false);
 const isChatBodyDropdown = ref(false);
 const activeChatId = ref();
 const messageText = ref("");
-const userID = "480fcad0-aec0-4269-8fe3-8fea6dc0a99c";
+const isLoading = ref(false);
+const chatNameHeader = ref("");
+const showEmoji = ref(false);
+const fileInput = ref(null);
+const selectedFile = ref(null);
+// Reactive state for image preview
+const imagePreview = ref(null);
+
+const userID = "bedd8be1-a76b-4618-bc71-44ca080e22cf";
 
 const messages = ref();
 
@@ -18,9 +30,10 @@ const groupMessages = ref();
 const chats = ref();
 const chatWrapper = ref(null);
 
-var channel = window.Echo.channel("chat-channel");
+const storeChatChannel = window.Echo.channel("chat-channel");
+const deleteChatChaneel = window.Echo.channel("chat-delete-channel");
 
-channel.listen(".chat-event", function (data) {
+storeChatChannel.listen(".chat-event", function (data) {
   console.log("from channel:", data);
 
   const chat = {
@@ -28,7 +41,8 @@ channel.listen(".chat-event", function (data) {
     sender: data.chats.sender_name, // Sesuaikan dengan field yang relevan
     avatar: chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
     message: data.chats.chat_text,
-    date: formattedDate(data.chats.chat_send_time),
+    image_path: "http://localhost:8000" + data.chats.image_path,
+    date: data.chats.chat_send_time,
     isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
   };
 
@@ -38,6 +52,17 @@ channel.listen(".chat-event", function (data) {
   scrollToBottom();
 
   console.log(chats.value);
+});
+
+deleteChatChaneel.listen(".chat-delete-event", function (data) {
+  console.log("from channel:", data.chat_id);
+
+  const chatId = data.chat_id;
+
+  // Hapus chat baru dari chats
+  chats.value = chats.value.filter((chat) => chat.id !== chatId);
+
+  console.log("delete channel ", chats.value);
 });
 
 const bodyChatContentType = ref({
@@ -52,30 +77,33 @@ const scrollToBottom = async () => {
   }
 };
 
-// Daftar emoji
-const emojis = [
-  "../../assets/images/emoji/cool.png",
-  "../../assets/images/emoji/happy.png",
-  "../../assets/images/emoji/like.png",
-  "../../assets/images/emoji/shocked.png",
-  // '/path/to/emoji3.png',
-];
-
 // State untuk melacak dropdown yang aktif
 const activeEmojiDropdown = ref(null); // Untuk dropdown emoji
 const activeEditorDropdown = ref(null); // Untuk dropdown editor
 
 // Toggle dropdown emoji
 function toggleEmoji(chatId) {
+  console.log(chats.value);
   activeEmojiDropdown.value =
     activeEmojiDropdown.value === chatId ? null : chatId;
+  activeEditorDropdown.value = null;
 }
 
 // Toggle dropdown editor
 function toggleEditor(chatId) {
   activeEditorDropdown.value =
     activeEditorDropdown.value === chatId ? null : chatId;
+  activeEmojiDropdown.value = null;
 }
+
+const onSelectEmoji = (emoji) => {
+  console.log(emoji);
+  messageText.value += emoji.i;
+};
+
+const showEmojiPicker = () => {
+  showEmoji.value = !showEmoji.value;
+};
 
 const bodyChatDropfdown = () => {
   isChatBodyDropdown.value = !isChatBodyDropdown.value;
@@ -95,6 +123,51 @@ const checkScreenSize = () => {
   console.log("Screen Medium ", isMdScreen.value);
 };
 
+//Copy to clipboard
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    // alert("Text copied to clipboard!");
+  } catch (err) {
+    console.error("Failed to copy text: ", err);
+  }
+};
+
+// Trigger the file input dialog
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
+};
+
+// Handle the file upload
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    if (!file.type.startsWith("image/")) {
+      alert("File yang diunggah harus berupa gambar.");
+      return;
+    }
+
+    selectedFile.value = file;
+
+    // Create a preview of the selected image
+    const reader = new FileReader();
+    reader.onload = () => {
+      imagePreview.value = reader.result; // Set the base64 data URL for the preview
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+// Clear the image preview
+const clearPreview = () => {
+  imagePreview.value = null;
+  if (fileInput.value) {
+    fileInput.value.value = ""; // Reset the file input value
+  }
+};
+
 //Leave Group Chat
 const leaveGroupChat = async () => {
   const response = await axios.delete(
@@ -105,39 +178,75 @@ const leaveGroupChat = async () => {
   window.location.reload();
 };
 
+//Delete Message
+const deleteMessage = async (key) => {
+  if (activeTab.value == "private-chat") {
+    try {
+      const response = await axios.delete(
+        `http://localhost:8000/api/v1/test-delete-private/${userID}/${key}`
+      );
+
+      console.log(response.data.message);
+    } catch (error) {
+      console.error(
+        "Error sending data:",
+        error.response?.data || error.message
+      );
+    }
+  } else if (activeTab.value == "group-chat") {
+    console.log("delete group chat by id");
+    try {
+      const response = await axios.delete(
+        `http://localhost:8000/api/v1/test-delete-group/${userID}/${key}`
+      );
+
+      console.log(response.data.message);
+    } catch (error) {
+      console.error(
+        "Error sending data:",
+        error.response?.data || error.message
+      );
+    }
+  }
+};
+
 //GetMessages and replace
 const getChatMessage = async (messageType, key) => {
   if (messageType == "private-chat") {
     const response = await axios.get(
       `http://localhost:8000/api/v1/test-private-id/${userID}/${key}`
     );
-    console.log(response.data.chats);
+    console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
       id: chat.chat_id,
       sender: chat.sender_name,
       avatar: chat.avatar,
       message: chat.chat_text,
-      date: formattedDate(chat.chat_send_time),
+      image_path: "http://localhost:8000" + chat.image_path,
+      date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
     }));
 
     chats.value = newChat;
+    chatNameHeader.value = response.data.chat_name;
   } else if (messageType == "group-chat") {
     console.log("key : ", key);
     const response = await axios.get(
       `http://localhost:8000/api/v1/test-group-id/${key}`
     );
-    console.log(response.data.chats);
+    console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
       id: chat.chat_id,
       sender: chat.sender_name,
       avatar: chat.avatar,
       message: chat.chat_text,
-      date: formattedDate(chat.chat_send_time),
+      image_path: "http://localhost:8000" + chat.image_path,
+      date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
     }));
 
     chats.value = newChat;
+    chatNameHeader.value = response.data.chat_name;
   }
 
   activeChatId.value = key;
@@ -149,19 +258,22 @@ const initialBodyChat = async () => {
     `http://localhost:8000/api/v1/testbodychat/${userID}/private-chat`
   );
 
-  console.log(response.data);
+  console.log("initial : ", response.data);
 
   const bodyContent = response.data.chats.map((chat) => ({
     id: chat.chat_id,
     sender: chat.sender_name,
     avatar: chat.avatar,
     message: chat.chat_text,
-    date: formattedDate(chat.chat_send_time),
+    image_path: "http://localhost:8000" + chat.image_path,
+    date: chat.chat_send_time,
     isSender: chat.sender_id == userID ? true : false,
   }));
 
   chats.value = bodyContent;
+  console.log("chat id : ", response.data);
   activeChatId.value = response.data.chat_id;
+  chatNameHeader.value = response.data.chat_name;
 };
 
 // Methods
@@ -177,17 +289,24 @@ const switchTab = async (tab) => {
 
     console.log("switch tab: ", response.data);
 
-    const bodyContent = response.data.chats.map((chat) => ({
-      id: chat.chat_id,
-      sender: chat.sender_name,
-      avatar: chat.avatar,
-      message: chat.chat_text,
-      date: formattedDate(chat.chat_send_time),
-      isSender: chat.sender_id == userID ? true : false,
-    }));
+    if (response.data.chats == null) {
+      chats.value = null;
+    } else {
+      const bodyContent = response.data.chats.map((chat) => ({
+        id: chat.chat_id,
+        sender: chat.sender_name,
+        avatar: chat.avatar,
+        message: chat.chat_text,
+        image_path: "http://localhost:8000" + chat.image_path,
+        date: chat.chat_send_time,
+        isSender: chat.sender_id == userID ? true : false,
+      }));
 
-    chats.value = bodyContent;
-    activeChatId.value = response.data.chat_id;
+      console.log("body cont ", bodyContent);
+      chats.value = bodyContent;
+      activeChatId.value = response.data.chat_id;
+      chatNameHeader.value = response.data.chat_name;
+    }
   } catch (error) {
     console.error("Error sending data:", error.response?.data || error.message);
   }
@@ -200,7 +319,30 @@ const switchTab = async (tab) => {
 };
 
 const formattedDate = (date) => {
-  return new Date(date).toISOString().split("T")[0];
+  const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const bulan = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+
+  const d = new Date(date);
+  const namaHari = hari[d.getDay()]; // Mendapatkan nama hari
+  const tanggal = d.getDate(); // Tanggal (1-31)
+  const namaBulan = bulan[d.getMonth()]; // Nama bulan
+  const jam = String(d.getHours()).padStart(2, "0"); // Jam dalam format 24 jam
+  const menit = String(d.getMinutes()).padStart(2, "0"); // Menit
+
+  return `${namaHari} ${tanggal} ${namaBulan} ${jam}.${menit}`;
 };
 
 const groupMessageList = async () => {
@@ -240,8 +382,13 @@ const privateMessageList = async () => {
 };
 
 const sendMessage = async () => {
+  console.log("Active key: ", activeChatId.value); // Log active key
+
   if (activeTab.value == "group-chat") {
+    console.log("image: ", selectedFile.value);
+
     console.log("send data to group chat");
+
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
       const response = await axios.post(
@@ -249,11 +396,11 @@ const sendMessage = async () => {
         {
           sender_id: userID, // ID pengirim
           group_chat_text: messageText.value, // Konsisten dengan key di server
-          media_path: "localhost::4113", // Path media
+          image: selectedFile.value, // Path media
         },
         {
           headers: {
-            "Content-Type": "application/json", // Perbaikan pada huruf kecil
+            "Content-Type": "multipart/form-data", // Perbaikan pada huruf kecil
           },
         }
       );
@@ -267,10 +414,12 @@ const sendMessage = async () => {
       );
     }
     messageText.value = "";
+    imagePreview.value = null;
 
     console.log("active key : ", activeChatId.value);
   } else if (activeTab.value == "private-chat") {
     console.log("Send data to private chat");
+    console.log("image: ", selectedFile.value);
 
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
@@ -279,17 +428,19 @@ const sendMessage = async () => {
         {
           sender_id: userID, // ID pengirim
           private_chat_text: messageText.value, // Konsisten dengan key di server
-          media_path: "localhost::4113", // Path media
+          image: selectedFile.value, // Path media
         },
         {
           headers: {
-            "Content-Type": "application/json", // Perbaikan pada huruf kecil
+            "Content-Type": "multipart/form-data", // Perbaikan pada huruf kecil
           },
         }
       );
 
       console.log(response.data); // Log respons dari server
       console.log("Active key: ", activeChatId.value); // Log active key
+
+      imagePreview.value = null;
     } catch (error) {
       console.error(
         "Error sending data:",
@@ -300,13 +451,35 @@ const sendMessage = async () => {
   }
 };
 
+const closeDropdownOnClickOutside = (event) => {
+  // Check if the click is outside any dropdown or button
+  // console.log(isDropdownOpen("profile"));
+  if (
+    !event.target.closest("[data-dropdown-button]") &&
+    !event.target.closest("[data-dropdown-content]")
+  ) {
+    activeEmojiDropdown.value = null;
+    activeEditorDropdown.value = null;
+    isChatBodyDropdown.value = false;
+  }
+};
+
 // Set up event listener untuk resize
 onMounted(() => {
-  initialBodyChat();
-  groupMessageList();
-  privateMessageList();
+  setTimeout(() => {
+    initialBodyChat();
+    groupMessageList();
+    privateMessageList();
+    isLoading.value = true;
+  }, 200);
+
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
+  document.addEventListener("click", closeDropdownOnClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 
 onUnmounted(() => {
@@ -440,13 +613,15 @@ onUnmounted(() => {
                   Private
                 </a>
                 <span
+                  v-if="isLoading"
                   class="me-auto inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center align-baseline text-[10px] font-bold leading-none text-white group-[.active]:hidden"
                 >
-                  5
+                  {{ messages.length }}
                 </span>
               </li>
               <li role="presentation" class="flex items-center gap-2">
                 <a
+                  v-if="isMdScreen"
                   href="#"
                   class="relative flex items-center capitalize text-light dark:text-subtitle-dark"
                   :class="{ active: activeTab === 'group-chat' }"
@@ -454,10 +629,20 @@ onUnmounted(() => {
                 >
                   Group Chat
                 </a>
+                <a
+                  v-if="!isMdScreen"
+                  href="#"
+                  class="relative flex items-center capitalize text-light dark:text-subtitle-dark"
+                  :class="{ active: activeTab === 'group-chat' }"
+                  @click.prevent="switchTab('group-chat')"
+                >
+                  Group
+                </a>
                 <span
+                  v-if="isLoading"
                   class="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center text-[10px] font-bold leading-none text-white group-[.active]:hidden"
                 >
-                  5
+                  {{ groupMessages.length }}
                 </span>
               </li>
             </ul>
@@ -567,45 +752,29 @@ onUnmounted(() => {
                 <div
                   class="flex items-center ssm:justify-between justify-center max-ssm:flex-wrap gap-x-[15px] gap-y-[5px]"
                 >
-                  <div
-                    class="flex items-center justify-center w-full gap-x-1 py-[10px]"
-                  >
+                  <!-- Active User -->
+                  <div class="flex items-center w-full gap-x-3 py-2">
+                    <!-- User Avatar -->
                     <img
-                      src="../../assets/images/avatars/t1.jpg"
-                      alt=""
-                      class="max-w-[30px] rounded-full"
-                    /><img
-                      src="../../assets/images/avatars/t2.jpg"
-                      alt=""
-                      class="max-w-[30px] rounded-full"
-                    /><img
-                      src="../../assets/images/avatars/t3.jpg"
-                      alt=""
-                      class="max-w-[30px] rounded-full"
-                    /><img
-                      src="../../assets/images/avatars/t4.jpg"
-                      alt=""
-                      class="max-w-[30px] rounded-full"
+                      class="w-[35px] h-[35px] rounded-full object-cover shadow-lg"
+                      :src="chatUserAvatar || defaultAvatar"
+                      alt="User avatar"
+                      loading="lazy"
+                      @error="chatUserAvatar = defaultAvatar"
                     />
-                    <a
-                      href="#"
-                      class="flex items-center justify-center bg-primary w-[30px] h-[30px] rounded-full"
-                      ><span
-                        class="text-white dark:text-title-dark text-[10px] font-semibold"
-                        >20+</span
-                      >
-                    </a>
-                    <a
-                      href="#"
-                      class="flex items-center justify-center w-[30px] h-[30px] border border-dashed border-deep dark:border-white/10 rounded-full"
+
+                    <!-- User Name -->
+                    <span
+                      class="text-sm font-medium text-gray-800 dark:text-white"
                     >
-                      <i
-                        class="uil uil-plus text-[16px] text-light dark:text-subtitle-dark"
-                      ></i>
-                    </a>
+                      {{ chatNameHeader || "User Tidak Diketahui" }}
+                      <!-- Fallback jika nama kosong -->
+                    </span>
                   </div>
+
                   <div class="relative" data-te-dropdown-ref>
                     <button
+                      data-dropdown-button="header"
                       @click="bodyChatDropfdown"
                       class="text-[18px] text-light dark:text-subtitle-dark"
                       type="button"
@@ -631,7 +800,7 @@ onUnmounted(() => {
                           <i class="uil uil-users-alt"></i> Leave group chat
                         </a>
                       </li>
-                      <li v-else-if="activeTab == 'private-chat'">
+                      <!-- <li v-else-if="activeTab == 'private-chat'">
                         <a
                           class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up gap-[6px]"
                           href="#"
@@ -639,7 +808,7 @@ onUnmounted(() => {
                         >
                           <i class="uil uil-users-alt"></i> Block user
                         </a>
-                      </li>
+                      </li> -->
                       <li>
                         <a
                           class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
@@ -668,6 +837,15 @@ onUnmounted(() => {
                 style="scroll-behavior: smooth"
                 class="h-[479px] pt-[25px] relative overflow-x-hidden overflow-y-auto chat-wrapper scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
               >
+                <!-- Tampilkan pesan jika chats kosong -->
+                <div
+                  v-if="!chats"
+                  class="flex justify-center items-center h-full"
+                >
+                  <p class="text-gray-500 dark:text-gray-300">
+                    Belum ada pesan
+                  </p>
+                </div>
                 <!-- Iterasi data chat -->
                 <div
                   v-for="(chat, index) in chats"
@@ -717,6 +895,16 @@ onUnmounted(() => {
                         {{ chat.message }}
                       </p>
 
+                      <!-- image attached -->
+                      <div v-if="chat.image_path" class="mt-2">
+                        <img
+                          v-if="chat.image_path"
+                          :src="chat.image_path"
+                          alt="Attached Image"
+                          class="w-full max-w-[300px] rounded-lg object-cover"
+                        />
+                      </div>
+
                       <!-- Chat Date -->
                       <span
                         class="mt-1 text-xs text-gray-500 dark:text-gray-400"
@@ -727,10 +915,11 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Actions (Emoji & Options) untuk pengirim -->
-                    <div v-if="chat.isSender" class="flex gap-2 items-center">
+                    <div class="flex gap-2 items-center">
                       <!-- Dropdown Emoji -->
                       <div class="relative">
                         <button
+                          data-dropdown-button="emoji"
                           @click="toggleEmoji(chat.id)"
                           class="text-[18px] text-light-extra dark:text-subtitle-dark"
                         >
@@ -738,7 +927,10 @@ onUnmounted(() => {
                         </button>
                         <ul
                           v-if="activeEmojiDropdown === chat.id"
-                          class="absolute z-[1000] right-0 m-0 min-w-max list-none flex items-center overflow-hidden border-none bg-white bg-clip-padding text-left text-base dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]"
+                          :class="{
+                            'absolute z-[1000]  m-0 min-w-max list-none flex items-center overflow-hidden border-none bg-white bg-clip-padding text-left text-base dark:bg-box-dark-up py-2 shadow-[0_5px_30px_#9299b820] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-md px-[20px] gap-[8px]': true,
+                            'right-0': chat.isSender,
+                          }"
                         >
                           <li class="flex items-center">
                             <button type="button" class="group">
@@ -800,6 +992,7 @@ onUnmounted(() => {
                       <!-- Dropdown Actions -->
                       <div class="relative">
                         <button
+                          data-dropdown-button="editor"
                           @click="toggleEditor(chat.id)"
                           class="text-[18px] text-light-extra dark:text-subtitle-dark"
                         >
@@ -807,21 +1000,41 @@ onUnmounted(() => {
                         </button>
                         <ul
                           v-if="activeEditorDropdown === chat.id"
-                          class="absolute z-[1000] right-0 m-0 min-w-max list-none bg-white dark:bg-box-dark-up py-2 shadow-md rounded-md gap-[8px]"
+                          :class="{
+                            'absolute z-[1000] flex m-0 min-w-max list-none bg-white dark:bg-box-dark-up py-2 shadow-md rounded-md gap-1': true,
+                            'right-0': chat.isSender,
+                          }"
                         >
                           <li>
-                            <a href="#" class="block px-4 py-2 text-sm">Copy</a>
-                          </li>
-                          <li>
-                            <a href="#" class="block px-4 py-2 text-sm">Edit</a>
-                          </li>
-                          <li>
-                            <a href="#" class="block px-4 py-2 text-sm"
-                              >Forward</a
+                            <a
+                              @click="copyToClipboard(chat.message)"
+                              href="#"
+                              class="block px-2 py-1 text-sm"
+                              >Copy</a
                             >
                           </li>
                           <li>
-                            <a href="#" class="block px-4 py-2 text-sm"
+                            <a
+                              @click="copyToClipboard(chat.message)"
+                              href="#"
+                              class="block px-2 py-1 text-sm"
+                              >Copy Link</a
+                            >
+                          </li>
+                          <!-- <li>
+              <a href="#" class="block px-4 py-2 text-sm">Edit</a>
+            </li>
+            <li>
+              <a href="#" class="block px-4 py-2 text-sm"
+                >Forward</a
+              >
+            </li> -->
+                          <li>
+                            <a
+                              v-if="chat.isSender"
+                              @click="deleteMessage(chat.id)"
+                              href="#"
+                              class="block px-2 py-1 text-sm"
                               >Remove</a
                             >
                           </li>
@@ -831,6 +1044,7 @@ onUnmounted(() => {
                   </div>
                 </div>
               </div>
+
               <!-- footer -->
               <div
                 class="relative flex items-center gap-[15px] max-sm:gap-[15px] max-sm:justify-center max-sm:flex-wrap py-[20px] mx-[25px]"
@@ -839,9 +1053,24 @@ onUnmounted(() => {
                   class="w-full bg-section dark:bg-box-dark-up h-[70px] px-[25px] text-body dark:text-subtitle-dark border-none outline-none rounded-[35px] flex items-center gap-[20px]"
                 >
                   <i
-                    class="uil uil-smile text-[20px] text-[#8C90A4] dark:text-subtitle-dark"
+                    @click="showEmojiPicker"
+                    class="uil uil-smile text-[20px] z-99998 text-[#8C90A4] dark:text-subtitle-dark cursor-pointer"
                     aria-hidden="true"
-                  ></i>
+                  >
+                  </i>
+                  <div
+                    :class="{
+                      'bottom-0 left-0 w-[300px] h-[400px] absolute': true,
+                      hidden: !showEmoji,
+                    }"
+                    data-dropdown-button="emoji-picker"
+                  >
+                    <EmojiPicker
+                      :native="true"
+                      pickerType="static"
+                      @select="onSelectEmoji"
+                    />
+                  </div>
                   <input
                     v-model="messageText"
                     @keyup.enter="sendMessage"
@@ -851,12 +1080,35 @@ onUnmounted(() => {
                     aria-label="Type a message"
                   />
                 </div>
-                <div class="flex items-center gap-2">
-                  <!-- Button for camera -->
+                <div class="flex items-center gap-4">
+                  <!-- Image Preview -->
+                  <div class="relative">
+                    <div
+                      v-if="imagePreview"
+                      class="w-16 h-16 border border-gray-300 rounded-full overflow-hidden shadow-md"
+                    >
+                      <button
+                        type="button"
+                        @click="clearPreview"
+                        class="absolute top-1 right-1 transform translate-x-2 -translate-y-2 bg-gray-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs shadow"
+                        aria-label="Remove image"
+                      >
+                        ✕
+                      </button>
+                      <img
+                        :src="imagePreview"
+                        alt="Preview"
+                        class="object-cover w-full h-full"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Button for attaching image -->
                   <button
                     type="button"
-                    class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full"
+                    class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full shadow-md"
                     aria-label="Attach photo"
+                    @click="triggerFileInput"
                   >
                     <i
                       class="uil uil-camera text-[18px] text-light dark:text-subtitle-dark"
@@ -864,23 +1116,32 @@ onUnmounted(() => {
                     ></i>
                   </button>
 
+                  <!-- Hidden file input -->
+                  <input
+                    type="file"
+                    ref="fileInput"
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleFileUpload"
+                  />
+
                   <!-- Button for link -->
-                  <button
+                  <!-- <button
                     type="button"
-                    class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full"
+                    class="flex items-center justify-center bg-section dark:bg-box-dark-up w-[50px] h-[50px] rounded-full shadow-md"
                     aria-label="Attach link"
                   >
                     <i
                       class="uil uil-link text-[18px] text-light dark:text-subtitle-dark"
                       aria-hidden="true"
                     ></i>
-                  </button>
+                  </button> -->
 
                   <!-- Button for send message -->
                   <button
                     @click="sendMessage"
                     type="button"
-                    class="flex items-center justify-center bg-primary w-[50px] h-[50px] rounded-full text-white dark:text-title-dark"
+                    class="flex items-center justify-center bg-primary w-[50px] h-[50px] rounded-full text-white shadow-md"
                     data-te-ripple-init=""
                     data-te-ripple-color="light"
                     aria-label="Send message"
@@ -901,7 +1162,15 @@ onUnmounted(() => {
         <!-- End Content -->
       </div>
     </div>
-    >
   </main>
   <!-- End: Main Content -->
 </template>
+
+<style scoped>
+.object-cover {
+  object-fit: cover;
+}
+.rounded-md {
+  border-radius: 0.375rem;
+}
+</style>
