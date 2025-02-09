@@ -1,22 +1,35 @@
 <script setup>
 import axios from "axios";
 import { onBeforeMount, onMounted, ref, watch } from "vue";
+import { useToast } from "vue-toast-notification";
+import 'vue-toast-notification/dist/theme-sugar.css';
 
-const userID =  "86e74635-c5f9-4a32-b419-a51519922af1";
+const userID = JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null; // Ambil data JSON dari localStorage
 
+
+const toastNotification = useToast();
 const projects = ref();
 const projectsCount = ref();
 const statusActive = ref("all");
 const selectedStatus = ref("");
+const searchProjectBar = ref("");
 const selectedCategory = ref("");
 const selectedSort = ref("asc");
-const statusList = ["all", "in progress", "in review", "completed"];
+const statusList = [
+  "all",
+  "in progress",
+  "in review",
+  "completed",
+  "in active",
+];
 const dropdownEditorId = ref();
 
 const getProjectsList = async () => {
+  console.log('user id : ', userID);
   console.log("sort : ", selectedSort.value);
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
+  console.log("search : ", searchProjectBar.value);
 
   try {
     const response = await axios.get(
@@ -27,6 +40,7 @@ const getProjectsList = async () => {
           status: selectedStatus.value,
           category: selectedCategory.value,
           sort: selectedSort.value,
+          search: searchProjectBar.value
         },
       }
     );
@@ -110,8 +124,33 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: 'success',
+    message: message,
+    position: 'top-right',
+    duration: 3000,
+  });
+}
+
+const deleteProjectId = async (projectId) => {
+  try {
+    const response = await axios.delete(
+      `http://localhost:8000/api/v1/test-project-delete/${projectId}`
+    );
+    console.log('delete : ',response.data);
+    if (response.status == 200) {
+      openNotificatication(`Project ${projectId} Berhasil Dihapus`);
+    }
+    dropdownEditorId.value = null;
+  } catch (error) {
+    console.error(error.response);
+  }
+};
+
 // Pantau perubahan pada status dan kategori
-watch([selectedStatus, selectedCategory, selectedSort], getProjectsList);
+watch([selectedStatus, selectedCategory, selectedSort, searchProjectBar], getProjectsList);
 
 onMounted(() => {
   getProjectsList();
@@ -232,6 +271,7 @@ onBeforeMount(() => {
             <input
               type="search"
               name="search"
+              v-model="searchProjectBar"
               placeholder="Search here..."
               class="bg-only-transparent text-[14px] w-full h-[40px] pe-[15px] py-[10px] outline-none border-none text-light dark:text-subtitle-dark placeholder:text-light dark:placeholder:text-subtitle-dark search-close-icon:appearance-none search-close-icon:w-[20px] search-close-icon:h-[23px] search-close-icon:bg-[url(../../assets/images/svg/x.svg)] search-close-icon:cursor-pointer"
             />
@@ -294,12 +334,13 @@ onBeforeMount(() => {
             <div class="pt-[30px] px-[30px]">
               <div class="flex items-start justify-between">
                 <h3 class="flex flex-wrap items-center text-base">
-                  <a
+                  <router-link
+                  :to="{path: `/dashboard/project/${project.projectId}`}"
                     class="m-0.5 me-[11px] text-dark dark:text-title-dark hover:text-primary text-15 font-medium capitalize"
                     href="project-details.html"
                   >
                     {{ project.projectTitle }}
-                  </a>
+                  </router-link>
 
                   <!-- <span
                     class="inline-flex items-center justify-center whitespace-nowrap rounded-[3px] bg-primary px-[6px] py-[3px] text-center align-baseline text-[10px] font-bold leading-none text-white uppercase h-[22px]"
@@ -334,20 +375,24 @@ onBeforeMount(() => {
                       >
                     </li>
                     <li>
-                      <a
+                      <router-link
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                        href="#"
+                        :to="{
+                          path: `/dashboard/project/${project.projectId}`,
+                          query: { edit: true },
+                        }"
                         data-te-dropdown-item-ref
-                        >Edit</a
+                        >Edit</router-link
                       >
                     </li>
                     <li>
-                      <a
+                      <button
+                        @click="deleteProjectId(project.projectId)"
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                        href="#"
                         data-te-dropdown-item-ref
-                        >Delete</a
                       >
+                        Delete
+                      </button>
                     </li>
                   </ul>
                 </div>
@@ -379,15 +424,25 @@ onBeforeMount(() => {
                 class="flex items-center gap-x-[10px] gap-y-[5px] flex-wrap text-[14px] font-normal text-body dark:text-title-dark"
               >
                 <span
-                  class="inline-flex items-center justify-center whitespace-nowrap rounded-[3px] bg-primary px-[6px] py-[3px] text-center align-baseline text-[10px] font-bold leading-none text-white uppercase h-[22px]"
+                  :class="[
+                    'inline-flex items-center justify-center whitespace-nowrap rounded-[3px] px-[6px] py-[3px] text-center align-baseline text-[10px] font-bold leading-none text-white uppercase h-[22px]',
+                    project.projectCategory === 'donation'
+                      ? ' bg-blue-600'
+                      : ' bg-green-600',
+                  ]"
                 >
-                  early
+                  {{ project.projectCategory }}
                 </span>
                 <div
                   class="h-[5px] flex-1 w-[185px] overflow-hidden bg-neutral-200 dark:bg-neutral-600 rounded-[20px]"
                 >
                   <div
-                    class="h-[5px] bg-primary rounded-e-[20px]"
+                    :class="[
+                      'h-[5px] rounded-e-[20px]',
+                      project.projectCategory === 'donation'
+                        ? ' bg-blue-600'
+                        : ' bg-green-600',
+                    ]"
                     :style="{ width: project.projectProgressPercentage + '%' }"
                   ></div>
                 </div>

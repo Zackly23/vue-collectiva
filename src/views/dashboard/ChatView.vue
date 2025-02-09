@@ -21,7 +21,7 @@ const selectedFile = ref(null);
 // Reactive state for image preview
 const imagePreview = ref(null);
 
-const userID = "bedd8be1-a76b-4618-bc71-44ca080e22cf";
+const userID =  JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null;
 
 const messages = ref();
 
@@ -41,7 +41,7 @@ storeChatChannel.listen(".chat-event", function (data) {
     sender: data.chats.sender_name, // Sesuaikan dengan field yang relevan
     avatar: chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
     message: data.chats.chat_text,
-    image_path: "http://localhost:8000" + data.chats.image_path,
+    image_path: data.chats.image_path ? "http://localhost:8000" + data.chats.image_path : null,
     date: data.chats.chat_send_time,
     isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
   };
@@ -280,6 +280,7 @@ const initialBodyChat = async () => {
 const switchTab = async (tab) => {
   activeTab.value = tab;
   isChatBodyDropdown.value = false;
+  fileInput.value = "";
   console.log("bodyContent key : ", bodyChatContentType.value.key);
 
   try {
@@ -415,6 +416,7 @@ const sendMessage = async () => {
     }
     messageText.value = "";
     imagePreview.value = null;
+    selectedFile.value = "";
 
     console.log("active key : ", activeChatId.value);
   } else if (activeTab.value == "private-chat") {
@@ -448,6 +450,8 @@ const sendMessage = async () => {
       );
     }
     messageText.value = "";
+    imagePreview.value = null;
+    selectedFile.value = "";
   }
 };
 
@@ -884,17 +888,18 @@ onUnmounted(() => {
                       </h6>
 
                       <!-- Chat Message -->
-                      <p
-                        :class="[
-                          'px-5 py-[12px] text-base shadow-lg rounded-[15px]',
-                          chat.isSender
-                            ? 'bg-blue-500 text-white rounded-br-0'
-                            : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-bl-0',
-                        ]"
-                      >
-                        {{ chat.message }}
-                      </p>
-
+                      <div class="">
+                        <p
+                          :class="[
+                            'inline-block max-w-[90%] px-4 py-[12px] text-base shadow-lg rounded-[15px] break-words',
+                            chat.isSender
+                              ? 'bg-blue-500 text-white rounded-br-0'
+                              : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-bl-0',
+                          ]"
+                        >
+                          {{ chat.message }}
+                        </p>
+                      </div>
                       <!-- image attached -->
                       <div v-if="chat.image_path" class="mt-2">
                         <img

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  mode: 'jit',
   content: [
     "./src/main.js",
     "./src/**/*.{vue, js, jsx, ts, tsx}",
