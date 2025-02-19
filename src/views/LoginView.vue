@@ -6,6 +6,9 @@
   
  const router = useRouter();
 
+ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+
   // Reactive state for form data
   const form = reactive({
     email: "",
@@ -57,7 +60,7 @@
     if (validateForm()) {
 
       try {
-      const response = await axios.post('http://127.0.0.1:8000/api/v1/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/login`, {
         email: form.email,
         password: form.password,
       });
@@ -66,9 +69,14 @@
         errors[key] = null;
       })
 
+      const userId = response.data.user.user_id;
       localStorage.setItem('user', JSON.stringify(response.data.user))
       localStorage.setItem('token', response.data.token)
-      router.push('/');
+      
+      if (response.status == 200) {
+        router.push(`/dashboard/${userId}`);
+
+      }
     } catch (error) {
       console.error('Error during Login:', error.response || error);
       const errorData = error.response.data.data
@@ -143,9 +151,9 @@ function redirectToSignup() {
           </div>
 
                 <div class="text-right mt-1">
-                <a href="#" class="text-sm text-gray-600 hover:underline">
+                <router-link to="/password/send-reset" class="text-sm text-gray-600 hover:underline">
                     Forgot Password?
-                </a>
+                </router-link>
                 </div>
     
                 <!-- Submit Button -->

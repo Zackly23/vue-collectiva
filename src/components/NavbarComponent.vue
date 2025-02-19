@@ -1,4 +1,17 @@
-<script setup></script>
+<script setup>
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const isLogin = ref(false);
+
+onMounted(() => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user) {
+    isLogin.value = true;
+  }
+});
+</script>
 
 <template>
   <nav class="border-gray-200 sticky top-0 z-50 bg-white shadow-xs">
@@ -11,10 +24,10 @@
 
         <!-- Navigation Links -->
         <div class="hidden md:flex space-x-6">
-          <a
-            href="#"
+          <router-link
+            to="/"
             class="text-gray-700 hover:text-green-600 font-medium transition-colors"
-            >Beranda</a
+            >Beranda</router-link
           >
           <a
             href="#"
@@ -35,15 +48,16 @@
 
         <!-- Auth Buttons -->
         <div class="flex items-center space-x-4">
-          <a
-            href="#"
+          <router-link
+            v-if="!isLogin"
+            to="/login"
             class="text-gray-700 hover:text-green-600 font-medium transition-colors"
-            >Masuk</a
+            >Masuk</router-link
           >
-          <a
-            href="#"
+          <router-link
+            to="/dashboard/project"
             class="bg-green-600 text-white px-3 py-3 rounded-lg hover:bg-green-700 shadow-md font-semibold transition-all hover:shadow-lg"
-            >Mulai Proyek</a
+            >Mulai Proyek</router-link
           >
         </div>
       </div>
