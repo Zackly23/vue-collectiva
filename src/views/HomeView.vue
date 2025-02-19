@@ -7,7 +7,6 @@ import FAQComponent from "@/components/FAQComponent.vue";
 
 <template>
   <div>
-    <NavbarComponent />
     <HeroComponent />
     <HomeProjectComponent />
     <FAQComponent />

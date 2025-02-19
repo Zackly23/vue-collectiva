@@ -14,10 +14,12 @@
     window.addEventListener("load", hidePreloader);
   });
   
-  // Hapus event listener saat komponen dihancurkan
+  // Hapus event listener saat komponen sudah di mount
   onBeforeUnmount(() => {
     window.removeEventListener("load", hidePreloader);
   });
+
+
   </script>
 
 <template>

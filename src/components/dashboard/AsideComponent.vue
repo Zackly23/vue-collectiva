@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, nextTick } from "vue";
 
+const userId =  JSON.parse(localStorage.getItem("user")).user_id;
 const isProjectOpen = ref(false);
 const dropdownMenu = ref(null);
 
@@ -99,7 +100,7 @@ defineProps({
       <ul class="relative m-0 list-none px-[0.2rem]">
         <li class="relative sub-item-wrapper group">
           <router-link
-            to="/dashboard"
+            :to="`/dashboard/${userId}`"
             class="group-[.open]:bg-primary/10 rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary dark:active:text-title-dark active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize"
           >
             <span
@@ -171,7 +172,7 @@ defineProps({
             </li>
             <li class="relative">
               <router-link
-                to="/dashboard"
+                to="/dashboard/kontribusi"
                 class="rounded-e-[20px] hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark focus:bg-primary/10 focus:text-inherit active:bg-primary/10 active:text-inherit [&.active]:text-primary focus:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark dark:text-subtitle-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] text-body outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
               >
                 kontribusi

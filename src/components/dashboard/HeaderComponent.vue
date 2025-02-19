@@ -1,5 +1,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
+
+const router = useRouter();
+const userProfile = ref({});
 
 //Elipsis Right Menu
 const isElipsisRightMenu = ref(false);
@@ -33,8 +38,28 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
+const getUserProfile = async () => {
+  try {
+    const responses = await axios.get(
+      "http://localhost:8000/api/v1/test-profile",
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    console.log("user : ", responses.data.user);
+    const user = responses.data.user;
+    userProfile.value = user;
+    console.log("user profile HEADER : ", userProfile.value);
+  } catch (error) {
+    console.error("error Fetch User : ", error);
+  }
+};
+
 // Attach and detach event listeners
 onMounted(() => {
+  getUserProfile();
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
@@ -55,6 +80,30 @@ const toggleSearchInput = () => {
 const handleOutsideClick = (event) => {
   if (!searchContainer.value.contains(event.target)) {
     isSearchVisible.value = false;
+  }
+};
+
+const signOut = async () => {
+  try {
+    console.log("token : ", localStorage.getItem("token"));
+    const response = await axios.post(
+      "http://localhost:8000/api/v1/logout",
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    if (response.status === 200) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.push("/");
+    }
+  } catch (error) {
+    console.error(error.response?.data || error.message);
   }
 };
 
@@ -1058,7 +1107,9 @@ defineProps({
                   src="../../assets/images/avatars/thumbs.png"
                   alt="user photo"
                 />
-                <span class="hidden xl:block">David Dwi Nugroho</span>
+                <span class="hidden xl:block">{{
+                  userProfile?.full_name
+                }}</span>
                 <i
                   class="uil uil-angle-down text-light dark:text-subtitle-dark text-[18px] hidden xl:block"
                 ></i>
@@ -1066,7 +1117,7 @@ defineProps({
 
               <!-- Dropdown menu -->
               <div
-              data-dropdown-content-="profile"
+                data-dropdown-content-="profile"
                 :class="{
                   'absolute z-[1000]v right-[0px] ltr:float-left rtl:float-right m-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block': true,
                   hidden: !isDropdownOpen('profile'),
@@ -1089,7 +1140,7 @@ defineProps({
                       <div
                         class="text-dark dark:text-title-dark mb-0.5 text-sm"
                       >
-                        Shamim Ahmed
+                        {{ userProfile.full_name }}
                       </div>
                       <div
                         class="mb-0 text-xs text-body dark:text-subtitle-dark"
@@ -1105,12 +1156,13 @@ defineProps({
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
                       >
-                        <button
+                        <router-link
+                          to="/dashboard/profile/setting"
                           class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                         >
                           <i class="text-[16px] uil uil-user"></i>
                           Profile
-                        </button>
+                        </router-link>
                       </div>
                     </li>
                     <li class="w-full">
@@ -1164,8 +1216,8 @@ defineProps({
                     </li>
                   </ul>
                   <a
+                    @click="signOut"
                     class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark mx-[-15px] mb-[-15px] rounded-b-6 gap-[6px]"
-                    href="log-in.html"
                   >
                     <i class="uil uil-sign-out-alt"></i> Sign Out</a
                   >
@@ -1180,5 +1232,3 @@ defineProps({
   </header>
   <!-- End: Header -->
 </template>
-
-

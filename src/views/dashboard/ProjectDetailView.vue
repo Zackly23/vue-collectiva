@@ -5,8 +5,7 @@ import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
 import axios from "axios";
 import { useToast } from "vue-toast-notification";
-import 'vue-toast-notification/dist/theme-sugar.css';
-
+import "vue-toast-notification/dist/theme-sugar.css";
 
 //Toast Notification
 const toastNotification = useToast();
@@ -20,11 +19,13 @@ const dropdownEvaluationId = ref();
 // Reactive modal state
 const isTagDropdownOpen = ref(false);
 //
-const userId =  JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null;
+const userId = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null;
 const projectId = route.params.projectid;
 console.log("project id : ", projectId);
 const editModeFromProject = route.query.edit;
-console.log('edit mode from quey : ', editModeFromProject);
+console.log("edit mode from quey : ", editModeFromProject);
 
 //Data
 const editMode = ref(editModeFromProject);
@@ -37,6 +38,7 @@ const desaList = ref();
 
 //General
 const iconList = ref();
+
 const projectTagList = ref();
 const selectedTags = ref([]);
 const timelineList = ref();
@@ -59,6 +61,8 @@ const isLocationModalOpen = ref(false);
 const isTimelineModalOpen = ref(false);
 const isProjectModalOpen = ref(false); //General Form
 const isFileModalOpen = ref(false);
+const isCriteriaModalOpen = ref(false);
+const isRoleModalOpen = ref(false);
 
 //State Reference
 const isUpdating = ref(false);
@@ -99,6 +103,14 @@ const openGeneralModal = (value) => {
     case "lokasi":
       isLocationModalOpen.value = true;
       break;
+    case "kriteria":
+      isCriteriaModalOpen.value = true;
+      break;
+    case "role":
+      isRoleModalOpen.value = true;
+      console.log("Kebutuhan Role : ", projectDetail.value.projectRole);
+
+      break;
     default:
       isTimelineModalOpen.value = false;
       isLocationModalOpen.value = false;
@@ -126,6 +138,14 @@ const closeConfirmationInactiveModal = () => {
 // Close modal function
 const closeFileModal = () => {
   isFileModalOpen.value = false;
+};
+
+const closeCriteriaModal = () => {
+  isCriteriaModalOpen.value = false;
+};
+
+const closeRoleModal = () => {
+  isRoleModalOpen.value = false;
 };
 
 const closeTimelineModal = () => {
@@ -181,6 +201,26 @@ const setMode = (updateMode) => {
   resetActivityData();
 };
 
+// Fungsi untuk menambah baris input baru
+const addCriteria = () => {
+  projectDetail.value.projectCriteria.push({ key: "", value: "" });
+};
+
+// Fungsi untuk menghapus baris input tertentu
+const removeCriteria = (index) => {
+  projectDetail.value.projectCriteria.splice(index, 1);
+};
+
+// Fungsi untuk menambah baris input baru Role
+const addRole = () => {
+  projectDetail.value.projectRole.push({ key: "", value: "" });
+};
+
+// Fungsi untuk menghapus baris input tertentu
+const removeRole = (index) => {
+  projectDetail.value.projectRole.splice(index, 1);
+};
+
 const storeTimeline = async () => {
   try {
     if (!isUpdating.value) {
@@ -204,7 +244,9 @@ const storeTimeline = async () => {
 
       if (response.status == 200 || response.status == 201) {
         console.log(response.data);
-        openNotificatication(`Timeline ${activityData.value.date} Berhasil Dibuat`)
+        openNotificatication(
+          `Timeline ${activityData.value.date} Berhasil Dibuat`
+        );
         // closeActivityModal();
         getTimeline(); // Refresh data
       }
@@ -275,7 +317,9 @@ const updateTimeline = async () => {
 
       if (response.status == 200 || response.status == 201) {
         console.log(response.data);
-        openNotificatication(`Timeline ${activityData.value.date} Berhasil Diupdate`);
+        openNotificatication(
+          `Timeline ${activityData.value.date} Berhasil Diupdate`
+        );
         // closeActivityModal();
         getTimeline(); // Refresh data
       }
@@ -352,7 +396,7 @@ const updateLocation = async () => {
 
   const formData = new FormData();
   formData.append("kode_desa", locationForm.value.desa);
-  formData.append("project_addres", locationForm.value.address);
+  formData.append("project_address", locationForm.value.address);
   formData.append("latitude", locationForm.value.latitude);
   formData.append("longitude", locationForm.value.longitude);
 
@@ -449,7 +493,7 @@ const saveChangeEvaluation = async () => {
 
     if (response.status === 200) {
       console.log("Update Success:", response.data);
-      openNotificatication('List Evaluasi Berhasil Diupdate');
+      openNotificatication("List Evaluasi Berhasil Diupdate");
     }
   } catch (error) {
     console.error("Error updating evaluation:", error);
@@ -469,8 +513,6 @@ const updateProjectDetail = async () => {
     tagName: tag.tagName,
   }));
 
-  
-
   console.log("ProjectModalData:", projectModalData.value);
 
   // Buat FormData
@@ -481,11 +523,11 @@ const updateProjectDetail = async () => {
     projectModalData.value.projectDescription
   );
   formData.append(
-    "start_date",
+    "project_start_date",
     formatDate(projectModalData.value.projectStartDate)
   );
   formData.append(
-    "end_date",
+    "project_end_date",
     formatDate(projectModalData.value.projectEndDate)
   );
   if (projectModalData.value.projectImage instanceof File) {
@@ -496,11 +538,39 @@ const updateProjectDetail = async () => {
   // Menambahkan array project_tags ke FormData
   if (projectModalData.value.projectTags.length !== 0) {
     projectModalData.value.projectTags.forEach((tag, index) => {
-    formData.append(`project_tags[${index}][tagId]`, tag.tagId);
-    formData.append(`project_tags[${index}][tagName]`, tag.tagName);
-  });
+      formData.append(`project_tags[${index}][tagId]`, tag.tagId);
+      formData.append(`project_tags[${index}][tagName]`, tag.tagName);
+    });
+  }
 
-}
+  // Mengubah array `project_criteria` ke format JSON sebelum dikirim
+  if (projectDetail.value.projectCategory === "donation") {
+    formData.append("project_criteria", null);
+  } else if (projectDetail.value.projectCategory === "volunteer") {
+    if (projectDetail.value.projectCriteria.length > 1) {
+      formData.append(
+        "project_criteria",
+        JSON.stringify(
+          projectDetail.value.projectCriteria.map((criteria) => ({
+            key: criteria.key,
+            value: criteria.value,
+          }))
+        )
+      );
+    }
+
+    if (projectDetail.value.projectRole.length > 1) {
+      formData.append(
+        "project_role",
+        JSON.stringify(
+          projectDetail.value.projectRole.map((role) => ({
+            key: role.key,
+            value: role.value,
+          }))
+        )
+      );
+    }
+  }
 
   formData.append("_method", "PUT");
 
@@ -582,7 +652,9 @@ const addFile = () => {
 
     // Buat FormData
     const formData = new FormData();
-    formData.append("project_lampiran[]", newFile); // Pastikan nama field sesuai di Laravel
+    formData.append("project_lampiran[0][file]", newFile); // Pastikan nama field sesuai di Laravel
+    formData.append("project_lampiran[0][tag]", "pendukung"); // Pastikan nama field sesuai di Laravel
+
     try {
       const response = await axios.post(
         `http://localhost:8000/api/v1/test-project-lampiran/${projectId}/`,
@@ -596,7 +668,7 @@ const addFile = () => {
 
       // **Tambahkan ke lampiranList setelah sukses**
       if (response.status == 201) {
-        openNotificatication('Lampiran Berhasil Ditambahkan');
+        openNotificatication("Lampiran Berhasil Ditambahkan");
         getLampiran();
         console.log("lampiranList updated: ", lampiranList.value);
       }
@@ -661,15 +733,14 @@ const updateFile = async (lampiranId) => {
   };
 };
 
-
 const openNotificatication = (message) => {
   toastNotification.open({
-    type: 'success',
+    type: "success",
     message: message,
-    position: 'top-right',
+    position: "top-right",
     duration: 3000,
   });
-}
+};
 
 //Change Status Project to In active
 const updateStatusProject = async () => {
@@ -708,6 +779,10 @@ const deleteProjectId = async () => {
   } catch (error) {
     console.error(error.response);
   }
+};
+
+const createProject = () => {
+  router.push("/dashboard/project/create");
 };
 
 // Fungsi untuk menghapus file
@@ -760,12 +835,17 @@ const initialMapLayer = () => {
 };
 
 //API
+
 const getProjectDetail = async () => {
   try {
     const responses = await axios.get(
       `http://localhost:8000/api/v1/test-project-id/${userId}/${projectId}`
     );
-    console.log(responses.data);
+    console.log(
+      "project: ",
+      JSON.parse(responses.data.project_details[0].project_criteria)
+    );
+    console.log(JSON.parse(responses.data.project_details[0].project_criteria));
     const projectdetailList = responses.data.project_details.map((project) => ({
       projectId: project.project_id,
       projectTitle: project.project_title,
@@ -786,6 +866,18 @@ const getProjectDetail = async () => {
         tagId: tag.tag_id,
         tagName: tag.tag_name,
       })),
+      projectCriteria: project.project_criteria
+        ? JSON.parse(project.project_criteria).map((criteria) => ({
+            key: criteria.key,
+            value: criteria.value,
+          }))
+        : [{ key: "", value: "" }],
+      projectRole: project.project_role
+        ? JSON.parse(project.project_role).map((role) => ({
+            key: role.key,
+            value: role.value,
+          }))
+        : [{ key: "", value: "" }],
       projectCreatorName: project.project_creator_name,
       projectKodeDesa: project.project_kode_desa,
       projectPointLatitude: project.project_latitude,
@@ -805,7 +897,7 @@ const getProjectDetail = async () => {
     projectModalData.value.projectImage = projectdetailList[0].projectImage;
 
     // selectedTags.value = projectdetailList[0].projectTags.map((tag) => tag.tagName);
-
+    console.log("project detail : ", projectDetail.value);
     console.log("pmd : ", projectModalData.value);
 
     initialMapLayer();
@@ -1055,10 +1147,13 @@ onBeforeMount(() => {
           >
             <button
               type="button"
-              class="flex items-center px-[15px] text-[12px] text-white rounded-[5px] font-semibold bg-primary border-1 border-primary h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap hover:bg-primary-hbr"
+              @click="createProject"
+              class="flex items-center px-[15px] text-sm text-white rounded-[5px] font-semibold bg-primary border-1 border-primary h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap hover:bg-primary-hbr"
             >
               <i class="uil uil-plus text-[14px]"></i>
-              <span class="m-0 text-[14px]">Create Project</span>
+              <span class="m-0 block md:hidden">Project</span>
+              <span class="m-0 hidden md:block xl:hidden">Project</span>
+              <span class="m-0 hidden xl:block">Buat Project</span>
             </button>
             <button
               v-if="projectDetail?.projectStatus !== 'in active'"
@@ -1152,7 +1247,7 @@ onBeforeMount(() => {
                 <h1
                   class="text-dark dark:text-title-dark text-[20px] font-semibold mb-[3px] capitalize"
                 >
-                   {{ projectDetail?.projectDonaturAmount }} 
+                  {{ projectDetail?.projectDonaturAmount }}
                 </h1>
                 <p class="mb-0 capitalize text-body dark:text-subtitle-dark">
                   {{
@@ -1192,7 +1287,10 @@ onBeforeMount(() => {
                 <h1
                   class="text-dark dark:text-title-dark text-[20px] font-semibold mb-[3px] capitalize"
                 >
-                  {{ projectDetail?.projectCategory === 'donation' ? 'Rp ' : ''}} {{ projectDetail?.projectTargetAmount }}
+                  {{
+                    projectDetail?.projectCategory === "donation" ? "Rp " : ""
+                  }}
+                  {{ projectDetail?.projectTargetAmount }}
                 </h1>
                 <p class="mb-0 capitalize text-body dark:text-subtitle-dark">
                   Target
@@ -1226,6 +1324,7 @@ onBeforeMount(() => {
               </div>
             </div>
           </div>
+          <!-- Tag  -->
           <div
             class="mt-5 pb-6 text-base bg-white dark:bg-box-dark p-4 rounded-lg gap-3 flex flex-col shadow-sm"
           >
@@ -1266,11 +1365,59 @@ onBeforeMount(() => {
               </div>
             </div>
           </div>
+
+          <!-- Kriteria  -->
+          <!-- Kriteria -->
+          <div
+            v-if="projectDetail?.projectCategory === 'volunteer'"
+            class="mt-5 pb-1 bg-white dark:bg-box-dark pt-4 ps-4 rounded-lg shadow-sm flex flex-col gap-3"
+          >
+            <!-- Kriteria & Role -->
+            <div
+              class="bg-white dark:bg-box-dark p-0 rounded-lg text-body dark:text-subtitle-dark text-[15px] relative mb-6"
+            >
+              <div class="flex justify-between items-center px-6 py-3">
+                <!-- Judul -->
+                <h3
+                  class="text-lg font-semibold text-dark dark:text-title-dark"
+                >
+                  Kriteria & Role
+                </h3>
+
+                <!-- Ikon Edit -->
+                <i
+                  v-if="editMode"
+                  @click="openGeneralModal('kriteria')"
+                  class="uil uil-edit-alt text-[16px] cursor-pointer text-gray-500 hover:text-primary transition-all"
+                ></i>
+              </div>
+
+              <!-- Kriteria & Role Tags -->
+              <div class="p-4 flex flex-wrap gap-3 justify-center items-center">
+                <!-- Kriteria Volunteer -->
+                <button
+                  @click="openGeneralModal('kriteria')"
+                  class="flex w-[80%] justify-center items-center px-4 text-sm font-semibold text-white bg-blue-600 border border-blue-600 rounded-md h-[40px] gap-2 capitalize transition-all hover:bg-blue-500 active:scale-95"
+                >
+                  <i class="uil uil-check-circle text-lg"></i>
+                  Kriteria Volunteer
+                </button>
+
+                <!-- Kebutuhan Role -->
+                <button
+                  @click="openGeneralModal('role')"
+                  class="flex w-[80%] justify-center items-center px-4 text-sm font-semibold text-white bg-green-600 border border-green-600 rounded-md h-[40px] gap-2 capitalize transition-all hover:bg-green-500 active:scale-95"
+                >
+                  <i class="uil uil-users-alt text-lg"></i>
+                  Kebutuhan Role
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
         <!-- Body Content  -->
         <div class="col-span-12 2xl:col-span-6 md:col-span-7">
           <div class="bg-white dark:bg-box-dark rounded-[10px] h-full">
-
             <div class="w-full flex justify-end items-center">
               <!-- Ikon -->
               <i
@@ -1326,7 +1473,13 @@ onBeforeMount(() => {
                     >Target</span
                   >
                   <p class="font-medium text-body dark:text-subtitle-dark">
-                    {{ projectDetail?.projectCategory === 'donation' ? 'Rp ' : '' }} {{ projectDetail?.projectTargetAmount }} {{ projectDetail?.projectCategory === 'donation' ? '' : ' p' }}
+                    {{
+                      projectDetail?.projectCategory === "donation" ? "Rp " : ""
+                    }}
+                    {{ projectDetail?.projectTargetAmount }}
+                    {{
+                      projectDetail?.projectCategory === "donation" ? "" : " p"
+                    }}
                   </p>
                 </div>
                 <div>
@@ -1335,7 +1488,7 @@ onBeforeMount(() => {
                     >Start Date</span
                   >
                   <p class="font-medium text-primary">
-                    {{ projectDetail?.projectStartDate }} 
+                    {{ projectDetail?.projectStartDate }}
                   </p>
                 </div>
                 <div>
@@ -1393,14 +1546,15 @@ onBeforeMount(() => {
                     </button>
                   </li>
                 </ul>
+                <p
+                  v-if="!lampiranList?.length"
+                  class="text-sm text-gray-400 text-center"
+                >
+                  Belum ada Lampiran
+                </p>
               </div>
-              
             </div>
-
-            <p v-if="!lampiranList?.length" class="text-sm text-gray-400 text-center">Belum ada Lampiran</p>
-
           </div>
-
         </div>
         <!-- Donatur  -->
         <div class="col-span-12 2xl:col-span-3">
@@ -1528,7 +1682,7 @@ onBeforeMount(() => {
 
           <!-- Timeline  -->
           <div
-            class="block opacity-100 bg-white pb-5"
+            class="block opacity-100 bg-white pb-5 max-h-[]"
             id="tabs-activities"
             role="tabpanel"
             aria-labelledby="tabs-activities-tab"
@@ -1590,7 +1744,7 @@ onBeforeMount(() => {
                       </div>
                       <div>
                         <h1
-                          class="mb-0 -mt-1 text-sm font-medium  text-dark dark:text-white/60"
+                          class="mb-0 -mt-1 text-sm font-medium text-dark dark:text-white/60"
                         >
                           <!-- {{ detail.name }} -->
                           <span
@@ -1654,7 +1808,6 @@ onBeforeMount(() => {
 
         <div class="col-span-12 2xl:col-span-12">
           <div class="bg-white dark:bg-box-dark rounded-[10px] min-h-[300px]">
-            
             <ul
               class="flex relative items-center gap-x-[30px] px-[25px] py-[17px] border-b border-regular dark:border-box-dark-up"
               role="tablist"
@@ -1712,10 +1865,8 @@ onBeforeMount(() => {
                   id="tableDragAndDrop"
                   class="min-w-full text-sm font-light text-start whitespace-nowrap py-[15px]"
                 >
-
                   <!-- Tambahkan bagian thead -->
                   <thead v-if="evaluationList">
-                    
                     <tr>
                       <th
                         class="px-[25px] py-[8px] text-center text-sm font-medium text-dark dark:text-title-dark"
@@ -1778,10 +1929,9 @@ onBeforeMount(() => {
                             :class="{
                               'bg-green-100 text-green-700':
                                 evaluation.evaluationStatus === 'approve',
-                                'bg-red-100 text-red-700'
-                             :
+                              'bg-red-100 text-red-700':
                                 evaluation.evaluationStatus === 'rejected',
-                                'bg-blue-100 text-blue-700':
+                              'bg-blue-100 text-blue-700':
                                 evaluation.evaluationStatus === 'review',
                               'bg-gray-100 text-gray-700':
                                 evaluation.evaluationStatus === 'draft',
@@ -1939,8 +2089,6 @@ onBeforeMount(() => {
                 </table>
               </div>
             </div>
-            <p v-if="!evaluationList?.length" class="text-sm text-gray-400 text-center h-full">Belum ada Evaluasi</p>
-
           </div>
         </div>
       </div>
@@ -2642,6 +2790,216 @@ onBeforeMount(() => {
     </div>
   </div>
 
+  <!-- Kriteria Modal -->
+  <div>
+    <div
+      v-if="isCriteriaModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="relative w-full max-w-3xl bg-white rounded-lg shadow-lg">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b">
+          <h5 class="text-lg font-semibold text-gray-800">
+            Kriteria Volunteer
+          </h5>
+          <button
+            @click="closeCriteriaModal"
+            class="text-gray-500 hover:text-red-500"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="px-6 py-4 overflow-y-auto max-h-[50vh]">
+          <label
+            for="criteria_volunteer"
+            class="block text-gray-700 dark:text-gray-300 font-medium"
+          >
+            Kriteria Volunteer
+          </label>
+          <table class="min-w-full bg-white border rounded-md mt-1">
+            <!-- Klik pada header untuk menambah baris -->
+            <thead @click="addCriteria" class="cursor-pointer">
+              <tr class="bg-gray-100">
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Kriteria
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Nilai
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(criteria, index) in projectDetail.projectCriteria"
+                :key="index"
+              >
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.key"
+                    type="text"
+                    placeholder="Masukkan Kriteria"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.value"
+                    type="text"
+                    placeholder="Masukkan Nilai"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2 text-center">
+                  <button
+                    @click="removeCriteria(index)"
+                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
+                    v-if="projectDetail.projectCriteria.length > 1"
+                  >
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end px-6 py-4 border-t gap-2">
+          <button
+            @click="updateProjectDetail"
+            class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+          >
+            Save
+          </button>
+          <button
+            @click="closeCriteriaModal"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Modal -->
+  <!-- Role Modal -->
+  <div>
+    <div
+      v-if="isRoleModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="relative w-full max-w-3xl bg-white rounded-lg shadow-lg">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b">
+          <h5 class="text-lg font-semibold text-gray-800">Kebutuhan Role</h5>
+          <button
+            @click="closeRoleModal"
+            class="text-gray-500 hover:text-red-500"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="px-6 py-4 overflow-y-auto max-h-[50vh]">
+          <label
+            for="criteria_volunteer"
+            class="block text-gray-700 dark:text-gray-300 font-medium"
+          >
+            Kebutuhan Volunteer
+          </label>
+          <table class="min-w-full bg-white border rounded-md mt-1">
+            <thead @click="addRole" class="cursor-pointer">
+              <tr class="bg-gray-100">
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Role
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Jumlah
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(role, index) in projectDetail.projectRole"
+                :key="index"
+              >
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="role.key"
+                    type="text"
+                    placeholder="Masukkan Kriteria"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="role.value"
+                    type="text"
+                    placeholder="Masukkan Nilai"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2 text-center">
+                  <button
+                    @click="removeRole(index)"
+                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
+                    v-if="projectDetail.projectRole.length > 1"
+                  >
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end px-6 py-4 border-t gap-2">
+          <button
+            @click="updateProjectDetail"
+            class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+          >
+            Save
+          </button>
+          <button
+            @click="closeRoleModal"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div>
     <div
       v-if="isConfirmationModalOpen"
@@ -2719,7 +3077,6 @@ onBeforeMount(() => {
 
         <!-- Modal Body -->
         <div class="py-4 text-center">
-
           <img
             src="../../assets/images/confirmations/yellow warning.png"
             alt="Warning"

@@ -4,30 +4,26 @@ import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
 
-import 'vue-toast-notification/dist/theme-sugar.css';
+import "vue-toast-notification/dist/theme-sugar.css";
 
-const userID = JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null; // Ambil data JSON dari localStorage
+const userID = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null; // Ambil data JSON dari localStorage
 
 const router = useRouter();
 const toastNotification = useToast();
-const projects = ref();
+const projectContribution = ref();
 const projectsCount = ref();
 const statusActive = ref("all");
 const selectedStatus = ref("");
 const searchProjectBar = ref("");
 const selectedCategory = ref("");
 const selectedSort = ref("asc");
-const statusList = [
-  "all",
-  "in progress",
-  "in review",
-  "completed",
-  "in active",
-];
+const statusList = ["all", "in progress", "completed"];
 const dropdownEditorId = ref();
 
 const getProjectsList = async () => {
-  console.log('user id : ', userID);
+  console.log("user id : ", userID);
   console.log("sort : ", selectedSort.value);
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
@@ -35,21 +31,25 @@ const getProjectsList = async () => {
 
   try {
     const response = await axios.get(
-      `http://localhost:8000/api/v1/test-projects`,
+      `http://localhost:8000/api/v1/test-contribution`,
       {
         params: {
-          user_id: userID,
+          //   user_id: userID,
           status: selectedStatus.value,
           category: selectedCategory.value,
           sort: selectedSort.value,
-          search: searchProjectBar.value
+          search: searchProjectBar.value,
+        },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
 
     console.log(response.data.projects);
 
-    const projectsList = response.data.projects.map((project) => ({
+    const projectsContributionList = response.data.projects.map((project) => ({
       projectId: project.project_id,
       projectTitle: project.project_title,
       projectDescription: project.project_description,
@@ -62,9 +62,15 @@ const getProjectsList = async () => {
       projectTargetAmount: project.project_target_amount,
       projectProgressAmount: project.project_progress_amount,
       projectProgressPercentage: project.project_progress_percentage,
+      projectContributionDonationAmount: project.donation_amount,
+      projectContributionChannelPayment: project.channel_payment,
+      projectContributionStatusPayment: project.status_payment,
+      projectContributionVolunteerRole: project.volunteer_role,
+      projectContributionVolunteerDate: formattedDate(project.involvement_date),
+      projectContributionVolunteerHour: project.volunteer_hours,
     }));
 
-    projects.value = projectsList;
+    projectContribution.value = projectsContributionList;
     projectsCount.value = response.data.projects_count;
   } catch (error) {
     console.log("error : ", error.response);
@@ -96,7 +102,7 @@ const formattedDate = (date) => {
   const jam = String(d.getHours()).padStart(2, "0"); // Jam dalam format 24 jam
   const menit = String(d.getMinutes()).padStart(2, "0"); // Menit
 
-  return `${namaHari}, ${tanggal}-${namaBulan}-${tahun}`;
+  return `${namaHari}, ${tanggal} ${namaBulan} ${tahun}`;
 };
 
 const toggleProjectEditor = (projectId) => {
@@ -133,19 +139,19 @@ const createProject = () => {
 
 const openNotificatication = (message) => {
   toastNotification.open({
-    type: 'success',
+    type: "success",
     message: message,
-    position: 'top-right',
+    position: "top-right",
     duration: 3000,
   });
-}
+};
 
 const deleteProjectId = async (projectId) => {
   try {
     const response = await axios.delete(
       `http://localhost:8000/api/v1/test-project-delete/${projectId}`
     );
-    console.log('delete : ',response.data);
+    console.log("delete : ", response.data);
     if (response.status == 200) {
       openNotificatication(`Project ${projectId} Berhasil Dihapus`);
     }
@@ -158,7 +164,10 @@ const deleteProjectId = async (projectId) => {
 };
 
 // Pantau perubahan pada status dan kategori
-watch([selectedStatus, selectedCategory, selectedSort, searchProjectBar], getProjectsList);
+watch(
+  [selectedStatus, selectedCategory, selectedSort, searchProjectBar],
+  getProjectsList
+);
 
 onMounted(() => {
   getProjectsList();
@@ -219,7 +228,7 @@ onBeforeMount(() => {
                 >
                   <span
                     class="text-[14px] font-normal leading-[20px] flex items-center capitalize text-light dark:text-subtitle-dark"
-                    >Project</span
+                    >kontribusi</span
                   >
                 </li>
               </ol>
@@ -230,23 +239,24 @@ onBeforeMount(() => {
           <h1
             class="text-dark dark:text-title-dark text-[20px] font-semibold mb-0"
           >
-            Projects
+            Kontribusi
           </h1>
           <span
             class="relative ms-3 ps-[15px] text-body dark:text-subtitle-dark text-[15px] font-medium before:absolute before:top-0 before:start-0 before:w-[1px] before:h-6 before:bg-normal dark:before:bg-box-dark-up"
           >
-            {{ projectsCount }} Running Projects</span
+            {{ projectsCount }} Kontribusi Project</span
           >
         </div>
-        <button
+        <router-link
+          to="/"
           type="button"
-          @click="createProject"
           class="flex items-center px-[20px] text-sm text-white rounded-md font-semibold bg-primary border-primary h-10 gap-[6px] transition-[0.3s]"
         >
           <i class="uil uil-plus"></i>
-          <span class="m-0 block md:hidden">Project</span>
-              <span class="m-0 hidden md:block xl:hidden">Project</span>
-              <span class="m-0 hidden xl:block">Buat Project</span>        </button>
+          <span class="m-0 block md:hidden">Kontribusi</span>
+          <span class="m-0 hidden md:block xl:hidden">Kontribusi</span>
+          <span class="m-0 hidden xl:block">Mulai Kontribusi</span>
+        </router-link>
       </div>
 
       <div
@@ -337,7 +347,7 @@ onBeforeMount(() => {
         <div
           class="col-span-12 2xl:col-span-4 md:col-span-6 mix mix-early"
           data-order="9"
-          v-for="project in projects"
+          v-for="project in projectContribution"
           :key="project.projectId"
         >
           <div class="bg-white dark:bg-box-dark rounded-[10px]">
@@ -345,7 +355,7 @@ onBeforeMount(() => {
               <div class="flex items-start justify-between">
                 <h3 class="flex flex-wrap items-center text-base">
                   <router-link
-                  :to="{path: `/dashboard/project/${project.projectId}`}"
+                    :to="{ path: `/dashboard/project/${project.projectId}` }"
                     class="m-0.5 me-[11px] text-dark dark:text-title-dark hover:text-primary text-15 font-medium capitalize"
                     href="project-details.html"
                   >
@@ -385,24 +395,24 @@ onBeforeMount(() => {
                       >
                     </li>
                     <li>
-                      <router-link
+                      <a
+                        :href="`https://your-api.com/documents/${project.projectId}`"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                        :to="{
-                          path: `/dashboard/project/${project.projectId}`,
-                          query: { edit: true },
-                        }"
+                        download
                         data-te-dropdown-item-ref
-                        >Edit</router-link
                       >
+                        Download Dokumen
+                      </a>
                     </li>
                     <li>
-                      <button
-                        @click="deleteProjectId(project.projectId)"
+                        <router-link
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
+                        :to="`project/${project.projectId}`"
                         data-te-dropdown-item-ref
+                        >View</router-link
                       >
-                        Delete
-                      </button>
                     </li>
                   </ul>
                 </div>
@@ -416,6 +426,7 @@ onBeforeMount(() => {
               <p class="text-body dark:text-subtitle-dark mt-[15px] mb-[15px]">
                 {{ project.projectDescription }}
               </p>
+
               <div class="flex items-center mb-[15px] gap-x-[30px]">
                 <div class="flex flex-col">
                   <span
@@ -436,52 +447,117 @@ onBeforeMount(() => {
                   >
                 </div>
               </div>
+
+              <!-- if donation  -->
               <div
-                class="flex items-center gap-x-[10px] gap-y-[5px] flex-wrap text-[14px] font-normal text-body dark:text-title-dark"
+                v-if="project.projectCategory === 'donation'"
+                class="pt-4 flex justify-between items-center mb-[15px] gap-x-[10px] border-t border-regular dark:border-box-dark-up"
               >
-                <span
-                  :class="[
-                    'inline-flex items-center justify-center whitespace-nowrap rounded-[3px] px-[6px] py-[3px] text-center align-baseline text-[10px] font-bold leading-none text-white uppercase h-[22px]',
-                    project.projectCategory === 'donation'
-                      ? ' bg-blue-600'
-                      : ' bg-green-600',
-                  ]"
-                >
-                  {{ project.projectCategory }}
-                </span>
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Donasi Kamu</span
+                  ><strong
+                    class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionDonationAmount }}</strong
+                  >
+                </div>
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Channel</span
+                  ><strong
+                    class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionChannelPayment }}</strong
+                  >
+                </div>
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Status</span
+                  ><strong
+                    class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionStatusPayment }}</strong
+                  >
+                </div>
+              </div>
+
+              <!-- if volunteer -->
+              <div
+                v-if="project.projectCategory === 'volunteer'"
+                class="pt-4 flex justify-between items-center mb-[15px] gap-x-[30px] border-t border-regular dark:border-box-dark-up"
+              >
+                <div class="flex flex-col">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Volunteer Date</span
+                  ><strong
+                    class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionVolunteerDate }}</strong
+                  >
+                </div>
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Volunteer Hour</span
+                  ><strong class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionVolunteerHour }} Jam</strong
+                  >
+                </div>
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    class="text-xs mb-0.5 text-light-extra dark:text-subtitle-dark"
+                    >Role</span
+                  ><strong
+                    class="font-medium text-body dark:text-subtitle-dark"
+                    >{{ project.projectContributionVolunteerRole }}</strong
+                  >
+                </div>
+              </div>
+
+              <div
+                class="mt-4 pb-6 border-t border-regular dark:border-box-dark-up"
+              >
                 <div
-                  class="h-[5px] flex-1 w-[185px] overflow-hidden bg-neutral-200 dark:bg-neutral-600 rounded-[20px]"
+                  class="flex items-center gap-x-[10px] gap-y-[5px] flex-wrap text-[14px] font-normal text-body dark:text-title-dark mt-4"
                 >
-                  <div
+                  <span
                     :class="[
-                      'h-[5px] rounded-e-[20px]',
+                      'inline-flex items-center justify-center whitespace-nowrap rounded-[3px] px-[6px] py-[3px] text-center align-baseline text-[10px] font-bold leading-none text-white uppercase h-[22px]',
                       project.projectCategory === 'donation'
                         ? ' bg-blue-600'
                         : ' bg-green-600',
                     ]"
-                    :style="{ width: project.projectProgressPercentage + '%' }"
-                  ></div>
+                  >
+                    {{ project.projectCategory }}
+                  </span>
+                  <div
+                    class="h-[5px] flex-1 w-[185px] overflow-hidden bg-neutral-200 dark:bg-neutral-600 rounded-[20px]"
+                  >
+                    <div
+                      :class="[
+                        'h-[5px] rounded-e-[20px]',
+                        project.projectCategory === 'donation'
+                          ? ' bg-blue-600'
+                          : ' bg-green-600',
+                      ]"
+                      :style="{
+                        width: project.projectProgressPercentage + '%',
+                      }"
+                    ></div>
+                  </div>
+                  {{ project.projectProgressPercentage }}%
                 </div>
-                {{ project.projectProgressPercentage }}%
-              </div>
-              <p class="mt-2 text-light-extra dark:text-white/60 text-xs">
-                {{ project.projectCategory === "donation" ? "Rp" : "" }}
-                {{ project.projectTargetAmount }}
-                {{ project.projectCategory === "volunteer" ? "Volunteer" : "" }}
-              </p>
-            </div>
-            <div
-              class="pt-4 px-[30px] pb-[25px] mt-[10px] border-t border-regular dark:border-box-dark-up"
-            >
-              <p class="text-sm text-light-extra dark:text-subtitle-dark">
-                Alamat
-                <i class="ui uil-map text-cyan-600"></i>
-              </p>
-              <div class="flex flex-wrap items-center gap-[6px] capitalize">
-                <p
-                  class="text-body dark:text-subtitle-dark w-[90%] mt-[10px] mb-[10px]"
-                >
-                  {{ project.projectAddress }}
+                <p class="mt-2 text-light-extra dark:text-white/60 text-xs">
+                  {{ project.projectCategory === "donation" ? "Rp" : "" }}
+                  {{ project.projectProgressAmount }}
+                  <!-- {{ project.projectCategory === "volunteer" ? "Volunteer" : "" }}  -->
+                  dari
+                  {{ project.projectCategory === "donation" ? "Rp" : "" }}
+                  {{ project.projectTargetAmount }}
+                  {{
+                    project.projectCategory === "volunteer" ? "Volunteer" : ""
+                  }}
                 </p>
               </div>
             </div>

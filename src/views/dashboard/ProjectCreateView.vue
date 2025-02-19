@@ -4,17 +4,29 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import readXlsxFile from "read-excel-file";
 
-const projectId = "6f9266cc-2ca6-44f1-94a1-db5151744e28";
+const token = localStorage.getItem("token");
 const route = useRoute();
 const router = useRouter();
 const stepProjectNumber = ref(route.query.step || "1");
-const categoryProject = ref("");
-const beneficiaryType = ref("");
-const beneficiaryRelation = ref("");
-const creatorType = ref("");
 const iconList = ref();
-const timelineList = ref();
+const lampiranList = ref([]);
+const userProfile = ref();
 const timelineDataUploadList = ref([]);
+const projectTagList = ref();
+//Wilayah
+const provinsiList = ref();
+const kabupatenList = ref();
+const kecamatanList = ref();
+const desaList = ref();
+const locationForm = ref({
+  address: "",
+  provinsi: "",
+  kabupaten: "",
+  kecamatan: "",
+  desa: "",
+  latitude: "",
+  longitude: "",
+});
 const timelineData = ref({
   date: "",
   time: "",
@@ -22,6 +34,47 @@ const timelineData = ref({
   icon: "",
   iconName: "",
 });
+const projectData = ref({
+  projectTitle: "",
+  projectTags: [],
+  projectDescription: "",
+  projectStartDate: "",
+  projectEndDate: "",
+  projectCategory: "",
+  projectFile: "",
+  projectTargetAmount: "",
+  projectTargetVolunteer: "",
+  projectCriteria: [{ key: "", value: "" }],
+  projectRole: [{ key: "", value: "" }],
+});
+const creatorInformation = ref({
+  creatorName: "",
+  creatorEmail: "",
+  creatorPhone: "",
+  creatorSocialMedia: "",
+  creatorType: "",
+  organizationName: "",
+  creatorWebsite: "",
+  creatorID: "",
+  creatorFile: "",
+});
+const beneficialInformation = ref({
+  beneficiaryType: "",
+  beneficiaryName: "",
+  beneficiaryNIK: "",
+  beneficiaryAddress: "",
+  beneficiaryPhone: "",
+  beneficiaryNeeds: "",
+  organizationName: "",
+  organizationRegNumber: "",
+  organizationAddress: "",
+  organizationPIC: "",
+  organizationPhone: "",
+  beneficiaryRelation: "",
+  beneficiaryRelationOther: "",
+  beneficiaryFile: "",
+});
+
 const stepProjectCreation = ref([
   { stepNumber: "1", stepName: "Biodata", stepPassed: true },
   { stepNumber: "2", stepName: "General", stepPassed: false },
@@ -40,7 +93,6 @@ const getMatchingIconId = (iconName) => {
   const match = iconList.value.find(
     (icon) => icon.iconName.toLowerCase() == iconName.toLowerCase()
   );
-
 
   const iconData = {
     iconId: match.iconId,
@@ -92,6 +144,21 @@ const groupTimelineData = (data) => {
   }, []);
 };
 
+//
+const handleCreatorFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  creatorInformation.value.creatorFile = file;
+};
+
+const handleBeneficialFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  beneficialInformation.value.beneficiaryFile = file;
+};
+
 // Fungsi untuk menangani unggahan file
 const handleFileTimelineUpload = (event) => {
   const file = event.target.files[0];
@@ -99,43 +166,51 @@ const handleFileTimelineUpload = (event) => {
 
   readXlsxFile(file, {
     dateFormat: "yyyy/mm/dd",
-  }).then((rows) => {
-    const timelineDataRows = [];
+    sheet: 1,
+  })
+    .then((rows) => {
+      const timelineDataRows = [];
 
-    rows.forEach((dataRow, indexRow) => {
-      if (indexRow === 0) {
-        console.log("Header :", dataRow);
-      } else {
-        const timelineRowData = {
-          timelineDateFull: dataRow[0].toISOString().split("T")[0], // Format tanggal "YYYY-MM-DD"
-          timelineDateDay: dataRow[0].toISOString().split("T")[0].split("-")[2], // Hari dalam angka (tanggal)
-          timelineDateMonth: dataRow[0].toLocaleString("id-ID", { month: "long" }), // Nama bulan
-          timelineTime: dataRow[1], // Waktu
-          timelineTaskAction: dataRow[2], // Tugas
-          timelineIconId: getMatchingIconId(dataRow[3]).iconId, // ID ikon
-          timelineIcon: getMatchingIconId(dataRow[3]).icon,
-          timelineIconBackground: getMatchingIconId(dataRow[3]).iconBackground,
-        };
+      rows.forEach((dataRow, indexRow) => {
+        if (indexRow === 0) {
+          console.log("Header :", dataRow);
+        } else {
+          const timelineRowData = {
+            timelineDateFull: dataRow[0].toISOString().split("T")[0], // Format tanggal "YYYY-MM-DD"
+            timelineDateDay: dataRow[0]
+              .toISOString()
+              .split("T")[0]
+              .split("-")[2], // Hari dalam angka (tanggal)
+            timelineDateMonth: dataRow[0].toLocaleString("id-ID", {
+              month: "long",
+            }), // Nama bulan
+            timelineTime: dataRow[1], // Waktu
+            timelineTaskAction: dataRow[2], // Tugas
+            timelineIconId: getMatchingIconId(dataRow[3]).iconId, // ID ikon
+            timelineIcon: getMatchingIconId(dataRow[3]).icon,
+            timelineIconBackground: getMatchingIconId(dataRow[3])
+              .iconBackground,
+          };
 
-        timelineDataRows.push(timelineRowData);
-      }
+          timelineDataRows.push(timelineRowData);
+        }
+      });
+
+      // Kelompokkan data berdasarkan tanggal
+      const groupedData = groupTimelineData(timelineDataRows);
+
+      // Urutkan data yang telah dikelompokkan berdasarkan timelineDate (ascending)
+      timelineDataUploadList.value = groupedData.sort((a, b) => {
+        return new Date(a.timelineDate) - new Date(b.timelineDate);
+      });
+
+      console.log("Grouped Timeline Data:", timelineDataUploadList.value);
+    })
+    .finally(() => {
+      // Reset nilai input file agar event change dapat terpicu kembali ketika file yang sama dipilih
+      event.target.value = "";
     });
-
-    // Kelompokkan data berdasarkan tanggal
-    const groupedData = groupTimelineData(timelineDataRows);
-
-    // Urutkan data yang telah dikelompokkan berdasarkan timelineDate (ascending)
-    timelineDataUploadList.value = groupedData.sort((a, b) => {
-      return new Date(a.timelineDate) - new Date(b.timelineDate);
-    });
-
-    console.log("Grouped Timeline Data:", timelineDataUploadList.value);
-  }).finally(() => {
-    // Reset nilai input file agar event change dapat terpicu kembali ketika file yang sama dipilih
-    event.target.value = "";
-  });
 };
-
 
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
@@ -145,6 +220,8 @@ const handleImageUpload = (event) => {
       imagePreview.value = e.target.result;
     };
     reader.readAsDataURL(file);
+
+    projectData.value.projectFile = file;
   }
 };
 
@@ -156,15 +233,38 @@ const removeImage = () => {
   }
 };
 
+// Fungsi untuk menambah baris input baru
+const addCriteria = () => {
+  projectData.value.projectCriteria.push({ key: "", value: "" });
+};
+
+// Fungsi untuk menghapus baris input tertentu
+const removeCriteria = (index) => {
+  projectData.value.projectCriteria.splice(index, 1);
+};
+
+// Fungsi untuk menambah baris input baru Role
+const addRole = () => {
+  projectData.value.projectRole.push({ key: "", value: "" });
+};
+
+// Fungsi untuk menghapus baris input tertentu
+const removeRole = (index) => {
+  projectData.value.projectRole.splice(index, 1);
+};
+
 const goToStep = (step) => {
   // stepProjectNumber.value = stepProjectNumber.value + 1;
   router.push({
-    path: "/dashboard/project-create",
+    path: "/dashboard/project/create",
     query: {
       step: step,
     },
   });
   console.log("step : ", step);
+  console.log("creator ", creatorInformation.value);
+  console.log("beneficial : ", beneficialInformation.value);
+  console.log("projectdata : ", projectData.value);
 };
 
 const resetTimelineData = () => {
@@ -179,7 +279,7 @@ const resetTimelineData = () => {
 
 const createNewTimeline = () => {
   console.log("Data timeline sebelum diproses: ", timelineData.value);
-  
+
   // Dapatkan data ikon berdasarkan input icon
   const iconData = getMatchingIconId(timelineData.value.icon);
 
@@ -200,17 +300,22 @@ const createNewTimeline = () => {
   };
 
   // Cek apakah timelineDataUploadList sudah memiliki data
-  if (!timelineDataUploadList.value || timelineDataUploadList.value.length === 0) {
+  if (
+    !timelineDataUploadList.value ||
+    timelineDataUploadList.value.length === 0
+  ) {
     // Jika belum ada data, buat grup baru untuk tanggal tersebut
     const newGroup = {
       timelineDate: timelineDate,
       // Dapatkan hari (0: Minggu, 1: Senin, dst.) dan nama bulan dari tanggal
-      timelineDateDay: timelineDate.split('-')[2],
-      timelineDateMonth: new Date(timelineDate).toLocaleString("id-ID", { month: "long" }),
+      timelineDateDay: timelineDate.split("-")[2],
+      timelineDateMonth: new Date(timelineDate).toLocaleString("id-ID", {
+        month: "long",
+      }),
       timelineDetail: [newTimelineDetail],
     };
 
-    console.log('new group : ', newGroup);
+    console.log("new group : ", newGroup);
     timelineDataUploadList.value.push(newGroup);
   } else {
     // Jika sudah ada data, cari grup dengan tanggal yang sama
@@ -226,7 +331,9 @@ const createNewTimeline = () => {
       const newGroup = {
         timelineDate: timelineDate,
         timelineDateDay: new Date(timelineDate).getDay(),
-        timelineDateMonth: new Date(timelineDate).toLocaleString("id-ID", { month: "long" }),
+        timelineDateMonth: new Date(timelineDate).toLocaleString("id-ID", {
+          month: "long",
+        }),
         timelineDetail: [newTimelineDetail],
       };
       timelineDataUploadList.value.push(newGroup);
@@ -234,41 +341,450 @@ const createNewTimeline = () => {
   }
 
   // Urutkan timelineDataUploadList berdasarkan tanggal (ascending)
-  timelineDataUploadList.value.sort((a, b) => new Date(a.timelineDate) - new Date(b.timelineDate));
+  timelineDataUploadList.value.sort(
+    (a, b) => new Date(a.timelineDate) - new Date(b.timelineDate)
+  );
 
-  console.log("Data timeline yang telah dikelompokkan dan diurutkan:", timelineDataUploadList.value);
+  console.log(
+    "Data timeline yang telah dikelompokkan dan diurutkan:",
+    timelineDataUploadList.value
+  );
 
   // Reset data input
   resetTimelineData();
 };
 
 //API
-const getTimeline = async () => {
+const getUserProfile = async () => {
   try {
     const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-project-timeline-id/${projectId}`
+      "http://localhost:8000/api/v1/test-profile",
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
     );
-    console.log("timeline : ", responses.data.project_timeline);
-    const timelineLists = responses.data.project_timeline.map((timeline) => ({
-      timelineId: timeline.project_timeline_id,
-      timelineDate: {
-        timelineDateDay: timeline.project_timeline_date[0],
-        timelineDateMonth: timeline.project_timeline_date[1],
-      },
-      details: timeline.project_timeline_details.map((detail) => ({
-        timelineDetailId: detail.project_timeline_detail_id,
-        timelineDateFull: detail.project_timeline_date_full,
-        timelinenDetailAction: detail.description,
-        timelineDetailTime: detail.time,
-        timelineDetailIconId: detail.icon_id,
-        timelineDetailIcon: detail.icon,
-        timelineDetailIconName: detail.icon_name,
-        timelineDetailIconBackground: detail.icon_background,
-      })),
+    console.log("user : ", responses.data.user);
+    const user = responses.data.user;
+    userProfile.value = user;
+    creatorInformation.value.creatorName = user.full_name;
+    creatorInformation.value.creatorEmail = user.email;
+    creatorInformation.value.creatorPhone = user.phone_number;
+    creatorInformation.value.creatorSocialMedia = JSON.parse(
+      user.social_media
+    ).twitter;
+    console.log("user profile : ", userProfile.value);
+  } catch (error) {
+    console.error("error Fetch User : ", error);
+  }
+};
+
+//getProvince
+const getProvinsi = async () => {
+  try {
+    const responses = await axios.get(
+      "http://localhost:8000/api/v1/test-location-provinsi"
+    );
+
+    const provinsiLists = responses.data.provinsi.map((province) => ({
+      kodeProvinsi: province.kode_provinsi,
+      namaProvinsi: province.nama_provinsi,
     }));
 
-    timelineList.value = timelineLists;
-    console.log("timelinesList : ", timelineList.value);
+    provinsiList.value = provinsiLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+//Get Kecamatan
+const getKabupaten = async (kodeProvinsi) => {
+  try {
+    const responses = await axios.get(
+      `http://localhost:8000/api/v1/test-location-kabupaten/${kodeProvinsi}`
+    );
+    console.log(responses.data);
+    const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
+      kodeKabupaten: kabupaten.kode_kabupaten,
+      namaKabupaten: kabupaten.nama_kabupaten,
+    }));
+
+    kabupatenList.value = kabupatenLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+//Get Kabupaten
+const getKecamatan = async (kodeKabupaten) => {
+  try {
+    console.log(kodeKabupaten);
+    const responses = await axios.get(
+      `http://localhost:8000/api/v1/test-location-kecamatan/${kodeKabupaten}`
+    );
+    console.log(responses.data);
+
+    const kecamatanLists = responses.data.kecamatan.map((kecamatan) => ({
+      kodeKecamatan: kecamatan.kode_kecamatan,
+      namaKecamatan: kecamatan.nama_kecamatan,
+    }));
+
+    kecamatanList.value = kecamatanLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+//Get Desa
+const getDesa = async (kodeKecamatan) => {
+  try {
+    const responses = await axios.get(
+      `http://localhost:8000/api/v1/test-location-desa/${kodeKecamatan}`
+    );
+    console.log(responses.data);
+
+    const desaLists = responses.data.desa.map((desa) => ({
+      kodeDesa: desa.kode_desa,
+      namaDesa: desa.nama_desa,
+    }));
+
+    desaList.value = desaLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+// Store Project
+const storeNewProject = async () => {
+  console.log("projectData : ", projectData.value);
+  console.log("locationForm : ", locationForm.value);
+
+  const formData = new FormData();
+  formData.append("project_title", projectData.value.projectTitle);
+  formData.append("project_description", projectData.value.projectDescription);
+  formData.append("project_start_date", projectData.value.projectStartDate);
+  formData.append("project_end_date", projectData.value.projectEndDate);
+  formData.append("project_category", projectData.value.projectCategory);
+
+  if (projectData.value.projectTags.length !== 0) {
+    projectData.value.projectTags.forEach((tag, index) => {
+      formData.append(`project_tags[${index}][tagId]`, tag.tagId);
+    });
+  }
+  if (projectData.value.projectCategory === "donation") {
+    formData.append(
+      "project_target_amount",
+      projectData.value.projectTargetAmount
+    );
+  } else {
+    formData.append(
+      "project_target_amount",
+      projectData.value.projectTargetVolunteer
+    );
+  }
+
+  // Mengubah array `project_criteria` ke format JSON sebelum dikirim
+  if (projectData.value.projectCategory === "donation") {
+    formData.append("project_criteria", null);
+  } else if (projectData.value.projectCategory === "volunteer") {
+    formData.append(
+      "project_criteria",
+      JSON.stringify(
+        projectData.value.projectCriteria.map((criteria) => ({
+          key: criteria.key,
+          value: criteria.value,
+        }))
+      )
+    );
+
+    formData.append(
+      "project_role",
+      JSON.stringify(
+        projectData.value.projectRole.map((role) => ({
+          key: role.key,
+          value: role.value,
+        }))
+      )
+    );
+  }
+
+  // Menambahkan file gambar (pastikan projectFile sudah berupa File)
+  if (projectData.value.projectFile) {
+    formData.append("project_image", projectData.value.projectFile);
+  } else {
+    console.error("Project image tidak ada!");
+  }
+
+  // Menambahkan data lokasi
+  formData.append("project_address", locationForm.value.address);
+  formData.append("kode_desa", locationForm.value.desa);
+  formData.append("latitude", locationForm.value.latitude);
+  formData.append("longitude", locationForm.value.longitude);
+
+  try {
+    const response = await axios.post(
+      "http://localhost:8000/api/v1/test-project-create",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.status == 200 || response.status == 201) {
+      console.log(response.data);
+      const projectId = response.data.project_id;
+      const responseProjectInfromation = storeProjectInformation(projectId);
+      const responseProjectTimeline = storeProjectTimeline(projectId);
+      const responseProjectLampiran = storeProjectLampiran(projectId);
+
+      // if (
+      //   responseProjectInfromation == 201 &&
+      //   responseProjectTimeline == 201 &&
+      //   responseProjectLampiran == 201
+      // ) {
+
+      // }
+      console.log("responseProjectInfromation : ", responseProjectInfromation);
+      console.log("responseProjectTimeline : ", responseProjectTimeline);
+      console.log("responseProjectLampiran : ", responseProjectLampiran);
+      console.log("Project berhasil disimpan!");
+      router.push("/dashboard/project");
+    }
+  } catch (error) {
+    console.error(
+      "Error saving project:",
+      error.response ? error.response.data : error.message
+    );
+  }
+};
+
+const storeProjectInformation = async (projectId) => {
+  const formDataCreator = new FormData();
+  const formDataBeneficial = new FormData();
+
+  // Tambahkan data creator ke FormData
+  formDataCreator.append("creator_name", creatorInformation.value.creatorName);
+  formDataCreator.append(
+    "creator_email",
+    creatorInformation.value.creatorEmail
+  );
+  formDataCreator.append(
+    "creator_phone",
+    creatorInformation.value.creatorPhone
+  );
+  formDataCreator.append("creator_type", creatorInformation.value.creatorType);
+  formDataCreator.append(
+    "creator_organization_name",
+    creatorInformation.value.organizationName
+  );
+  formDataCreator.append(
+    "creator_website",
+    creatorInformation.value.creatorSocialMedia
+  );
+  formDataCreator.append(
+    "creator_identifier",
+    creatorInformation.value.creatorID
+  );
+
+  // Jika ada file, tambahkan ke FormData
+  if (creatorInformation.value.creatorFile) {
+    formDataCreator.append(
+      "creator_file",
+      creatorInformation.value.creatorFile
+    );
+  }
+
+  // Tambahkan data beneficiary ke FormData
+  formDataBeneficial.append(
+    "beneficiary_type",
+    beneficialInformation.value.beneficiaryType
+  );
+  formDataBeneficial.append(
+    "beneficiary_name",
+    beneficialInformation.value.beneficiaryName
+  );
+  formDataBeneficial.append(
+    "beneficiary_nik",
+    beneficialInformation.value.beneficiaryNIK
+  );
+  formDataBeneficial.append(
+    "beneficiary_address",
+    beneficialInformation.value.beneficiaryAddress
+  );
+  formDataBeneficial.append(
+    "beneficiary_phone",
+    beneficialInformation.value.beneficiaryPhone
+  );
+  formDataBeneficial.append(
+    "beneficiary_needs",
+    beneficialInformation.value.beneficiaryNeeds
+  );
+  formDataBeneficial.append(
+    "organization_name",
+    beneficialInformation.value.organizationName
+  );
+  formDataBeneficial.append(
+    "organization_reg_number",
+    beneficialInformation.value.organizationRegNumber
+  );
+  formDataBeneficial.append(
+    "organization_address",
+    beneficialInformation.value.organizationAddress
+  );
+  formDataBeneficial.append(
+    "organization_pic",
+    beneficialInformation.value.organizationPIC
+  );
+  formDataBeneficial.append(
+    "organization_phone",
+    beneficialInformation.value.organizationPhone
+  );
+  formDataBeneficial.append(
+    "beneficiary_relation",
+    beneficialInformation.value.beneficiaryRelation
+  );
+  formDataBeneficial.append(
+    "beneficiary_relation_other",
+    beneficialInformation.value.beneficiaryRelationOther
+  );
+
+  // Jika ada file, tambahkan ke FormData
+  if (beneficialInformation.value.beneficiaryFile) {
+    formDataBeneficial.append(
+      "beneficiary_file",
+      beneficialInformation.value.beneficiaryFile
+    );
+  }
+
+  try {
+    // Kirim data ke dua endpoint sekaligus
+    const [response1, response2] = await Promise.all([
+      axios.post(
+        `http://localhost:8000/api/v1/test-project-creator/${projectId}`,
+        formDataCreator,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      ),
+      axios.post(
+        `http://localhost:8000/api/v1/test-project-beneficial/${projectId}`,
+        formDataBeneficial,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      ),
+    ]);
+
+    console.log("Response Creator:", response1.data);
+    console.log("Response Beneficiary:", response2.data);
+
+    if (response1.status == 201 || response1.status == 201) {
+      return 201;
+    }
+  } catch (error) {
+    console.log("Error menyimpan creator dan beneficiary information");
+    console.error("Error:", error.response?.data || error.message);
+
+    return error.response?.status || 500;
+  }
+};
+
+const storeProjectTimeline = async (projectId) => {
+  console.log("timelineList : ", timelineDataUploadList.value);
+
+  const timelineStoreList = timelineDataUploadList.value.map((timeline) => ({
+    timeline_date: timeline.timelineDate,
+    timeline_detail: timeline.timelineDetail.map((detail) => ({
+      description: detail.timelineDetailAction,
+      time: detail.timelineDetailTime,
+      icon_id: detail.timelineDetailIconId,
+    })),
+  }));
+
+  // const formData = new FormData();
+  // formData.append(timelineStoreList);
+
+  try {
+    const response = await axios.post(
+      `http://localhost:8000/api/v1/test-project-timeline/${projectId}`,
+      timelineStoreList
+    );
+
+    if (response.status == 200 || response.status == 201) {
+      console.log(response.data);
+      return 201;
+    }
+  } catch (error) {
+    console.error("Error saving activity:", error);
+    return error.response?.status || 500;
+  }
+
+  console.log("storeProjectTimeline : ", timelineStoreList);
+};
+
+const storeProjectLampiran = async (projectId) => {
+  const formData = new FormData();
+
+  // Tambahkan setiap file dan tag secara terpisah
+  lampiranList.value.forEach((lampiran, index) => {
+    // Misalnya, lampiran.lampiranFile sudah merupakan objek File
+    formData.append(`project_lampiran[${index}][file]`, lampiran.lampiranFile);
+    formData.append(`project_lampiran[${index}][tag]`, "dokumen pendukung");
+  });
+
+  try {
+    const response = await axios.post(
+      `http://localhost:8000/api/v1/test-project-lampiran/${projectId}/`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    if (response.status === 201) {
+      console.log("Lampiran berhasil disimpan:", response.data);
+      return 201;
+    }
+  } catch (error) {
+    console.log(
+      "Error menyimpan lampiran:",
+      error.response?.data || error.message
+    );
+
+    return error.response?.status || 500;
+  }
+};
+
+const getProjectTag = async () => {
+  try {
+    const responses = await axios.get(
+      "http://localhost:8000/api/v1/test-project-tag"
+    );
+
+    const tagLists = responses.data.project_tags.map((tag) => ({
+      tagId: tag.tag_id,
+      tagName: tag.tag_name,
+      tagSlug: tag.tag_slug,
+      tagColor: tag.tag_color,
+    }));
+
+    projectTagList.value = tagLists;
+
+    console.log("tag bos ", projectTagList.value);
   } catch (error) {
     console.error(error);
   }
@@ -293,6 +809,110 @@ const getIconList = async () => {
   }
 };
 
+//File
+// Fungsi untuk membuka file di tab baru
+const previewFile = (lampiran) => {
+  window.open(lampiran.lampiranUrl, "_blank");
+};
+
+// Fungsi untuk menambahkan file baru
+const addFile = () => {
+  console.log("tambah file");
+  // Trigger input file
+  const fileInput = document.getElementById("file-attach-upload");
+
+  fileInput.onchange = null;
+
+  fileInput.click();
+
+  fileInput.onchange = async (event) => {
+    const newFile = event.target.files[0];
+    if (!newFile) {
+      console.error("No file selected.");
+      return;
+    }
+
+    console.log("tambah : ", newFile);
+
+    //Simpan sementara pada public frontend (di hapus ketika menyimpan di backend nanti)
+
+    //Get lampiranId, lampiranName, dan lampiranUrl
+    const temporaryUrl = URL.createObjectURL(newFile);
+
+    console.log("temporary url : ", temporaryUrl);
+
+    const newLampiran = {
+      lampiranId: lampiranList?.value.length
+        ? lampiranList?.value.length + 1
+        : 0,
+      lampiranName: newFile.name,
+      lampiranUrl: temporaryUrl,
+      lampiranFile: newFile,
+    };
+
+    lampiranList.value.push(newLampiran);
+  };
+};
+
+// Fungsi untuk mengganti file yang sudah ada
+const updateFile = async (lampiranId) => {
+  console.log("Update untuk lampiranId:", lampiranId);
+
+  // Trigger input file
+  const fileInput = document.getElementById("file-attach-upload");
+  if (!fileInput) {
+    console.error("File input tidak ditemukan!");
+    return;
+  }
+
+  // Reset handler onchange jika ada sebelumnya
+  fileInput.onchange = null;
+
+  // Klik secara programatik untuk membuka dialog file
+  fileInput.click();
+
+  // Saat file dipilih, handler ini akan dipanggil
+  fileInput.onchange = async (event) => {
+    const newFile = event.target.files[0];
+    if (!newFile) {
+      console.error("Tidak ada file yang dipilih.");
+      return;
+    }
+
+    console.log("File baru:", newFile);
+
+    // Perbarui lampiranList: jika lampiranId sama, update data file,
+    // jika tidak, kembalikan objek lampiran seperti semula.
+    lampiranList.value = lampiranList.value.map((lampiran) => {
+      if (lampiran.lampiranId !== lampiranId) {
+        // Pastikan menggunakan spread operator untuk mengembalikan seluruh properti
+        return { ...lampiran };
+      } else {
+        return {
+          ...lampiran, // Pertahankan properti lain yang sudah ada
+          lampiranName: newFile.name,
+          lampiranUrl: `/${newFile.name}`, // Sesuaikan URL sesuai kebutuhan
+          lampiranFile: newFile,
+        };
+      }
+    });
+
+    // Opsional: Reset nilai file input agar event change terpicu kembali untuk file yang sama
+    event.target.value = "";
+  };
+};
+
+// Fungsi untuk menghapus file
+const deleteFile = async (lampiranId) => {
+  const newLampiranList = lampiranList.value.filter(
+    (lampiran) => lampiran.lampiranId !== lampiranId
+  );
+
+  console.log("lampiran baru : ", newLampiranList);
+
+  lampiranList.value = newLampiranList;
+};
+
 watch(
   () => route.query.step,
   (newStep) => {
@@ -305,37 +925,32 @@ watch(
 );
 
 const isTagDropdownOpen = ref(false);
-const selectedTags = ref([]);
-
-const projectTagList = ref([
-  { tagId: 1, tagName: "Vue.js" },
-  { tagId: 2, tagName: "React" },
-  { tagId: 3, tagName: "Angular" },
-  { tagId: 4, tagName: "Svelte" },
-  { tagId: 5, tagName: "Tailwind" },
-  { tagId: 6, tagName: "Laravel" },
-]);
 
 const toggleTagSelection = (tag) => {
   if (isTagSelected(tag)) {
-    selectedTags.value = selectedTags.value.filter(
+    projectData.value.projectTags = projectData.value.projectTags.filter(
       (t) => t.tagId !== tag.tagId
     );
   } else {
-    selectedTags.value.push(tag);
+    projectData.value.projectTags.push(tag);
   }
 };
 
 const isTagSelected = (tag) => {
-  return selectedTags.value.some((t) => t.tagId === tag.tagId);
+  return projectData.value.projectTags.some((t) => t.tagId === tag.tagId);
 };
 
 const removeTag = (tag) => {
-  selectedTags.value = selectedTags.value.filter((t) => t.tagId !== tag.tagId);
+  projectData.value.projectTags = projectData.value.projectTags.filter(
+    (t) => t.tagId !== tag.tagId
+  );
 };
 
 onMounted(() => {
+  getProvinsi();
   getIconList();
+  getProjectTag();
+  getUserProfile();
   // getTimeline();
 });
 </script>
@@ -401,7 +1016,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorName"
+                v-model="creatorInformation.creatorName"
                 required
               />
             </div>
@@ -414,7 +1029,7 @@ onMounted(() => {
               <input
                 type="email"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorEmail"
+                v-model="creatorInformation.creatorEmail"
                 required
               />
             </div>
@@ -428,7 +1043,7 @@ onMounted(() => {
               <input
                 type="tel"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorPhone"
+                v-model="creatorInformation.creatorPhone"
                 required
               />
             </div>
@@ -441,7 +1056,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorSocialMedia"
+                v-model="creatorInformation.creatorSocialMedia"
               />
             </div>
 
@@ -452,7 +1067,7 @@ onMounted(() => {
               >
               <select
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorType"
+                v-model="creatorInformation.creatorType"
                 required
               >
                 <option value="perorangan">Perorangan</option>
@@ -461,7 +1076,7 @@ onMounted(() => {
             </div>
 
             <!-- Nama Organisasi/Lembaga (Muncul jika memilih "Organisasi") -->
-            <div v-if="creatorType === 'organisasi'">
+            <div v-if="creatorInformation.creatorType === 'organisasi'">
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
                 >Nama Organisasi/Lembaga
                 <span class="text-red-500">*</span></label
@@ -469,7 +1084,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationName"
+                v-model="creatorInformation.organizationName"
               />
             </div>
 
@@ -481,7 +1096,7 @@ onMounted(() => {
               <input
                 type="url"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorWebsite"
+                v-model="creatorInformation.creatorWebsite"
               />
             </div>
 
@@ -493,7 +1108,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorID"
+                v-model="creatorInformation.creatorID"
               />
             </div>
 
@@ -505,7 +1120,7 @@ onMounted(() => {
               <input
                 type="file"
                 class="w-full px-4 py-2 border rounded-md"
-                @change="handleFileUpload"
+                @change="handleCreatorFileUpload"
               />
             </div>
           </div>
@@ -523,7 +1138,7 @@ onMounted(() => {
               >Jenis Penerima Manfaat</label
             >
             <select
-              v-model="beneficiaryType"
+              v-model="beneficialInformation.beneficiaryType"
               class="w-full px-4 py-2 border rounded-md"
             >
               <option value="" disabled="true" hidden selected class="">
@@ -536,7 +1151,7 @@ onMounted(() => {
 
           <!-- Jika Perorangan -->
           <div
-            v-if="beneficiaryType === 'perorangan'"
+            v-if="beneficialInformation.beneficiaryType === 'perorangan'"
             class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3"
           >
             <div>
@@ -546,7 +1161,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryName"
+                v-model="beneficialInformation.beneficiaryName"
               />
             </div>
             <div>
@@ -556,7 +1171,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryNIK"
+                v-model="beneficialInformation.beneficiaryNIK"
               />
             </div>
             <div>
@@ -566,7 +1181,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryAddress"
+                v-model="beneficialInformation.beneficiaryAddress"
               />
             </div>
             <div>
@@ -576,7 +1191,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryPhone"
+                v-model="beneficialInformation.beneficiaryPhone"
               />
             </div>
             <div class="md:col-span-2">
@@ -585,7 +1200,7 @@ onMounted(() => {
               >
               <textarea
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryNeeds"
+                v-model="beneficialInformation.beneficiaryNeeds"
               ></textarea>
             </div>
             <div class="md:col-span-2">
@@ -594,15 +1209,16 @@ onMounted(() => {
               >
               <input
                 type="file"
+                accept=".pdf"
                 class="w-full px-4 py-2 border rounded-md"
-                @change="handleFileUpload"
+                @change="handleBeneficialFileUpload"
               />
             </div>
           </div>
 
           <!-- Jika Lembaga -->
           <div
-            v-if="beneficiaryType === 'lembaga'"
+            v-if="beneficialInformation.beneficiaryType === 'lembaga'"
             class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3"
           >
             <div>
@@ -612,7 +1228,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationName"
+                v-model="beneficialInformation.organizationName"
               />
             </div>
             <div>
@@ -622,7 +1238,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationRegNumber"
+                v-model="beneficialInformation.organizationRegNumber"
               />
             </div>
             <div>
@@ -632,7 +1248,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationAddress"
+                v-model="beneficialInformation.organizationAddress"
               />
             </div>
             <div>
@@ -642,7 +1258,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationPIC"
+                v-model="beneficialInformation.organizationPIC"
               />
             </div>
             <div>
@@ -652,7 +1268,7 @@ onMounted(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="organizationPhone"
+                v-model="beneficialInformation.organizationPhone"
               />
             </div>
             <div class="md:col-span-2">
@@ -661,7 +1277,7 @@ onMounted(() => {
               >
               <textarea
                 class="w-full px-4 py-2 border rounded-md"
-                v-model="beneficiaryNeeds"
+                v-model="beneficialInformation.beneficiaryNeeds"
               ></textarea>
             </div>
             <div class="md:col-span-2">
@@ -670,8 +1286,10 @@ onMounted(() => {
               >
               <input
                 type="file"
+                accept=".pdf"
+                id="beneficial-file-upload"
                 class="w-full px-4 py-2 border rounded-md"
-                @change="handleFileUpload"
+                @change="handleBeneficialFileUpload"
               />
             </div>
           </div>
@@ -682,7 +1300,7 @@ onMounted(() => {
               >Hubungan dengan Penerima Manfaat</label
             >
             <select
-              v-model="beneficiaryRelation"
+              v-model="beneficialInformation.beneficiaryRelation"
               class="w-full px-4 py-2 border rounded-md"
             >
               <option value="diri-sendiri">Diri Sendiri</option>
@@ -694,14 +1312,17 @@ onMounted(() => {
           </div>
 
           <!-- Jika Lainnya, Tambah Input -->
-          <div v-if="beneficiaryRelation === 'lainnya'" class="mt-3">
+          <div
+            v-if="beneficialInformation.beneficiaryRelation === 'lainnya'"
+            class="mt-3"
+          >
             <label class="block text-gray-700 dark:text-gray-300 font-medium"
               >Jelaskan Hubungan</label
             >
             <input
               type="text"
               class="w-full px-4 py-2 border rounded-md"
-              v-model="beneficiaryRelationOther"
+              v-model="beneficialInformation.beneficiaryRelationOther"
             />
           </div>
         </div>
@@ -735,6 +1356,7 @@ onMounted(() => {
             >
             <input
               id="title"
+              v-model="projectData.projectTitle"
               placeholder="Masukkan Judul Project kamu"
               type="text"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
@@ -780,9 +1402,12 @@ onMounted(() => {
             </div>
 
             <!-- Display Selected Tags -->
-            <div v-if="selectedTags.length" class="mt-2 flex flex-wrap gap-2">
+            <div
+              v-if="projectData?.projectTags?.length"
+              class="mt-2 flex flex-wrap gap-2"
+            >
               <span
-                v-for="(tag, index) in selectedTags"
+                v-for="(tag, index) in projectData.projectTags"
                 :key="index"
                 class="bg-blue-500 text-white px-2 py-1 rounded-md text-sm flex items-center"
               >
@@ -806,6 +1431,7 @@ onMounted(() => {
           >
           <textarea
             id="description"
+            v-model="projectData.projectDescription"
             placeholder="Masukkan Deskripsi Project kamu"
             class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             rows="4"
@@ -873,6 +1499,7 @@ onMounted(() => {
             <input
               id="start_date"
               type="date"
+              v-model="projectData.projectStartDate"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             />
           </div>
@@ -885,6 +1512,7 @@ onMounted(() => {
             <input
               id="end_date"
               type="date"
+              v-model="projectData.projectEndDate"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             />
           </div>
@@ -901,18 +1529,23 @@ onMounted(() => {
               Category
             </label>
             <select
-              v-model="categoryProject"
+              v-model="projectData.projectCategory"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
               name="category"
               id=""
             >
-              <option value="donasi">Donasi</option>
+              <option value="donation">Donasi</option>
               <option value="volunteer">Volunteer</option>
             </select>
           </div>
 
           <!-- Target Donasi -->
-          <div v-if="categoryProject === 'donasi'">
+          <div
+            v-if="
+              projectData.projectCategory === 'donation' ||
+              projectData.projectCategory === ''
+            "
+          >
             <label
               for="target_donasi"
               class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -926,6 +1559,7 @@ onMounted(() => {
                 <i class="uil uil-money-bill"></i>
               </span>
               <input
+                v-model="projectData.projectTargetAmount"
                 type="number"
                 class="outline-none placeholder:text-gray-400 text-body dark:text-gray-300 w-full bg-transparent"
                 placeholder="Masukkan target donasi"
@@ -937,7 +1571,7 @@ onMounted(() => {
           </div>
 
           <!-- Target Volunteer -->
-          <div v-if="categoryProject === 'volunteer'">
+          <div v-if="projectData.projectCategory === 'volunteer'">
             <label
               for="target_volunteer"
               class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -951,6 +1585,7 @@ onMounted(() => {
                 <i class="uil uil-users-alt"></i>
               </span>
               <input
+                v-model="projectData.projectTargetVolunteer"
                 type="number"
                 class="outline-none placeholder:text-gray-400 text-body dark:text-gray-300 w-full bg-transparent"
                 placeholder="Masukkan jumlah volunteer"
@@ -962,8 +1597,141 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Tabel Kriteria dan Nilai -->
+        <div
+          v-if="projectData.projectCategory === 'volunteer'"
+          class="overflow-x-auto grid-cols-1 w-full mt-6"
+        >
+          <label
+            for="criteria_volunteer"
+            class="block text-gray-700 dark:text-gray-300 font-medium"
+          >
+            Kriteria Volunteer
+          </label>
+          <table class="min-w-full bg-white border rounded-md mt-1">
+            <!-- Klik pada header untuk menambah baris -->
+            <thead @click="addCriteria" class="cursor-pointer">
+              <tr class="bg-gray-100">
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Kriteria
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Nilai
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(criteria, index) in projectData.projectCriteria"
+                :key="index"
+              >
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.key"
+                    type="text"
+                    placeholder="Masukkan Kriteria"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.value"
+                    type="text"
+                    placeholder="Masukkan Nilai"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2 text-center">
+                  <!-- Tombol hapus dengan icon trash dari Unicons -->
+                  <button
+                    @click="removeCriteria(index)"
+                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
+                    v-if="projectData.projectCriteria.length > 1"
+                  >
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tabel Krbutuhan Role dan Jumlah -->
+        <div
+          v-if="projectData.projectCategory === 'volunteer'"
+          class="overflow-x-auto grid-cols-1 w-full mt-6"
+        >
+          <label
+            for="criteria_volunteer"
+            class="block text-gray-700 dark:text-gray-300 font-medium"
+          >
+            Kebutuhan Volunteer
+          </label>
+          <table class="min-w-full bg-white border rounded-md mt-1">
+            <!-- Klik pada header untuk menambah baris -->
+            <thead @click="addRole" class="cursor-pointer">
+              <tr class="bg-gray-100">
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Role
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Jumlah
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(role, index) in projectData.projectRole" :key="index">
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="role.key"
+                    type="text"
+                    placeholder="Masukkan Kriteria"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="role.value"
+                    type="text"
+                    placeholder="Masukkan Nilai"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2 text-center">
+                  <!-- Tombol hapus dengan icon trash dari Unicons -->
+                  <button
+                    @click="removeRole(index)"
+                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
+                    v-if="projectData.projectRole.length > 1"
+                  >
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <!-- Submit Button -->
-        <div class="flex justify-end mt-6 gap-2">
+        <div class="flex justify-end mt-10 gap-2">
           <button
             @click="goToStep(1)"
             type="submit"
@@ -1003,6 +1771,7 @@ onMounted(() => {
             </label>
             <textarea
               id="address"
+              v-model="locationForm.address"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
               rows="1"
             ></textarea>
@@ -1017,11 +1786,19 @@ onMounted(() => {
               Province
             </label>
             <select
+              v-model="locationForm.provinsi"
+              @change="getKabupaten(locationForm.provinsi)"
               id="province"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
               <option value="">Select Province</option>
-              <option value="aceh">Aceh</option>
+              <option
+                v-for="provinsi in provinsiList"
+                :key="provinsi.kodeProvinsi"
+                :value="provinsi.kodeProvinsi"
+              >
+                {{ provinsi.namaProvinsi }}
+              </option>
             </select>
           </div>
 
@@ -1035,10 +1812,19 @@ onMounted(() => {
             </label>
             <select
               id="kabupaten"
+              v-model="locationForm.kabupaten"
+              @change="getKecamatan(locationForm.kabupaten)"
+              :disabled="!locationForm.provinsi"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
               <option value="">Select Kabupaten</option>
-              <option value="aceh">Aceh</option>
+              <option
+                v-for="kabupaten in kabupatenList"
+                :key="kabupaten.kodeKabupaten"
+                :value="kabupaten.kodeKabupaten"
+              >
+                {{ kabupaten.namaKabupaten }}
+              </option>
             </select>
           </div>
 
@@ -1052,10 +1838,19 @@ onMounted(() => {
             </label>
             <select
               id="kecamatan"
+              v-model="locationForm.kecamatan"
+              @change="getDesa(locationForm.kecamatan)"
+              :disabled="!locationForm.kabupaten"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
             >
               <option value="">Select Kecamatan</option>
-              <option>Kemalang</option>
+              <option
+                v-for="kecamatan in kecamatanList"
+                :key="kecamatan.kodeKecamatan"
+                :value="kecamatan.kodeKecamatan"
+              >
+                {{ kecamatan.namaKecamatan }}
+              </option>
             </select>
           </div>
 
@@ -1069,11 +1864,19 @@ onMounted(() => {
             </label>
             <select
               id="desa"
+              v-model="locationForm.desa"
+              :disabled="!locationForm.kecamatan"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
               size="1"
             >
               <option value="">Select Desa</option>
-              <option value="sidorejo">Sidorejo</option>
+              <option
+                v-for="desa in desaList"
+                :key="desa.kodeDesa"
+                :value="desa.kodeDesa"
+              >
+                {{ desa.namaDesa }}
+              </option>
             </select>
           </div>
 
@@ -1088,6 +1891,7 @@ onMounted(() => {
             <input
               id="latitude"
               type="text"
+              v-model="locationForm.latitude"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
@@ -1103,6 +1907,7 @@ onMounted(() => {
             <input
               id="longitude"
               type="text"
+              v-model="locationForm.longitude"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
@@ -1153,7 +1958,7 @@ onMounted(() => {
               for="uploadFile"
               class="flex items-center justify-center h-10 px-3 bg-red-600 text-white text-[13px] rounded-md shadow-md hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-300 ease-in-out cursor-pointer"
             >
-              Upload 
+              Upload
             </label>
             <input
               type="file"
@@ -1239,8 +2044,12 @@ onMounted(() => {
           </div>
 
           <!-- List Timeline  -->
-          <div class="flex justify-center items-center border-t-1 mt-3 md:border-l-1 md:mt-0 md:border-t-0  ">
-            <div class="max-h-[300px] w-full scrollbar overflow-y-auto p-[20px] mb-6">
+          <div
+            class="flex justify-center items-center border-t-1 mt-3 md:border-l-1 md:mt-0 md:border-t-0"
+          >
+            <div
+              class="max-h-[300px] w-full scrollbar overflow-y-auto p-[20px] mb-6"
+            >
               <div
                 v-for="(timeline, index) in timelineDataUploadList"
                 :key="index"
@@ -1317,6 +2126,99 @@ onMounted(() => {
           </button>
           <button
             @click="goToStep(5)"
+            class="px-[30px] h-[44px] bg-primary border-primary text-white text-sm py-2 rounded-md shadow-md hover:bg-white hover:text-primary hover:ring-2 hover:ring-primary transition-all duration-300 ease-in-out"
+          >
+            Simpan
+          </button>
+        </div>
+      </div>
+
+      <!-- File Form  -->
+      <div
+        v-if="stepProjectNumber == 5"
+        class="bg-white dark:bg-gray-700 pb-6 pl-6 pr-6 pt-2 rounded-lg shadow"
+      >
+        <h5 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+          Edit File
+        </h5>
+
+        <!-- Modal Body -->
+        <div class="py-4 grid gap-6">
+          <!-- Daftar File -->
+          <div v-if="lampiranList" class="space-y-2">
+            <div
+              v-for="lampiran in lampiranList"
+              :key="lampiran.lampiranId"
+              class="flex items-center justify-between p-2 border rounded-md"
+            >
+              <div class="flex items-center space-x-3 min-w-0">
+                <i class="uil uil-file text-xl text-gray-600"></i>
+                <span class="truncate w-3/4">{{ lampiran.lampiranName }}</span>
+              </div>
+
+              <div class="flex space-x-3 flex-shrink-0">
+                <!-- Preview -->
+                <button
+                  @click="previewFile(lampiran)"
+                  class="text-blue-500 hover:text-blue-700"
+                  title="Preview"
+                >
+                  <i class="uil uil-eye text-xl"></i>
+                </button>
+
+                <!-- Update -->
+                <button
+                  @click="updateFile(lampiran.lampiranId)"
+                  class="text-yellow-500 hover:text-yellow-700"
+                  title="Update"
+                >
+                  <i class="uil uil-edit text-xl"></i>
+                </button>
+
+                <!-- Delete -->
+                <button
+                  @click="deleteFile(lampiran.lampiranId)"
+                  class="text-red-500 hover:text-red-700"
+                  title="Delete"
+                >
+                  <i class="uil uil-trash-alt text-xl"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-gray-500 text-center">No files uploaded.</p>
+
+          <!-- Tambah File -->
+          <div v-if="lampiranList?.length < 3" class="flex justify-center pt-4">
+            <label
+              for="file-attach-upload"
+              class="flex items-center px-4 py-2 text-white bg-green-500 rounded cursor-pointer hover:bg-green-600"
+            >
+              <i class="uil uil-plus mr-2"></i> Add File
+              <input
+                id="file-attach-upload"
+                type="file"
+                class="hidden"
+                accept=".pdf"
+                @click="addFile"
+              />
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end mt-6 gap-2">
+          <button
+            @click="goToStep(4)"
+            type="submit"
+            class="px-[30px] h-[44px] bg-red-600 text-white text-sm py-2 rounded-md shadow-md hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-300 ease-in-out"
+            data-te-ripple-init
+            data-te-ripple-color="light"
+          >
+            Kembali
+          </button>
+          <button
+            @click="storeNewProject"
             class="px-[30px] h-[44px] bg-primary border-primary text-white text-sm py-2 rounded-md shadow-md hover:bg-white hover:text-primary hover:ring-2 hover:ring-primary transition-all duration-300 ease-in-out"
           >
             Simpan

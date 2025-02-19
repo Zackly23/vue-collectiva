@@ -39,7 +39,7 @@ const toggleAside = () => {
       <router-view />
       <FooterComponent />
     </div>
-    <PreloaderComponent />
+    <!-- <PreloaderComponent /> -->
   </div>
 </template>
 
