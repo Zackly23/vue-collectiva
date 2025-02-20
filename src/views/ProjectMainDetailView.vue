@@ -5,6 +5,8 @@ import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
   : null;
@@ -14,11 +16,14 @@ console.log("projectId : ", projectId);
 
 const initialMap = ref(null);
 const isCriteriaModalOpen = ref(false);
+const commentText = ref("");
 const isRoleModalOpen = ref(false);
 const isTimelineModalOpen = ref(false);
 const timelineList = ref();
 const projectDetail = ref();
 const lampiranList = ref();
+const projectList = ref();
+const commentList = ref();
 
 //Open Modal
 const openGeneralModal = (value) => {
@@ -49,6 +54,10 @@ const closeCriteriaModal = () => {
 
 const closeRoleModal = () => {
   isRoleModalOpen.value = false;
+};
+
+const previewFile = (lampiran) => {
+  window.open(lampiran.lampiranUrl, "_blank");
 };
 
 const initialMapLayer = () => {
@@ -84,7 +93,7 @@ const initialMapLayer = () => {
 const getProjectDetail = async () => {
   try {
     const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-project-id/${userId}/${projectId}`
+      `${API_BASE_URL}/api/v1/test-public-project-id/${projectId}`
     );
     console.log(
       "project: ",
@@ -128,6 +137,8 @@ const getProjectDetail = async () => {
       projectPointLatitude: project.project_latitude,
       projectPointlongitude: project.project_longitude,
       projectCategory: project.project_category,
+      userOrganizationName: project.user_organization_name,
+      userBadge: project.user_badge,
     }));
 
     projectDetail.value = projectdetailList[0];
@@ -141,11 +152,110 @@ const getProjectDetail = async () => {
   }
 };
 
+const getPublicProjectList = async () => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/api/v1/test-public-projects`,
+      {
+        params: {
+          status: "in progress",
+          category: "",
+          sort: "asc",
+          search: "",
+          kode_provinsi: "",
+          limit: 3,
+          random: Math.random(), // ✅ Tambahkan parameter random agar cache dihindari
+
+        },
+      }
+    );
+
+    console.log("project  : ", response.data);
+
+    if (response.status === 200) {
+      const projectsListData = response.data.projects.map((item) => ({
+        projectId: item.project_title,
+        projectTitle: item.project_title,
+        projectDescription: item.project_description,
+        projectImage: item.project_image,
+        projectCategory: item.projectCategory,
+      }));
+
+      projectList.value = projectsListData;
+
+      console.log("Project List : ", projectList.value);
+    }
+  } catch (error) {
+    console.log("error public : ", error);
+  }
+};
+
+//Get Comment
+const getComments = async () => {
+  try {
+    const responses = await axios.get(
+      `${API_BASE_URL}/api/v1/test-comment-project-id/${projectId}`
+    );
+    console.log("comments : ", responses.data.comments);
+    const commentLists = responses.data.comments.map((comment) => ({
+      commentId: comment.project_comment_id,
+      userName: comment.user_name,
+      userAvatar: comment.user_avatar,
+      userBadge: comment.user_badge,
+      comment: comment.comment,
+      sendDate: comment.send_date,
+      sendTime: comment.send_time,
+    }));
+
+    commentList.value = commentLists;
+    console.log("comment list : ", commentList.value);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+//Store
+
+// ✅ Fungsi untuk mengirim komentar (Guest bisa)
+const storeComment = async () => {
+  try {
+    console.log("comment : ", commentText.value);
+    // 🔹 Cek apakah user login (cek token di localStorage)
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    // 🔹 Jika user login, tambahkan Authorization
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // 🔹 Kirim request
+    const response = await axios.post(
+      `${API_BASE_URL}/api/v1/test-comment-project-id/${projectId}`,
+      {
+        comment: commentText.value,
+      },
+      { headers }
+    );
+      
+    if (response.status === 201) {
+      console.log("Komentar berhasil dikirim:", response.data);
+      getComments();
+      commentText.value = "";
+    }
+    
+  } catch (error) {
+    console.error("Gagal mengirim komentar:", error.response?.data || error);
+  }
+};
+
 // get Evaluation
 const getTimeline = async () => {
   try {
     const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-project-timeline-id/${projectId}`
+      `${API_BASE_URL}/api/v1/test-project-timeline-id/${projectId}`
     );
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
@@ -196,6 +306,8 @@ onMounted(() => {
   getProjectDetail();
   getLampiran();
   getTimeline();
+  getComments();
+  getPublicProjectList();
 });
 </script>
 
@@ -309,7 +421,7 @@ onMounted(() => {
                   </div>
                   <button
                     class="text-blue-500 hover:text-blue-700 transition"
-                    @click="downloadFile(file.lampiranUrl)"
+                    @click="previewFile(file)"
                   >
                     ⬇
                   </button>
@@ -391,10 +503,13 @@ onMounted(() => {
               </h3>
               <span
                 class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded"
-                >Pemimpin Proyek Terverifikasi</span
+                >{{ projectDetail?.userBadge }}</span
               >
-              <p class="text-sm text-gray-600 mt-1">
-                Organisasi: WaterCare International
+              <p
+                v-if="projectDetail?.userOrganizationName !== 'tidak ada'"
+                class="text-sm text-gray-600 mt-1"
+              >
+                Organisasi: {{ projectDetail?.userOrganizationName }}
               </p>
             </div>
           </div>
@@ -408,9 +523,13 @@ onMounted(() => {
             Dukungan Komunitas
           </h2>
           <div class="space-y-6">
-            <div class="flex items-start space-x-3">
+            <div
+              v-for="comment in commentList"
+              :key="comment.commentId"
+              class="flex items-start space-x-3"
+            >
               <img
-                src="C:\Users\hp\Pictures\Filtering\david.jpg"
+                :src="comment.userAvatar"
                 alt="Pengguna"
                 class="w-8 h-8 rounded-full"
               />
@@ -418,54 +537,29 @@ onMounted(() => {
                 <!-- Nama dan Waktu -->
                 <div class="flex items-center justify-between">
                   <div>
-                    <span class="font-semibold text-gray-800"
-                      >Emma Thompson</span
-                    >
+                    <span class="font-semibold text-gray-800">{{
+                      comment.userName
+                    }}</span>
                     <span
                       class="inline-block bg-green-100 text-green-800 text-xs ml-2 px-2 py-1 rounded mt-1"
-                      >Pemimpin Proyek Terverifikasi</span
+                      >{{ comment.userBadge }}</span
                     >
                   </div>
-                  <span class="text-gray-500 text-sm ml-auto whitespace-nowrap"
-                    >1 hari yang lalu</span
+                  <span
+                    class="text-gray-500 text-sm ml-auto whitespace-nowrap"
+                    >{{ comment.sendDate }}</span
                   >
                 </div>
                 <!-- Komentar -->
                 <p class="text-gray-600 mt-3">
-                  Saya bangga menjadi bagian dari inisiatif ini.
-                </p>
-              </div>
-            </div>
-            <div class="flex items-start space-x-3">
-              <img
-                src="C:\Users\hp\Pictures\Filtering\david.jpg"
-                alt="Pengguna"
-                class="w-8 h-8 rounded-full"
-              />
-              <div class="flex-1">
-                <!-- Nama dan Waktu -->
-                <div class="flex items-center justify-between">
-                  <div>
-                    <span class="font-semibold text-gray-800"
-                      >Emma Thompson</span
-                    >
-                    <span
-                      class="inline-block bg-red-100 text-red-800 text-xs ml-2 px-2 py-1 rounded mt-1"
-                      >Donatur Tetap</span
-                    >
-                  </div>
-                  <span class="text-gray-500 text-sm ml-auto whitespace-nowrap"
-                    >1 hari yang lalu</span
-                  >
-                </div>
-                <!-- Komentar -->
-                <p class="text-gray-600 mt-3">
-                  Saya bangga menjadi bagian dari inisiatif ini.
+                  {{ comment.comment }}
                 </p>
               </div>
             </div>
           </div>
-          <form class="mt-8">
+          <div 
+          
+          class="mt-8">
             <div class="flex items-start space-x-4">
               <img
                 src="C:\Users\hp\Pictures\Filtering\david.jpg"
@@ -476,17 +570,19 @@ onMounted(() => {
                 <textarea
                   class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all resize-none"
                   rows="4"
+                  v-model="commentText"
                   placeholder="Write your comment..."
                 ></textarea>
                 <button
                   type="submit"
+                  @click="storeComment"
                   class="mt-3 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium w-full"
                 >
                   Tambahkan Komentar
                 </button>
               </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
 
@@ -554,59 +650,22 @@ onMounted(() => {
               Proyek Lainnya
             </h2>
             <div class="grid grid-cols-1 gap-6">
-              <div class="border rounded-lg shadow overflow-hidden">
+              <div
+                v-for="p in projectList"
+                :key="p.projectId"
+                class="border rounded-lg shadow overflow-hidden"
+              >
                 <img
-                  src="C:\Users\hp\Downloads\zee.jpg"
-                  alt="Proyek 3"
+                  :src="p.projectImage"
+                  :alt="p.projectTitle"
                   class="w-full h-40 object-cover"
                 />
                 <div class="p-4">
                   <h3 class="font-bold text-gray-800 mb-2">
-                    Pembangunan Sekolah di Desa A
+                    {{ p.projectTitle }}
                   </h3>
                   <p class="text-sm text-gray-600">
-                    Meningkatkan akses pendidikan bagi anak-anak di desa
-                    terpencil.
-                  </p>
-                  <a
-                    href="#"
-                    class="text-green-600 text-sm mt-2 inline-block font-medium"
-                    >Lihat Detail</a
-                  >
-                </div>
-              </div>
-              <div class="border rounded-lg shadow overflow-hidden">
-                <img
-                  src="C:\Users\hp\Downloads\zee.jpg"
-                  alt="Proyek 4"
-                  class="w-full h-40 object-cover"
-                />
-                <div class="p-4">
-                  <h3 class="font-bold text-gray-800 mb-2">
-                    Penghijauan Kota B
-                  </h3>
-                  <p class="text-sm text-gray-600">
-                    Menanam 10.000 pohon untuk memperbaiki kualitas udara.
-                  </p>
-                  <a
-                    href="#"
-                    class="text-green-600 text-sm mt-2 inline-block font-medium"
-                    >Lihat Detail</a
-                  >
-                </div>
-              </div>
-              <div class="border rounded-lg shadow overflow-hidden">
-                <img
-                  src="C:\Users\hp\Downloads\zee.jpg"
-                  alt="Proyek 5"
-                  class="w-full h-40 object-cover"
-                />
-                <div class="p-4">
-                  <h3 class="font-bold text-gray-800 mb-2">
-                    Bantuan Kesehatan untuk Desa C
-                  </h3>
-                  <p class="text-sm text-gray-600">
-                    Menyediakan fasilitas kesehatan untuk masyarakat.
+                    {{ p.projectDescription }}
                   </p>
                   <a
                     href="#"
@@ -628,9 +687,13 @@ onMounted(() => {
           Dukungan Komunitas
         </h2>
         <div class="space-y-6">
-          <div class="flex items-start space-x-3">
+          <div
+            v-for="comment in commentList"
+            :key="comment.commentId"
+            class="flex items-start space-x-3"
+          >
             <img
-              src="C:\Users\hp\Pictures\Filtering\david.jpg"
+              :src="comment.userAvatar"
               alt="Pengguna"
               class="w-8 h-8 rounded-full"
             />
@@ -638,50 +701,26 @@ onMounted(() => {
               <!-- Nama dan Waktu -->
               <div class="flex items-center justify-between">
                 <div>
-                  <span class="font-semibold text-gray-800">Emma Thompson</span>
+                  <span class="font-semibold text-gray-800">{{
+                    comment.userName
+                  }}</span>
                   <span
-                    class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mt-1"
-                    >Pemimpin Proyek Terverifikasi</span
+                    class="inline-block bg-green-100 text-green-800 text-xs ml-2 px-2 py-1 rounded mt-1"
+                    >{{ comment.userBadge }}</span
                   >
                 </div>
-                <span class="text-gray-500 text-sm ml-auto whitespace-nowrap"
-                  >1 hari yang lalu</span
-                >
+                <span class="text-gray-500 text-sm ml-auto whitespace-nowrap">{{
+                  comment.sendDate
+                }}</span>
               </div>
               <!-- Komentar -->
               <p class="text-gray-600 mt-3">
-                Saya bangga menjadi bagian dari inisiatif ini.
-              </p>
-            </div>
-          </div>
-          <div class="flex items-start space-x-3">
-            <img
-              src="C:\Users\hp\Pictures\Filtering\david.jpg"
-              alt="Pengguna"
-              class="w-8 h-8 rounded-full"
-            />
-            <div class="flex-1">
-              <!-- Nama dan Waktu -->
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="font-semibold text-gray-800">Emma Thompson</span>
-                  <span
-                    class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded mt-1"
-                    >Donatur Tetap</span
-                  >
-                </div>
-                <span class="text-gray-500 text-sm ml-auto whitespace-nowrap"
-                  >1 hari yang lalu</span
-                >
-              </div>
-              <!-- Komentar -->
-              <p class="text-gray-600 mt-3">
-                Saya bangga menjadi bagian dari inisiatif ini.
+                {{ comment.comment }}
               </p>
             </div>
           </div>
         </div>
-        <form class="mt-8">
+        <div class="mt-8">
           <div class="flex items-start space-x-4">
             <img
               src="C:\Users\hp\Pictures\Filtering\david.jpg"
@@ -692,17 +731,19 @@ onMounted(() => {
               <textarea
                 class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-all resize-none"
                 rows="4"
+                v-model="commentText"
                 placeholder="Write your comment..."
               ></textarea>
               <button
                 type="submit"
+                @click="storeComment"
                 class="mt-3 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium w-full"
               >
                 Tambahkan Komentar
               </button>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>

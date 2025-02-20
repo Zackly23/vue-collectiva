@@ -371,6 +371,7 @@ const getUserProfile = async () => {
     creatorInformation.value.creatorName = user.full_name;
     creatorInformation.value.creatorEmail = user.email;
     creatorInformation.value.creatorPhone = user.phone_number;
+    creatorInformation.value.creatorID = user.nik;
     creatorInformation.value.creatorSocialMedia = JSON.parse(
       user.social_media
     ).twitter;
