@@ -27,6 +27,8 @@ const userProfile = ref({
   phoneNumber: "",
   jenisKelamin: "",
   nik: "",
+  jabatan: "",
+  organizationName: "",
   ktpFile: null,
   email: "",
   socialMedia: {
@@ -142,7 +144,7 @@ const removeImage = () => {
 };
 
 const checkActiveTab = (tab) => {
-  console.log('setting tab : ', settingTab.value)
+  console.log("setting tab : ", settingTab.value);
   return settingTab.value === tab ? true : false;
 };
 
@@ -247,6 +249,8 @@ const updateUserProfile = async () => {
     formData.append("full_name", userProfile.value.fullName);
     formData.append("address", userProfile.value.address);
     formData.append("nik", userProfile.value.nik);
+    formData.append("jabatan", userProfile.value.jabatan);
+    formData.append("organization_name", userProfile.value.organizationName);
 
     if (userProfile.value.birthDate) {
       formData.append("birth_date", userProfile.value.birthDate);
@@ -324,7 +328,8 @@ const getUserProfile = async () => {
       nik: data.nik,
       ktpFile: data.scan_ktp, // Belum tersedia, default null
       email: data.email, // Ambil dari response.email
-
+      organizationName: data.organization_name,
+      jabatan: data.jabatan,
       socialMedia: JSON.parse(data.social_media), // Parsing string JSON menjadi objek
     };
 
@@ -636,6 +641,39 @@ onMounted(() => {
                         <option value="perempuan">Perempuan</option>
                       </select>
                     </div>
+
+                    <!-- Pekerjaan  -->
+
+                    <!-- Organisasi  -->
+                    <div>
+                      <label
+                        for="organisasi"
+                        class="block text-gray-700 dark:text-gray-300 font-medium"
+                        >Organisasi</label
+                      >
+                      <input
+                        id="organisasi"
+                        type="text"
+                        v-model="userProfile.organizationName"
+                        class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+
+                    <!-- Jabatan  -->
+                    <div v-if="userProfile?.organizationName !== 'tidak ada'">
+                      <label
+                        for="jabatan"
+                        class="block text-gray-700 dark:text-gray-300 font-medium"
+                        >Jabatan</label
+                      >
+                      <input
+                        id="organisasi"
+                        type="text"
+                        v-model="userProfile.jabatan"
+                        class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+
                     <!-- Unggah Scan KTP -->
                     <div class="mt-4">
                       <label
