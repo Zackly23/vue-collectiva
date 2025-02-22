@@ -1,9 +1,8 @@
 <script setup>
 import { onMounted, ref, watch } from "vue";
-import axios from "axios";
+import api from "@/api";
 import { useRoute } from "vue-router";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const route = useRoute();
 const settingTab = ref(
@@ -165,15 +164,9 @@ const changePassword = async () => {
       new_password_confirmation: passwordData.value.newConfirmationPassword,
     };
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/v1/password/change`,
-      passwordRequest,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await api.post(
+      `/password/change`,
+      passwordRequest
     );
 
     if (response.status === 200) {
@@ -186,15 +179,9 @@ const changePassword = async () => {
 
 const verifyEmail = async () => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/api/v1/email/verification`,
+    const response = await api.post(
+      `email/verification`,
       {},
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
     );
     if (response.status === 200) {
       console.log("Email Verifikasi Telah dikirim");
@@ -221,15 +208,9 @@ const updateSocialMedia = async () => {
     formData.append("_method", "PUT");
 
     // Lakukan request POST ke endpoint API yang sesuai
-    const response = await axios.post(
-      `${API_BASE_URL}/api/v1/test-profile/${userId}`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await api.post(
+      `/test-profile/${userId}`,
+      formData
     );
 
     if (response.status == 200) {
@@ -286,14 +267,13 @@ const updateUserProfile = async () => {
     formData.append("_method", "PUT");
 
     // Lakukan request POST ke endpoint API yang sesuai
-    const response = await axios.post(
-      `${API_BASE_URL}/api/v1/test-profile/${userId}`,
+    const response = await api.post(
+      `/test-profile/${userId}`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
+        }
       }
     );
 
@@ -308,11 +288,7 @@ const updateUserProfile = async () => {
 
 const getUserProfile = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/v1/test-profile`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get(`/test-profile`,);
 
     console.log("is email verified : ", isEmailVerified.value);
     console.log("user : ", response.data.user);

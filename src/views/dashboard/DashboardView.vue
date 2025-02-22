@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref, watch, computed } from "vue";
-import axios from "axios";
+import api from "@/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,9 +26,6 @@ ChartJS.register(
   Legend,
   ArcElement
 );
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
@@ -229,14 +226,10 @@ const topDonatur = ref([]);
 //API
 const getTopDonatur = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-dashboard/top-donatur/${userId}`,
+    const response = await api.get(
+      `/test-dashboard/top-donatur/${userId}`,
 
       {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
         params: {
           filter: "all",
         },
@@ -265,14 +258,8 @@ const getTopDonatur = async () => {
 
 const getBestProjectPerformance = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-dashboard/best-project-performance/${userId}`,
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
+    const response = await api.get(
+      `/test-dashboard/best-project-performance/${userId}`
     );
 
     const projectBestPerformaceData = response.data.projects.map((item) => ({
@@ -295,15 +282,7 @@ const getBestProjectPerformance = async () => {
 
 const getProjectCardStatistic = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-dashboard/statistic/${userId}`,
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
+    const response = await api.get(`/test-dashboard/statistic/${userId}`);
 
     // const projectCardStastistic = response.data.project_statistics.map((statistic) => {
 
@@ -318,14 +297,8 @@ const getProjectCardStatistic = async () => {
 
 const getPieChart = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-dashboard/piechart-project/${userId}`,
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
+    const response = await api.get(
+      `/test-dashboard/piechart-project/${userId}`
     );
 
     const projectShare = response.data.project_social_media.map((item) => ({
@@ -342,9 +315,13 @@ const getPieChart = async () => {
 
     dummyPieChart.value.labels = responseData.map((item) => item.sosmed_name);
     dummyPieChart.value.data = responseData.map((item) => item.percentage);
-    dummyPieChart.backgroundColor = responseData.map((item) => item.background_color);
-    dummyPieChart.value.hoverBackgroundColor = responseData.map((item) => item.hover_color);
-    
+    dummyPieChart.backgroundColor = responseData.map(
+      (item) => item.background_color
+    );
+    dummyPieChart.value.hoverBackgroundColor = responseData.map(
+      (item) => item.hover_color
+    );
+
     console.log("piechart data : ", response.data.project_social_media);
   } catch (error) {
     console.error(error);
@@ -353,14 +330,8 @@ const getPieChart = async () => {
 
 const getLineChart = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-dashboard/linechart-project/${userId}`,
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
+    const response = await api.get(
+      `/test-dashboard/linechart-project/${userId}`
     );
 
     monthLineChart.value = response.data.donation_amount_monthly.map(

@@ -1,17 +1,15 @@
 <script setup>
 import { reactive, toRaw, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import axios from "axios";
 import Icon from "@/assets/cuteicon.png";
+import api from "@/api";
+
 
 const router = useRouter();
 const route = useRoute();
 
 const resetToken = route.params.token;
 const email = route.query.email;
-
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Reactive state for form data
 const form = reactive({
@@ -70,27 +68,18 @@ const togglePasswordVisibility = (field) => {
 // Form submission handler
 const resetPassword = async () => {
   if (validateForm()) {
-    console.log('token : ', resetToken)
+    console.log("token : ", resetToken);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/v1/password/reset`,
-        {
-          email: email,
-          token: resetToken,
-          password: form.password,
-          password_confirmation: form.passwordConfirmation,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.post("/password/reset", {
+        email: email,
+        token: resetToken,
+        password: form.password,
+        password_confirmation: form.passwordConfirmation,
+      });
 
       Object.keys(errors).forEach((key) => {
         errors[key] = null;
       });
-
 
       if (response.status == 200) {
         router.push("/login");
@@ -102,7 +91,6 @@ const resetPassword = async () => {
     }
   }
 };
-
 </script>
 
 <template>

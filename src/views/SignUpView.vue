@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, toRaw, ref } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
+import api from "@/api";
 
 const router = useRouter();
 
@@ -96,8 +96,8 @@ const handleSubmit = async () => {
     console.log("Form data:", toRaw(form));
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/v1/sign-up",
+      const response = await api.post(
+       '/sign-up',
         {
           first_name: form.firstName,
           last_name: form.lastName,
@@ -105,11 +105,6 @@ const handleSubmit = async () => {
           password: form.password,
           password_confirmation: form.passwordConfirmation,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
       );
 
       Object.keys(errors).forEach((key) => {

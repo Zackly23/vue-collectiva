@@ -2,7 +2,7 @@
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { ref, computed, onMounted, nextTick } from "vue";
-import axios from "axios";
+import api from "@/api";
 
 const eventAgendaList = ref([]);
 const pickerDate = ref();
@@ -138,7 +138,7 @@ const modifyDotsLayout = () => {
 // Fungsi untuk mengambil data dari API
 const fetchAgendas = async () => {
   try {
-    const response = await axios.get("http://localhost:8000/api/v1/agendas");
+    const response = await api.get("/agendas");
     // Mapping data dari API ke struktur `eventAgendaList`
     eventAgendaList.value = response.data.map((agenda) => ({
       description: agenda.description,
@@ -170,8 +170,8 @@ const saveNewAgenda = async () => {
     };
 
     // Kirim data ke API
-    const response = await axios.post(
-      "http://localhost:8000/api/v1/agenda",
+    const response = await api.post(
+      "/agenda",
       newAgenda
     );
 

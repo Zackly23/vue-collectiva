@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
+import api from "@/api";
 import readXlsxFile from "read-excel-file";
 
-const token = localStorage.getItem("token");
+const token = localStorage.getItem("access_token");
 const route = useRoute();
 const router = useRouter();
 const stepProjectNumber = ref(route.query.step || "1");
@@ -357,14 +357,7 @@ const createNewTimeline = () => {
 //API
 const getUserProfile = async () => {
   try {
-    const responses = await axios.get(
-      "http://localhost:8000/api/v1/test-profile",
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
+    const responses = await api.get("/test-profile");
     console.log("user : ", responses.data.user);
     const user = responses.data.user;
     userProfile.value = user;
@@ -384,9 +377,7 @@ const getUserProfile = async () => {
 //getProvince
 const getProvinsi = async () => {
   try {
-    const responses = await axios.get(
-      "http://localhost:8000/api/v1/test-location-provinsi"
-    );
+    const responses = await api.get("/test-location-provinsi");
 
     const provinsiLists = responses.data.provinsi.map((province) => ({
       kodeProvinsi: province.kode_provinsi,
@@ -404,9 +395,7 @@ const getProvinsi = async () => {
 //Get Kecamatan
 const getKabupaten = async (kodeProvinsi) => {
   try {
-    const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-location-kabupaten/${kodeProvinsi}`
-    );
+    const responses = await api.get(`/test-location-kabupaten/${kodeProvinsi}`);
     console.log(responses.data);
     const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
       kodeKabupaten: kabupaten.kode_kabupaten,
@@ -425,8 +414,8 @@ const getKabupaten = async (kodeProvinsi) => {
 const getKecamatan = async (kodeKabupaten) => {
   try {
     console.log(kodeKabupaten);
-    const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-location-kecamatan/${kodeKabupaten}`
+    const responses = await api.get(
+      `/test-location-kecamatan/${kodeKabupaten}`
     );
     console.log(responses.data);
 
@@ -446,9 +435,7 @@ const getKecamatan = async (kodeKabupaten) => {
 //Get Desa
 const getDesa = async (kodeKecamatan) => {
   try {
-    const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-location-desa/${kodeKecamatan}`
-    );
+    const responses = await api.get(`/test-location-desa/${kodeKecamatan}`);
     console.log(responses.data);
 
     const desaLists = responses.data.desa.map((desa) => ({
@@ -532,16 +519,7 @@ const storeNewProject = async () => {
   formData.append("longitude", locationForm.value.longitude);
 
   try {
-    const response = await axios.post(
-      "http://localhost:8000/api/v1/test-project-create",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await api.post("/test-project-create", formData);
 
     if (response.status == 200 || response.status == 201) {
       console.log(response.data);
@@ -672,20 +650,12 @@ const storeProjectInformation = async (projectId) => {
   try {
     // Kirim data ke dua endpoint sekaligus
     const [response1, response2] = await Promise.all([
-      axios.post(
-        `http://localhost:8000/api/v1/test-project-creator/${projectId}`,
-        formDataCreator,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      ),
-      axios.post(
-        `http://localhost:8000/api/v1/test-project-beneficial/${projectId}`,
-        formDataBeneficial,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      ),
+      api.post(`/test-project-creator/${projectId}`, formDataCreator, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+      api.post(`/test-project-beneficial/${projectId}`, formDataBeneficial, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
     ]);
 
     console.log("Response Creator:", response1.data);
@@ -718,8 +688,8 @@ const storeProjectTimeline = async (projectId) => {
   // formData.append(timelineStoreList);
 
   try {
-    const response = await axios.post(
-      `http://localhost:8000/api/v1/test-project-timeline/${projectId}`,
+    const response = await api.post(
+      `/test-project-timeline/${projectId}`,
       timelineStoreList
     );
 
@@ -746,8 +716,8 @@ const storeProjectLampiran = async (projectId) => {
   });
 
   try {
-    const response = await axios.post(
-      `http://localhost:8000/api/v1/test-project-lampiran/${projectId}/`,
+    const response = await api.post(
+      `/test-project-lampiran/${projectId}/`,
       formData,
       {
         headers: {
@@ -772,9 +742,7 @@ const storeProjectLampiran = async (projectId) => {
 
 const getProjectTag = async () => {
   try {
-    const responses = await axios.get(
-      "http://localhost:8000/api/v1/test-project-tag"
-    );
+    const responses = await api.get("/test-project-tag");
 
     const tagLists = responses.data.project_tags.map((tag) => ({
       tagId: tag.tag_id,
@@ -793,7 +761,7 @@ const getProjectTag = async () => {
 
 const getIconList = async () => {
   try {
-    const responses = await axios.get("http://localhost:8000/api/v1/test-icon");
+    const responses = await api.get("/test-icon");
 
     const iconLists = responses.data.icons.map((icon) => ({
       iconId: icon.icon_id,

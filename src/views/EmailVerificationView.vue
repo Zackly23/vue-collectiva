@@ -1,9 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from "@/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -14,14 +12,8 @@ const message = ref("Verifying your email...");
 const verifyEmail = async () => {
   try {
     const { id, hash } = route.params;
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/email/verify/${id}/${hash}`,
-      {
-        headers: {
-          "Content-Type": "application",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
+    const response = await api.get(
+     `/email/verify/${id}/${hash}`,
     );
 
     if (response.status === 200) {
