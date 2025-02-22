@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
+import api from "@/api";
 
 const router = useRouter();
 const isLogin = ref(false);
@@ -9,20 +10,14 @@ const activeDropdown = ref(null);
 
 const signOut = async () => {
   try {
-    console.log("token : ", localStorage.getItem("token"));
-    const response = await axios.post(
-      "http://localhost:8000/api/v1/logout",
+    const response = await api.post(
+      "/logout",
       {},
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
     );
 
     if (response.status === 200) {
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem('refresh_token');
       localStorage.removeItem("user");
       router.push("/");
     }

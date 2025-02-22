@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import api from "@/api";
 
 const router = useRouter();
 const userProfile = ref({});
@@ -40,11 +41,11 @@ const closeDropdownOnClickOutside = (event) => {
 
 const getUserProfile = async () => {
   try {
-    const responses = await axios.get(
-      "http://localhost:8000/api/v1/test-profile",
+    const responses = await api.get(
+      "/test-profile",
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       }
     );
@@ -85,20 +86,15 @@ const handleOutsideClick = (event) => {
 
 const signOut = async () => {
   try {
-    console.log("token : ", localStorage.getItem("token"));
-    const response = await axios.post(
-      "http://localhost:8000/api/v1/logout",
+    console.log("token : ", localStorage.getItem("access_token"));
+    const response = await api.post(
+      "logout",
       {},
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
     );
 
     if (response.status === 200) {
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
       router.push("/");
     }

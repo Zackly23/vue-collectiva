@@ -1,8 +1,8 @@
 <script setup>
-import axios from "axios";
 import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
+import api from '@/api';
 
 import 'vue-toast-notification/dist/theme-sugar.css';
 
@@ -34,8 +34,8 @@ const getProjectsList = async () => {
   console.log("search : ", searchProjectBar.value);
 
   try {
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/test-projects`,
+    const response = await api.get(
+      `/test-projects`,
       {
         params: {
           user_id: userID,
@@ -142,8 +142,8 @@ const openNotificatication = (message) => {
 
 const deleteProjectId = async (projectId) => {
   try {
-    const response = await axios.delete(
-      `http://localhost:8000/api/v1/test-project-delete/${projectId}`
+    const response = await api.delete(
+      `/test-project-delete/${projectId}`
     );
     console.log('delete : ',response.data);
     if (response.status == 200) {

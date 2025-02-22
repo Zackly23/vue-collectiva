@@ -1,12 +1,10 @@
 <script setup>
   import { reactive, toRaw, ref } from "vue";
   import { useRouter } from "vue-router";
-  import axios from "axios";
   import Icon from '@/assets/cuteicon.png';
+  import api from "@/api";
   
  const router = useRouter();
-
- const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 
   // Reactive state for form data
@@ -60,7 +58,7 @@
     if (validateForm()) {
 
       try {
-      const response = await axios.post(`${API_BASE_URL}/api/v1/login`, {
+      const response = await api.post('/login', {
         email: form.email,
         password: form.password,
       });
@@ -69,10 +67,11 @@
         errors[key] = null;
       })
 
+      console.log('Login response:', response.data);
       const userId = response.data.user.user_id;
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      localStorage.setItem('token', response.data.token)
-      
+      localStorage.setItem('access_token', response.data.access_token)
+      localStorage.setItem('refresh_token', response.data.refresh_token)
       if (response.status == 200) {
         router.push(`/dashboard/${userId}`);
 

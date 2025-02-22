@@ -1,12 +1,10 @@
 <script setup>
 import { reactive, toRaw, ref } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
 import Icon from "@/assets/cuteicon.png";
+import api from "@/api";
 
 const router = useRouter();
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Reactive state for form data
 const form = reactive({
@@ -35,12 +33,11 @@ const validateForm = () => {
   return isValid;
 };
 
-
 // Form submission handler
 const sendResetPassword = async () => {
   if (validateForm()) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/v1/password/send-reset`, {
+      const response = await api.post("/password/send-reset", {
         email: form.email,
       });
 

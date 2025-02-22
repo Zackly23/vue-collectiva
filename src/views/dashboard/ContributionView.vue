@@ -1,5 +1,5 @@
 <script setup>
-import axios from "axios";
+import api from "@/api";
 import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
@@ -30,8 +30,8 @@ const getProjectsList = async () => {
   console.log("search : ", searchProjectBar.value);
 
   try {
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/test-contribution`,
+    const response = await api.get(
+      `/test-contribution`,
       {
         params: {
           //   user_id: userID,
@@ -39,10 +39,6 @@ const getProjectsList = async () => {
           category: selectedCategory.value,
           sort: selectedSort.value,
           search: searchProjectBar.value,
-        },
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -148,8 +144,8 @@ const openNotificatication = (message) => {
 
 const deleteProjectId = async (projectId) => {
   try {
-    const response = await axios.delete(
-      `http://localhost:8000/api/v1/test-project-delete/${projectId}`
+    const response = await api.delete(
+      `/test-project-delete/${projectId}`
     );
     console.log("delete : ", response.data);
     if (response.status == 200) {

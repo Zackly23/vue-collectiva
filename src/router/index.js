@@ -16,6 +16,9 @@ import NewPasswordView from "@/views/NewPasswordView.vue";
 import ContributionView from "@/views/dashboard/ContributionView.vue";
 import MainLayout from "@/layouts/MainLayout.vue";
 import ProjectMainDetailView from "@/views/ProjectMainDetailView.vue";
+import DonationView from "@/views/DonationView.vue";
+import PaymentDonationView from "@/views/PaymentDonationView.vue";
+import VolunteerView from "@/views/VolunteerView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,8 +36,24 @@ const router = createRouter({
           path: "/project/:projectId",
           name: "project-main-detail",
           component: ProjectMainDetailView,
-        }
+        },
+
       ],
+    },
+    {
+      path: "/project/:projectId/donation",
+      name: "project-donation",
+      component: DonationView,
+    },
+    {
+      path: "/donation/payment/:projectId",
+      name: "donation-payment",
+      component: PaymentDonationView,
+    },
+    {
+      path: "/project/:projectId/volunteer",
+      name: "donation-payment",
+      component: VolunteerView,
     },
     {
       path: "/sign-up",

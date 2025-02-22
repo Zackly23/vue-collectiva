@@ -1,4 +1,146 @@
-<script setup></script>
+<script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const selectedStatus = ref("in progress");
+const statusActive = ref("in progress");
+const searchProjectBar = ref("");
+const selectedCategory = ref("");
+const selectedSort = ref("asc");
+const selectedKodeProvinsi = ref("");
+
+const provinsiList = ref();
+const projectList = ref();
+const projectCount = ref(0);
+
+const statusList = ref([
+  {
+    key: "in progress",
+    status: "Proyek Dibuka",
+  },
+  {
+    key: "in review",
+    status: "Segera Dibuka",
+  },
+  {
+    key: "completed",
+    status: "Proyek Selesai",
+  },
+]);
+
+const changeStatus = (status) => {
+  selectedStatus.value = status === "in progress" ? "" : status;
+  statusActive.value = status;
+  console.log(selectedStatus.value);
+};
+
+const formattedDate = (date) => {
+  const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const bulan = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+
+  const d = new Date(date);
+  const tahun = d.getFullYear();
+  const namaHari = hari[d.getDay()]; // Mendapatkan nama hari
+  const tanggal = d.getDate(); // Tanggal (1-31)
+  const namaBulan = bulan[d.getMonth()]; // Nama bulan
+  const jam = String(d.getHours()).padStart(2, "0"); // Jam dalam format 24 jam
+  const menit = String(d.getMinutes()).padStart(2, "0"); // Menit
+
+  return `${namaHari}, ${tanggal}-${namaBulan}-${tahun}`;
+};
+
+const getPublicProjectList = async () => {
+  console.log("sort : ", selectedSort.value);
+  console.log("status : ", selectedStatus.value);
+  console.log("category : ", selectedCategory.value);
+  console.log("search : ", searchProjectBar.value);
+
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/api/v1/test-public-projects`,
+      {
+        params: {
+          kode_provinsi: "11.00",
+          limit: 3,
+          status: selectedStatus.value,
+          category: selectedCategory.value,
+          sort: selectedSort.value,
+          search: searchProjectBar.value,
+        },
+      }
+    );
+
+    console.log("project  : ", response.data);
+
+    if (response.status === 200) {
+      const projectsListData = response.data.projects.map((project) => ({
+        projectId: project.project_id,
+        projectTitle: project.project_title,
+        projectDescription: project.project_description,
+        projectStartDate: formattedDate(project.project_start_date),
+        projectEndDate: formattedDate(project.project_end_date),
+        projectStatus: project.project_status,
+        projectCategory: project.project_category,
+        projectAddress: project.project_address,
+        projectImage: project.project_image,
+        projectTargetAmount: project.project_target_amount,
+        projectProgressAmount: project.project_progress_amount,
+        projectProgressPercentage: project.project_progress_percentage,
+        projectTags: project.project_tags.map((tag) => ({
+          tagId: tag.tag_id,
+          tagName: tag.tag_name,
+        })),
+      }));
+
+      projectList.value = projectsListData;
+      projectCount.value = response.data.pagination.total;
+
+      console.log("Project List : ", projectList.value);
+    }
+  } catch (error) {
+    console.log("error public : ", error);
+  }
+};
+
+const getProvinsi = async () => {
+  try {
+    const responses = await axios.get(
+      "http://localhost:8000/api/v1/test-location-provinsi"
+    );
+    console.log(responses.data);
+    const provinsiLists = responses.data.provinsi.map((province) => ({
+      kodeProvinsi: province.kode_provinsi,
+      namaProvinsi: province.nama_provinsi,
+    }));
+
+    provinsiList.value = provinsiLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+onMounted(() => {
+  getPublicProjectList();
+  getProvinsi();
+});
+</script>
 
 <template>
   <!-- Stats Section -->
@@ -40,27 +182,36 @@
         <div class="flex-1 min-w-[200px]">
           <input
             type="text"
+            v-model="searchProjectBar"
             placeholder="Cari proyek..."
             class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
         <select
+          v-model="selectedCategory"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
         >
-          <option>Kategori Proyek</option>
-          <option>Donasi</option>
-          <option>Volunteer</option>
-          <option>Penggalangan Dana</option>
+          <option value="">Kategori Proyek</option>
+          <option value="donation">Donasi</option>
+          <option value="volunteer">Volunteer</option>
         </select>
         <select
+          v-model="selectedKodeProvinsi"
+          id="province"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
         >
-          <option>Wilayah - Kota</option>
-          <option>Yogyakarta</option>
-          <option>Jakarta</option>
-          <option>Bandung</option>
+          <option value="">Select Province</option>
+          <option
+            v-for="provinsi in provinsiList"
+            :key="provinsi.kodeProvinsi"
+            :value="provinsi.kodeProvinsi"
+          >
+            {{ provinsi.namaProvinsi }}
+          </option>
         </select>
+
         <button
+          @click="getPublicProjectList"
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
         >
           Terapkan Filter
@@ -72,7 +223,7 @@
     <div class="flex justify-between items-center mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-800">Pilihan Proyek</h1>
-        <p class="text-gray-500">Menampilkan 3 dari 25 proyek</p>
+        <p class="text-gray-500">Menampilkan 3 dari {{ projectCount }} proyek</p>
       </div>
       <div class="flex gap-2">
         <button class="px-4 py-2 border rounded-lg hover:bg-gray-50">
@@ -96,29 +247,30 @@
     <!-- Filter Pills -->
     <div class="flex flex-wrap gap-2 mb-6">
       <button
-        class="px-4 py-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200"
+        v-for="status in statusList"
+        :key="status.key"
+        :class="{
+          'bg-green-200 text-green-700': statusActive === status.key,
+        }"
+        class="px-4 py-2 bg-green-50 rounded-full hover:bg-green-200"
+        @click="changeStatus(status.key)"
       >
-        Proyek Dibuka
+        {{ status.status }}
       </button>
-      <button
-        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200"
-      >
-        Segera Dibuka
-      </button>
-      <button
-        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200"
-      >
-        Proyek Selesai
-      </button>
+
       <div class="flex-1"></div>
-      <button class="text-green-600 hover:text-green-800">
+      <router-link
+        to="/dashboard/project"
+        class="text-green-600 hover:text-green-800"
+      >
         Lihat Semua Proyek
-      </button>
+      </router-link>
     </div>
 
     <!-- Project Cards (with hover effects) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
+        v-for="project in projectList"
         class="border rounded-lg overflow-hidden bg-white transition-transform hover:scale-[1.02] hover:shadow-lg"
       >
         <div class="relative">
@@ -127,52 +279,62 @@
           >
             ROI 16%
           </div>
-          <img
-            src=""
-            alt="Project 1"
-            class="w-full h-48 object-cover"
-          />
+          <img :src="project.projectImage" :alt="project.projectTitle" class="w-full h-48 object-cover" />
           <div
             class="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30 flex items-center justify-center"
           >
-            <div class="bg-white/90 backdrop-blur rounded-full p-4">
-              <span class="text-green-700 font-bold">Pendanaan Terpenuhi</span>
-            </div>
+            <!-- <div class="bg-white/90 backdrop-blur rounded-full p-4">
+              <span class="text-green-700 font-bold"></span>
+            </div> -->
           </div>
         </div>
 
         <div class="p-4">
           <div class="flex justify-between mb-2">
-            <span class="text-gray-600">Dana Terkumpul</span>
-            <span class="text-red-500 font-bold">Rp 4.000.000.000</span>
+            <span class="text-gray-600"
+              >{{
+                project.projectCategory === "donation"
+                  ? "Donasi Terkumpul"
+                  : "Partisipasi Volunteer"
+              }}
+            </span>
+            <span class="text-red-500 font-bold"
+              >{{ project.projectCategory === "donation" ? "Rp" : "" }}
+              {{ project.projectProgressAmount }}
+              {{ project.projectCategory === "volunteer" ? "Orang" : "" }}</span
+            >
           </div>
 
           <div class="flex gap-2 mb-4">
             <span
+              v-for="tag in project.projectTag"
+              :key="tag.tagId"
               class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm"
-              >Efek Utang</span
-            >
-            <span
-              class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm"
-              >entertainment</span
+              >{{ tag.tagName }}</span
             >
           </div>
 
           <h3 class="font-bold text-lg mb-2 hover:text-green-600">
-            <a href="#">EBU Film "Tak Ingin Usai di S..."</a>
+            <router-link :to="`/project/${project.projectId}`">{{
+              project.projectTitle
+            }}</router-link>
           </h3>
 
           <!-- Progress Bar -->
           <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div class="bg-blue-600 h-2 rounded-full" style="width: 100%"></div>
+            <div
+              class="bg-blue-600 h-2 rounded-full"
+              :style="{
+                width: `${project?.projectProgressPercentage}%`,
+              }"
+            ></div>
           </div>
 
           <p class="text-gray-600 text-sm mb-4">
-            PT Kavita Dana Asia memiliki proyek produksi konten film. Sehingga
-            perolehan dana dari hasil penawaran efek atas Penerbitan Ef...
-            <a href="#" class="text-green-600 hover:text-green-800 ml-1"
-              >Baca Detail</a
-            >
+            {{ project.projectDescription }}
+            <router-link :to="`/project/${project.projectId}`">{{
+              project.projectTitle
+            }}</router-link>
           </p>
 
           <div class="flex justify-between items-center pt-4 border-t">
@@ -180,7 +342,7 @@
               <span
                 class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
               >
-                Selesai
+                {{ project.projectStatus }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -197,173 +359,13 @@
                   d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                 ></path>
               </svg>
-              <span class="text-gray-700">Rp 4.000.000.000</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="border rounded-lg overflow-hidden bg-white transition-transform hover:scale-[1.02] hover:shadow-lg"
-      >
-        <div class="relative">
-          <div
-            class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full"
-          >
-            ROI 16%
-          </div>
-          <img
-            src=""
-            alt="Project 1"
-            class="w-full h-48 object-cover"
-          />
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30 flex items-center justify-center"
-          >
-            <div class="bg-white/90 backdrop-blur rounded-full p-4">
-              <span class="text-green-700 font-bold">Pendanaan Terpenuhi</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4">
-          <div class="flex justify-between mb-2">
-            <span class="text-gray-600">Dana Terkumpul</span>
-            <span class="text-red-500 font-bold">Rp 4.000.000.000</span>
-          </div>
-
-          <div class="flex gap-2 mb-4">
-            <span
-              class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm"
-              >Efek Utang</span
-            >
-            <span
-              class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm"
-              >entertainment</span
-            >
-          </div>
-
-          <h3 class="font-bold text-lg mb-2 hover:text-green-600">
-            <a href="#">EBU Film "Tak Ingin Usai di S..."</a>
-          </h3>
-
-          <!-- Progress Bar -->
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div class="bg-blue-600 h-2 rounded-full" style="width: 100%"></div>
-          </div>
-
-          <p class="text-gray-600 text-sm mb-4">
-            PT Kavita Dana Asia memiliki proyek produksi konten film. Sehingga
-            perolehan dana dari hasil penawaran efek atas Penerbitan Ef...
-            <a href="#" class="text-green-600 hover:text-green-800 ml-1"
-              >Baca Detail</a
-            >
-          </p>
-
-          <div class="flex justify-between items-center pt-4 border-t">
-            <div class="flex items-center gap-2">
-              <span
-                class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
+              <span class="text-gray-700"
+                >{{ project.projectCategory === "donation" ? "Rp" : "" }}
+                {{ project.projectTargetAmount }}
+                {{
+                  project.projectCategory === "volunteer" ? "Orang" : ""
+                }}</span
               >
-                Selesai
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg
-                class="w-5 h-5 text-green-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                ></path>
-              </svg>
-              <span class="text-gray-700">Rp 4.000.000.000</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="border rounded-lg overflow-hidden bg-white transition-transform hover:scale-[1.02] hover:shadow-lg"
-      >
-        <div class="relative">
-          <div
-            class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full"
-          >
-            ROI 16%
-          </div>
-          <img src="" alt="Project 1" class="w-full h-48 object-cover" />
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30 flex items-center justify-center"
-          >
-            <div class="bg-white/90 backdrop-blur rounded-full p-4">
-              <span class="text-green-700 font-bold">Pendanaan Terpenuhi</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4">
-          <div class="flex justify-between mb-2">
-            <span class="text-gray-600">Dana Terkumpul</span>
-            <span class="text-red-500 font-bold">Rp 4.000.000.000</span>
-          </div>
-
-          <div class="flex gap-2 mb-4">
-            <span
-              class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm"
-              >Efek Utang</span
-            >
-            <span
-              class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm"
-              >entertainment</span
-            >
-          </div>
-
-          <h3 class="font-bold text-lg mb-2 hover:text-green-600">
-            <a href="#">EBU Film "Tak Ingin Usai di S..."</a>
-          </h3>
-
-          <!-- Progress Bar -->
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div class="bg-blue-600 h-2 rounded-full" style="width: 100%"></div>
-          </div>
-
-          <p class="text-gray-600 text-sm mb-4">
-            PT Kavita Dana Asia memiliki proyek produksi konten film. Sehingga
-            perolehan dana dari hasil penawaran efek atas Penerbitan Ef...
-            <a href="#" class="text-green-600 hover:text-green-800 ml-1"
-              >Baca Detail</a
-            >
-          </p>
-
-          <div class="flex justify-between items-center pt-4 border-t">
-            <div class="flex items-center gap-2">
-              <span
-                class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
-              >
-                Selesai
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg
-                class="w-5 h-5 text-green-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                ></path>
-              </svg>
-              <span class="text-gray-700">Rp 4.000.000.000</span>
             </div>
           </div>
         </div>

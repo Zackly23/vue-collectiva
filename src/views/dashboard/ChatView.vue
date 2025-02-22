@@ -1,8 +1,8 @@
 <script setup>
-import axios from "axios";
 import { ref, onMounted, onUnmounted, nextTick, onBeforeUnmount } from "vue";
 import Echo from "laravel-echo";
 import EmojiPicker from "vue3-emoji-picker";
+import api from "@/api";
 
 import "vue3-emoji-picker/css";
 
@@ -170,8 +170,8 @@ const clearPreview = () => {
 
 //Leave Group Chat
 const leaveGroupChat = async () => {
-  const response = await axios.delete(
-    `http://localhost:8000/api/v1/test-delete-user-group/${userID}/${activeChatId.value}`
+  const response = await api.delete(
+    `/test-delete-user-group/${userID}/${activeChatId.value}`
   );
 
   console.log(response.data.message);
@@ -182,8 +182,8 @@ const leaveGroupChat = async () => {
 const deleteMessage = async (key) => {
   if (activeTab.value == "private-chat") {
     try {
-      const response = await axios.delete(
-        `http://localhost:8000/api/v1/test-delete-private/${userID}/${key}`
+      const response = await api.delete(
+        `/test-delete-private/${userID}/${key}`
       );
 
       console.log(response.data.message);
@@ -196,8 +196,8 @@ const deleteMessage = async (key) => {
   } else if (activeTab.value == "group-chat") {
     console.log("delete group chat by id");
     try {
-      const response = await axios.delete(
-        `http://localhost:8000/api/v1/test-delete-group/${userID}/${key}`
+      const response = await api.delete(
+        `/test-delete-group/${userID}/${key}`
       );
 
       console.log(response.data.message);
@@ -213,8 +213,8 @@ const deleteMessage = async (key) => {
 //GetMessages and replace
 const getChatMessage = async (messageType, key) => {
   if (messageType == "private-chat") {
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/test-private-id/${userID}/${key}`
+    const response = await api.get(
+      `/test-private-id/${userID}/${key}`
     );
     console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
@@ -231,8 +231,8 @@ const getChatMessage = async (messageType, key) => {
     chatNameHeader.value = response.data.chat_name;
   } else if (messageType == "group-chat") {
     console.log("key : ", key);
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/test-group-id/${key}`
+    const response = await api.get(
+      `/test-group-id/${key}`
     );
     console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
@@ -254,8 +254,8 @@ const getChatMessage = async (messageType, key) => {
 
 //Initial BodyChatContent
 const initialBodyChat = async () => {
-  const response = await axios.get(
-    `http://localhost:8000/api/v1/testbodychat/${userID}/private-chat`
+  const response = await api.get(
+    `/testbodychat/${userID}/private-chat`
   );
 
   console.log("initial : ", response.data);
@@ -284,8 +284,8 @@ const switchTab = async (tab) => {
   console.log("bodyContent key : ", bodyChatContentType.value.key);
 
   try {
-    const response = await axios.get(
-      `http://localhost:8000/api/v1/testbodychat/${userID}/${tab}`
+    const response = await api.get(
+      `/testbodychat/${userID}/${tab}`
     );
 
     console.log("switch tab: ", response.data);
@@ -347,8 +347,8 @@ const formattedDate = (date) => {
 };
 
 const groupMessageList = async () => {
-  const response = await axios.get(
-    `http://localhost:8000/api/v1/test/${userID}`
+  const response = await api.get(
+    `/test/${userID}`
   );
   console.log("group: ", response.data);
   const groupChatList = response.data.group_chats.map((gcl) => ({
@@ -364,8 +364,8 @@ const groupMessageList = async () => {
 };
 
 const privateMessageList = async () => {
-  const response = await axios.get(
-    `http://localhost:8000/api/v1/test-private/${userID}`
+  const response = await api.get(
+    `/test-private/${userID}`
   );
 
   console.log("priv: ", response.data);
@@ -392,8 +392,8 @@ const sendMessage = async () => {
 
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
-      const response = await axios.post(
-        `http://localhost:8000/api/v1/test-send-group/${activeChatId.value}`, // Pastikan userID valid
+      const response = await api.post(
+        `/test-send-group/${activeChatId.value}`, // Pastikan userID valid
         {
           sender_id: userID, // ID pengirim
           group_chat_text: messageText.value, // Konsisten dengan key di server
@@ -425,8 +425,8 @@ const sendMessage = async () => {
 
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
-      const response = await axios.post(
-        `http://localhost:8000/api/v1/test-send-private/${activeChatId.value}`, // Pastikan userID valid
+      const response = await api.post(
+        `/test-send-private/${activeChatId.value}`, // Pastikan userID valid
         {
           sender_id: userID, // ID pengirim
           private_chat_text: messageText.value, // Konsisten dengan key di server
@@ -620,7 +620,7 @@ onUnmounted(() => {
                   v-if="isLoading"
                   class="me-auto inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center align-baseline text-[10px] font-bold leading-none text-white group-[.active]:hidden"
                 >
-                  {{ messages.length }}
+                  {{ messages?.length }}
                 </span>
               </li>
               <li role="presentation" class="flex items-center gap-2">

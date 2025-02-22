@@ -3,9 +3,8 @@ import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import axios from "axios";
+import api from "@/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
@@ -92,9 +91,10 @@ const initialMapLayer = () => {
 //API
 const getProjectDetail = async () => {
   try {
-    const responses = await axios.get(
-      `${API_BASE_URL}/api/v1/test-public-project-id/${projectId}`
+    const responses = await api.get(
+     `/test-public-project-id/${projectId}`
     );
+
     console.log(
       "project: ",
       JSON.parse(responses.data.project_details[0].project_criteria)
@@ -154,8 +154,8 @@ const getProjectDetail = async () => {
 
 const getPublicProjectList = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/v1/test-public-projects`,
+    const response = await api.get(
+      '/test-public-projects',
       {
         params: {
           status: "in progress",
@@ -193,8 +193,8 @@ const getPublicProjectList = async () => {
 //Get Comment
 const getComments = async () => {
   try {
-    const responses = await axios.get(
-      `${API_BASE_URL}/api/v1/test-comment-project-id/${projectId}`
+    const responses = await api.get(
+      `/test-comment-project-id/${projectId}`
     );
     console.log("comments : ", responses.data.comments);
     const commentLists = responses.data.comments.map((comment) => ({
@@ -232,8 +232,8 @@ const storeComment = async () => {
     }
 
     // 🔹 Kirim request
-    const response = await axios.post(
-      `${API_BASE_URL}/api/v1/test-comment-project-id/${projectId}`,
+    const response = await api.post(
+      `/test-comment-project-id/${projectId}`,
       {
         comment: commentText.value,
       },
@@ -254,8 +254,8 @@ const storeComment = async () => {
 // get Evaluation
 const getTimeline = async () => {
   try {
-    const responses = await axios.get(
-      `${API_BASE_URL}/api/v1/test-project-timeline-id/${projectId}`
+    const responses = await api.get(
+      `/test-project-timeline-id/${projectId}`
     );
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
@@ -285,8 +285,8 @@ const getTimeline = async () => {
 
 const getLampiran = async () => {
   try {
-    const responses = await axios.get(
-      `http://localhost:8000/api/v1/test-project-lampiran-id/${projectId}`
+    const responses = await api.get(
+      `/test-project-lampiran-id/${projectId}`
     );
     console.log("lampiran : ", responses.data);
     const lampiranLists = responses.data.project_lampiran.map((lampiran) => ({
@@ -631,15 +631,25 @@ onMounted(() => {
             </div>
 
             <!-- Donasi Button -->
-            <button
-              class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
+            <router-link
+            v-if="projectDetail?.projectCategory === 'donation'"
+              :to="`/project/${projectId}/donation`"
+              class="flex justify-center items-center w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
             >
               Donasi Sekarang
-            </button>
-            <div class="text-xs text-gray-500 text-center">
+            </router-link>
+
+            <router-link
+            v-else
+              :to="`/project/${projectId}/volunteer`"
+              class="flex justify-center items-center w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
+            >
+              Bergabung Sekarang
+            </router-link>
+            <!-- <div class="text-xs text-gray-500 text-center">
               Pemrosesan pembayaran aman oleh Stripe Dapat dikurangkan pajak di
               AS
-            </div>
+            </div> -->
           </div>
         </div>
 
