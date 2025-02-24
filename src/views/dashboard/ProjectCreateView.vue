@@ -44,7 +44,7 @@ const projectData = ref({
   projectFile: "",
   projectTargetAmount: "",
   projectTargetVolunteer: "",
-  projectCriteria: [{ key: "", value: "" }],
+  projectCriteria: [{ key: "", value: "", role: "" }],
   projectRole: [{ key: "", value: "" }],
 });
 const creatorInformation = ref({
@@ -508,6 +508,7 @@ const storeNewProject = async () => {
   // Menambahkan file gambar (pastikan projectFile sudah berupa File)
   if (projectData.value.projectFile) {
     formData.append("project_image", projectData.value.projectFile);
+    console.log("Project image ada!", projectData.value.projectFile);
   } else {
     console.error("Project image tidak ada!");
   }
@@ -519,7 +520,11 @@ const storeNewProject = async () => {
   formData.append("longitude", locationForm.value.longitude);
 
   try {
-    const response = await api.post("/test-project-create", formData);
+    const response = await api.post("/test-project-create", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     if (response.status == 200 || response.status == 201) {
       console.log(response.data);
@@ -1566,74 +1571,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Tabel Kriteria dan Nilai -->
-        <div
-          v-if="projectData.projectCategory === 'volunteer'"
-          class="overflow-x-auto grid-cols-1 w-full mt-6"
-        >
-          <label
-            for="criteria_volunteer"
-            class="block text-gray-700 dark:text-gray-300 font-medium"
-          >
-            Kriteria Volunteer
-          </label>
-          <table class="min-w-full bg-white border rounded-md mt-1">
-            <!-- Klik pada header untuk menambah baris -->
-            <thead @click="addCriteria" class="cursor-pointer">
-              <tr class="bg-gray-100">
-                <th
-                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                >
-                  Kriteria
-                </th>
-                <th
-                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                >
-                  Nilai
-                </th>
-                <th
-                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                >
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(criteria, index) in projectData.projectCriteria"
-                :key="index"
-              >
-                <td class="border px-4 py-2">
-                  <input
-                    v-model="criteria.key"
-                    type="text"
-                    placeholder="Masukkan Kriteria"
-                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
-                  />
-                </td>
-                <td class="border px-4 py-2">
-                  <input
-                    v-model="criteria.value"
-                    type="text"
-                    placeholder="Masukkan Nilai"
-                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
-                  />
-                </td>
-                <td class="border px-4 py-2 text-center">
-                  <!-- Tombol hapus dengan icon trash dari Unicons -->
-                  <button
-                    @click="removeCriteria(index)"
-                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
-                    v-if="projectData.projectCriteria.length > 1"
-                  >
-                    <i class="uil uil-trash-alt"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
         <!-- Tabel Krbutuhan Role dan Jumlah -->
         <div
           v-if="projectData.projectCategory === 'volunteer'"
@@ -1690,6 +1627,94 @@ onMounted(() => {
                     @click="removeRole(index)"
                     class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
                     v-if="projectData.projectRole.length > 1"
+                  >
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tabel Kriteria dan Nilai -->
+        <div
+          v-if="projectData.projectCategory === 'volunteer'"
+          class="overflow-x-auto grid-cols-1 w-full mt-6"
+        >
+          <label
+            for="criteria_volunteer"
+            class="block text-gray-700 dark:text-gray-300 font-medium"
+          >
+            Kriteria Volunteer
+          </label>
+          <table class="min-w-full bg-white border rounded-md mt-1">
+            <!-- Klik pada header untuk menambah baris -->
+            <thead @click="addCriteria" class="cursor-pointer">
+              <tr class="bg-gray-100">
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Kriteria
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Nilai
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Role
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(criteria, index) in projectData.projectCriteria"
+                :key="index"
+              >
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.key"
+                    type="text"
+                    placeholder="Masukkan Kriteria"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <input
+                    v-model="criteria.value"
+                    type="text"
+                    placeholder="Masukkan Nilai"
+                    class="w-full px-2 py-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-center"
+                  />
+                </td>
+                <td class="border px-4 py-2">
+                  <select
+                    v-model="criteria.role"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  >
+                    <option value="" disabled selected>Pilih Role</option>
+                    <option
+                      v-for="role in projectData?.projectRole"
+                      :key="role.key"
+                      :value="role.key"
+                    >
+                      {{ role.key }}
+                    </option>
+                  </select>
+                </td>
+                <td class="border px-4 py-2 text-center">
+                  <!-- Tombol hapus dengan icon trash dari Unicons -->
+                  <button
+                    @click="removeCriteria(index)"
+                    class="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
+                    v-if="projectData.projectCriteria.length > 1"
                   >
                     <i class="uil uil-trash-alt"></i>
                   </button>
