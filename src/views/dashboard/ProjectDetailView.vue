@@ -203,7 +203,7 @@ const setMode = (updateMode) => {
 
 // Fungsi untuk menambah baris input baru
 const addCriteria = () => {
-  projectDetail.value.projectCriteria.push({ key: "", value: "" });
+  projectDetail.value.projectCriteria.push({ key: "", value: "", role: "" });
 };
 
 // Fungsi untuk menghapus baris input tertentu
@@ -405,8 +405,7 @@ const updateLocation = async () => {
   try {
     const response = await api.post(
       `/test-project-update-location-id/${projectId}`, // Perbaiki URL
-      formData,
-
+      formData
     );
 
     console.log(response.data);
@@ -479,8 +478,7 @@ const saveChangeEvaluation = async () => {
 
     const response = await api.put(
       `/test-project-evaluation-id/${projectId}`,
-      evaluationData, // Kirim langsung sebagai JSON
-
+      evaluationData // Kirim langsung sebagai JSON
     );
 
     if (response.status === 200) {
@@ -505,7 +503,7 @@ const updateProjectDetail = async () => {
     tagName: tag.tagName,
   }));
 
-  console.log("ProjectModalData:", projectModalData.value);
+  console.log("project criteria:", projectDetail.value.projectCriteria);
 
   // Buat FormData
   const formData = new FormData();
@@ -546,6 +544,7 @@ const updateProjectDetail = async () => {
           projectDetail.value.projectCriteria.map((criteria) => ({
             key: criteria.key,
             value: criteria.value,
+            role: criteria.role,
           }))
         )
       );
@@ -738,9 +737,7 @@ const openNotificatication = (message) => {
 const updateStatusProject = async () => {
   console.log("ubah status");
   try {
-    const response = await api.put(
-      `/test-project-status-id/${projectId}`
-    );
+    const response = await api.put(`/test-project-status-id/${projectId}`);
 
     if (response.status == 200) {
       console.log("response status", response.data);
@@ -758,9 +755,7 @@ const updateStatusProject = async () => {
 //Hapus Project
 const deleteProjectId = async () => {
   try {
-    const response = await api.delete(
-      `/test-project-delete/${projectId}`
-    );
+    const response = await api.delete(`/test-project-delete/${projectId}`);
     console.log(response.data);
     if (response.status == 200) {
       openNotificatication(`Project ${projectId} Berhasil Dihapus`);
@@ -830,9 +825,7 @@ const initialMapLayer = () => {
 
 const getProjectDetail = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-id/${userId}/${projectId}`
-    );
+    const responses = await api.get(`/test-project-id/${userId}/${projectId}`);
     console.log(
       "project: ",
       JSON.parse(responses.data.project_details[0].project_criteria)
@@ -862,6 +855,7 @@ const getProjectDetail = async () => {
         ? JSON.parse(project.project_criteria).map((criteria) => ({
             key: criteria.key,
             value: criteria.value,
+            role: criteria.role,
           }))
         : [{ key: "", value: "" }],
       projectRole: project.project_role
@@ -901,9 +895,7 @@ const getProjectDetail = async () => {
 // get Evaluation
 const getTimeline = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-timeline-id/${projectId}`
-    );
+    const responses = await api.get(`/test-project-timeline-id/${projectId}`);
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
       timelineId: timeline.project_timeline_id,
@@ -933,9 +925,7 @@ const getTimeline = async () => {
 //get Evaluation
 const getEvaluationList = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-evaluation-id/${projectId}`
-    );
+    const responses = await api.get(`/test-project-evaluation-id/${projectId}`);
 
     console.log("evaluation response : ", responses.data.project_evaluation);
 
@@ -963,9 +953,7 @@ const getEvaluationList = async () => {
 //getProvince
 const getProvinsi = async () => {
   try {
-    const responses = await api.get(
-      "/test-location-provinsi"
-    );
+    const responses = await api.get("/test-location-provinsi");
 
     const provinsiLists = responses.data.provinsi.map((province) => ({
       kodeProvinsi: province.kode_provinsi,
@@ -983,9 +971,7 @@ const getProvinsi = async () => {
 //Get Kecamatan
 const getKabupaten = async (kodeProvinsi) => {
   try {
-    const responses = await api.get(
-      `/test-location-kabupaten/${kodeProvinsi}`
-    );
+    const responses = await api.get(`/test-location-kabupaten/${kodeProvinsi}`);
     console.log(responses.data);
     const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
       kodeKabupaten: kabupaten.kode_kabupaten,
@@ -1025,9 +1011,7 @@ const getKecamatan = async (kodeKabupaten) => {
 //Get Desa
 const getDesa = async (kodeKecamatan) => {
   try {
-    const responses = await api.get(
-      `/test-location-desa/${kodeKecamatan}`
-    );
+    const responses = await api.get(`/test-location-desa/${kodeKecamatan}`);
     console.log(responses.data);
 
     const desaLists = responses.data.desa.map((desa) => ({
@@ -1045,9 +1029,7 @@ const getDesa = async (kodeKecamatan) => {
 
 const getLampiran = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-lampiran-id/${projectId}`
-    );
+    const responses = await api.get(`/test-project-lampiran-id/${projectId}`);
     console.log("lampiran : ", responses.data);
     const lampiranLists = responses.data.project_lampiran.map((lampiran) => ({
       lampiranId: lampiran.project_lampiran_id,
@@ -1064,9 +1046,7 @@ const getLampiran = async () => {
 
 const getProjectTagsList = async () => {
   try {
-    const responses = await api.get(
-      "/test-project-tag"
-    );
+    const responses = await api.get("/test-project-tag");
 
     const tagLists = responses.data.project_tags.map((tag) => ({
       tagId: tag.tag_id,
@@ -2830,6 +2810,11 @@ onBeforeMount(() => {
                 <th
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
+                  Role
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
                   Aksi
                 </th>
               </tr>
@@ -2854,6 +2839,21 @@ onBeforeMount(() => {
                     placeholder="Masukkan Nilai"
                     class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   />
+                </td>
+                <td class="border px-4 py-2">
+                  <select
+                    v-model="criteria.role"
+                    class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  >
+                    <option value="" disabled selected>Pilih Role</option>
+                    <option
+                      v-for="role in projectDetail?.projectRole"
+                      :key="role.key"
+                      :value="role.key"
+                    >
+                      {{ role.key }}
+                    </option>
+                  </select>
                 </td>
                 <td class="border px-4 py-2 text-center">
                   <button

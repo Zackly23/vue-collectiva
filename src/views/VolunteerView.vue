@@ -11,7 +11,26 @@ const projectId = route.params.projectId;
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
   : null;
-const projectDetail = ref();
+const projectDetail = ref({
+  projectId: "",
+  projectTitle: "",
+  projectAddress: "",
+  projectCriteria: [
+    {
+      key: "",
+      value: "",
+      role: "",
+      fulfilled: false,
+    },
+  ],
+  projectRole: [
+    {
+      key: "",
+      value: "",
+    },
+  ],
+});
+
 const tabCheked = ref("criteria");
 const userProfile = ref({
   userId: "",
@@ -115,10 +134,13 @@ const getProjectDetail = async () => {
     const projectdetailList = responses.data.project_details.map((project) => ({
       projectId: project.project_id,
       projectTitle: project.project_title,
+      projectAddress: project.project_address,
       projectCriteria: project.project_criteria
         ? JSON.parse(project.project_criteria).map((criteria) => ({
             key: criteria.key,
             value: criteria.value,
+            role: criteria.role,
+            fulfilled: false,
           }))
         : [{ key: "", value: "" }],
       projectRole: project.project_role
@@ -156,11 +178,11 @@ onMounted(() => {
         <div class="col-span-8 lg:col-start-2 lg:col-span-6">
           <div class="mb-8">
             <h1 class="text-2xl font-bold text-gray-800">
-              Complete Your Payment
+              Konfirmasi Keikutsertaan Anda
             </h1>
             <p class="text-gray-600 mt-2">
-              Please provide your information and select a payment method to
-              continue.
+              Silakan lengkapi informasi Anda dan konfirmasi keikutsertaan
+              sebagai volunteer.
             </p>
           </div>
         </div>
@@ -217,34 +239,59 @@ onMounted(() => {
                     class="block text-sm font-medium text-gray-700 mb-1"
                     >Phone Number</label
                   >
-                  <div class="relative">
-                    <div
-                      class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
-                    ></div>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      v-model="userProfile.phoneNumber"
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      placeholder="0812 3456 7890"
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    v-model="userProfile.phoneNumber"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    placeholder="0812 3456 7890"
+                  />
                 </div>
                 <div>
                   <label
                     for="alamat"
                     class="block text-sm font-medium text-gray-700 mb-1"
-                    >Alamat</label
+                    >Alamat Pengguna</label
                   >
-                  <div class="relative">
-                    <input
-                      type="text"
-                      id="alamat"
-                      name="alamat"
-                      v-model="userProfile.address"
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
+                  <input
+                    type="text"
+                    id="alamat"
+                    name="alamat"
+                    v-model="userProfile.address"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                <!-- Project Volunteer memenuhi 1 baris penuh -->
+                <div class="col-span-1 md:col-span-2">
+                  <label
+                    for="projectTitle"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Proyek Volunteer</label
+                  >
+                  <div
+                    id="projectTitle"
+                    name="projectTitle"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    {{ projectDetail.projectTitle }}
+                  </div>
+                </div>
+
+                <!-- Alamat Proyek memenuhi 1 baris penuh -->
+                <div class="col-span-1 md:col-span-2">
+                  <label
+                    for="alamatProyek"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Alamat Proyek</label
+                  >
+                  <div
+                    id="alamatProyek"
+                    name="alamatProyek"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    {{ projectDetail.projectAddress }}
                   </div>
                 </div>
               </div>
@@ -301,72 +348,46 @@ onMounted(() => {
 
               <div
                 v-if="isTabChecked('criteria')"
-                class="px-6 py-4 max-h-[50vh]"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
               >
-                <table class="min-w-full bg-white border rounded-md mt-1 mb-2">
-                  <!-- Klik pada header untuk menambah baris -->
-                  <thead>
-                    <tr class="bg-gray-100">
-                      <th
-                        class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                      >
-                        Kriteria
-                      </th>
-                      <th
-                        class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                      >
-                        Nilai
-                      </th>
-                      <th
-                        class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                      >
-                        Role
-                      </th>
-                      <th
-                        class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
-                      >
-                        Memenuhi?
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="(
-                        criteria, index
-                      ) in projectDetail?.projectCriteria"
-                      :key="index"
-                    >
-                      <td class="border px-4 py-2">
-                        <span
-                          class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
-                        >
+                <div
+                  v-for="criteria in projectDetail?.projectCriteria"
+                  :key="criteria.key"
+                  @click="criteria.fulfilled = !criteria.fulfilled"
+                  :class="{
+                    'mb-4 border rounded-lg transition-all cursor-pointer': true,
+                    'border-gray-200 hover:border-gray-300':
+                      !criteria.fulfilled,
+                    'border-green-300 bg-green-50': criteria.fulfilled,
+                  }"
+                >
+                  <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                      <input
+                        type="checkbox"
+                        v-model="criteria.fulfilled"
+                        class="w-5 h-5 text-green-600 border-gray-300 focus:ring-green-500"
+                      />
+                      <label class="ml-3 flex flex-col">
+                        <span class="font-medium text-gray-900">
                           {{ criteria.key }}
                         </span>
-                      </td>
-                      <td class="border px-4 py-2">
-                        <span
-                          class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
-                        >
-                          {{ criteria.value }}
+
+                        <span class="text-sm text-gray-500">
+                          <span class="font-semibold"
+                            >({{ criteria.value }})</span
+                          >
                         </span>
-                      </td>
-                      <td class="border px-4 py-2">
-                        <span
-                          class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
-                        >
-                          {{ criteria.role }}
+                        <span class="text-sm text-gray-500">
+                          Role: {{ criteria.role }}
                         </span>
-                      </td>
-                      <td class="border px-4 py-2">
-                        <input
-                          type="radio"
-                          checked
-                          class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </label>
+                    </div>
+                    <span class="h-8 text-blue-600 font-semibold">
+                      {{ criteria.role }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <!-- Role Option  -->
@@ -424,13 +445,15 @@ onMounted(() => {
               </h2>
             </div>
             <div class="p-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Grid untuk Tanggal -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <label
                     for="start_date"
                     class="block text-sm font-medium text-gray-700 mb-1"
-                    >Tanggal Mulai</label
                   >
+                    Tanggal Mulai
+                  </label>
                   <input
                     type="date"
                     id="start_date"
@@ -442,8 +465,9 @@ onMounted(() => {
                   <label
                     for="end_date"
                     class="block text-sm font-medium text-gray-700 mb-1"
-                    >Tanggal Selesai</label
                   >
+                    Tanggal Selesai
+                  </label>
                   <input
                     type="date"
                     id="end_date"
@@ -452,14 +476,56 @@ onMounted(() => {
                   />
                 </div>
               </div>
+
+              <!-- Grid untuk Jam -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label
+                    for="start_time"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Waktu Mulai
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="time"
+                      id="start_time"
+                      name="start_time"
+                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                    <span class="absolute right-4 top-3 text-gray-400">
+                      <i class="uil uil-time"></i>
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    for="end_time"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Waktu Selesai
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="time"
+                      id="end_time"
+                      name="end_time"
+                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                    <span class="absolute right-4 top-3 text-gray-400">
+                      <i class="uil uil-time"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="flex justify-end">
+          <div class="flex justify-end mt-4">
             <button
               @click="startPaymentTransaction"
-              class="bg-blue-500 text-white rounded-lg p-3 mt-4"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300"
             >
-              Lanjutkan
+              Gabung Sebagai Volunteer
             </button>
           </div>
         </div>
