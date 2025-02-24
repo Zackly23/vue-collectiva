@@ -235,7 +235,7 @@ const removeImage = () => {
 
 // Fungsi untuk menambah baris input baru
 const addCriteria = () => {
-  projectData.value.projectCriteria.push({ key: "", value: "" });
+  projectData.value.projectCriteria.push({ key: "", value: "", role: "" });
 };
 
 // Fungsi untuk menghapus baris input tertentu
@@ -490,6 +490,7 @@ const storeNewProject = async () => {
         projectData.value.projectCriteria.map((criteria) => ({
           key: criteria.key,
           value: criteria.value,
+          role: criteria.role,
         }))
       )
     );
