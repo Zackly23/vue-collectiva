@@ -1,13 +1,15 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { start } from "@popperjs/core";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
-
 
 const router = useRouter();
 const route = useRoute();
 const projectId = route.params.projectId;
+const userId = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null;
+const projectDetail = ref();
 const userProfile = ref({
   userId: "",
   fullName: "",
@@ -53,6 +55,10 @@ const eWalletPaymentMethod = ref([
 const ewalletChecked = ref({});
 const channelPayment = ref("");
 
+const snapToken = ref(null);
+const orderId = ref(null);
+const status = ref("pending");
+
 const isEwalletChecked = (ewallet) => {
   return ewalletChecked.value.eWalletName === ewallet.eWalletName;
 };
@@ -96,6 +102,25 @@ const checkTotalAmountPayment = async () => {
     console.error("error Fetch User : ", error);
   }
 };
+
+const getProjectDetail = async () => {
+  try {
+    const responses = await api.get(`/test-project-id/${userId}/${projectId}`);
+
+    const projectdetailList = responses.data.project_details.map((project) => ({
+      projectId: project.project_id,
+      projectTitle: project.project_title,
+      projectAddress: project.project_address,
+    }));
+
+    projectDetail.value = projectdetailList[0];
+
+    console.log("project detail : ", projectDetail.value);
+  } catch (error) {
+    console.error("error Fetch Project : ", error);
+  }
+};
+
 const getUserProfile = async () => {
   try {
     const response = await api.get("/test-profile", {});
@@ -117,38 +142,108 @@ const getUserProfile = async () => {
 
 const startPaymentTransaction = async () => {
   try {
-    console.log("push to payment");
-    router.push({
-      path: `/donation/payment/${projectId}`,
-      name: "donation-payment",
-      query: { orderId: "PA9855919" },
+    const response = await api.post(`/test-donation/${projectId}/snap`, {
+      donation_amount: amountPayment.value,
     });
+
+    console.log("API Response:", response.data);
+
+    if (!response.data.snap_token) {
+      console.error("Snap token is missing from API response.");
+      return;
+    }
+
+    snapToken.value = response.data.snap_token;
+    orderId.value = response.data.order_id;
+
+    console.log("Snap token:", snapToken.value);
+    showSnapModal();
   } catch (error) {
-    console.log(error);
+    console.error(
+      "Error fetching Snap token:",
+      error.response ? error.response.data : error
+    );
   }
 };
 
+const showSnapModal = () => {
+  if (!window.snap) {
+    console.error("Snap.js not loaded");
+    return;
+  }
+
+  window.snap.pay(snapToken.value, {
+    onSuccess: async (result) => {
+      console.log("Payment Success:", result);
+
+      try {
+        const callBackData = {
+          transaction_status: result.transaction_status,
+          transaction_time: result.transaction_time,
+          transaction_id: result.transaction_id,
+          payment_type: result.payment_type,
+          bank: result.va_numbers ? result.va_numbers[0].bank : null, // Pastikan properti ini ada agar tidak undefined
+          va_number: result.va_numbers ? result.va_numbers[0].va_number : null, // Pastikan properti ini ada agar tidak undefined
+          phone_number: userProfile.value.phoneNumber,
+          email: userProfile.value.email,
+          full_name: userProfile.value.fullName,
+        };
+
+        console.log("callback data : ", callBackData);
+
+        const response = await api.post(
+          `/test-donation/${orderId.value}/snap/callback`,
+          callBackData // Kirim langsung objek ini, bukan dalam objek lain
+        );
+
+        console.log("snap callback : ", response.data);
+        status.value = "success";
+        router.push({
+          path: `/project/${projectId}`,
+          
+        })
+      } catch (error) {
+        console.error("Error updating payment status:", error);
+      }
+    },
+    onPending: (result) => {
+      console.log("Payment Pending:", result);
+      status.value = "pending";
+    },
+    onError: (result) => {
+      console.log("Payment Failed:", result);
+      status.value = "failed";
+    },
+  });
+};
+
+
 onMounted(() => {
   getUserProfile();
+  getProjectDetail();
 });
 </script>
 
 <template>
   <div class="bg-gray-50 min-h-screen">
     <div class="max-w-6xl mx-auto p-4 md:p-6">
-      <!-- Page Title -->
-      <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-800">Complete Your Payment</h1>
-        <p class="text-gray-600 mt-2">
-          Please provide your information and select a payment method to
-          continue.
-        </p>
-      </div>
-
       <!-- Main Content -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-8 gap-6">
+        <div class="col-span-8 lg:col-start-2 lg:col-span-6 space-y-6">
+          <!-- Page Title -->
+          <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">
+              Complete Your Payment
+            </h1>
+            <p class="text-gray-600 mt-2">
+              Please provide your information and select a payment method to
+              continue.
+            </p>
+          </div>
+        </div>
+
         <!-- Left Column - User Information -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="col-span-8 lg:col-start-2 lg:col-span-6 space-y-6 mb-6">
           <!-- User Information Section -->
           <div
             class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
@@ -244,8 +339,12 @@ onMounted(() => {
           </div>
 
           <!-- Payment Method Section -->
+        </div>
+
+        <!-- Right Column - Order Summary -->
+        <div class="col-span-8 lg:col-start-2 lg:col-span-6">
           <div
-            class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+            class="bg-white rounded-lg shadow-sm border border-gray-100 sticky top-6"
           >
             <div class="border-b border-gray-100 bg-gray-50 px-6 py-4">
               <h2 class="font-semibold text-gray-800 flex items-center">
@@ -253,99 +352,8 @@ onMounted(() => {
                   class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold mr-3"
                   >2</span
                 >
-                PILIH METODE PEMBAYARAN
+                Informasi Pembayaran
               </h2>
-            </div>
-
-            <!-- Payment Method Tabs -->
-            <div class="border-b border-gray-200">
-              <div class="flex -mb-px">
-                <button
-                  class="py-4 px-6 border-b-2 border-blue-500 text-blue-600 font-medium"
-                >
-                  E-Wallet
-                </button>
-                <button
-                  disabled
-                  class="py-4 px-6 text-gray-400 hover:text-gray-500 border-b-2 border-transparent"
-                >
-                  Bank Transfer
-                </button>
-                <button
-                  disabled
-                  class="py-4 px-6 text-gray-400 hover:text-gray-500 border-b-2 border-transparent"
-                >
-                  Credit Card
-                </button>
-              </div>
-            </div>
-
-            <!-- Online Payment Options -->
-            <div class="p-6">
-              <!-- QRIS Payment Option -->
-              <div
-                v-for="ewallet in eWalletPaymentMethod"
-                :class="{
-                  'mb-4 border rounded-lg  transition-all': true,
-                  'border-gray-200 hover:border-gray-300':
-                    !isEwalletChecked(ewallet),
-                  'border-blue-200  bg-blue-50': isEwalletChecked(ewallet),
-                }"
-                @click="checkedEwallet(ewallet)"
-                :key="ewallet.alt"
-              >
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center">
-                    <input
-                      type="radio"
-                      :checked="isEwalletChecked(ewallet)"
-                      class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <label class="ml-3 flex flex-col">
-                      <span class="font-medium text-gray-900">{{
-                        ewallet.eWalletName
-                      }}</span>
-                      <span class="text-sm text-gray-500">{{
-                        ewallet.description
-                      }}</span>
-                    </label>
-                  </div>
-                  <img :src="ewallet.icon" :alt="ewallet.alt" class="h-8" />
-                </div>
-                <!-- <div
-                  class="absolute top-0 right-0 h-full w-1 bg-blue-500 rounded-r-lg"
-                ></div> -->
-              </div>
-
-              <!-- More Payment Methods Button -->
-              <!-- <button
-                class="w-full py-3 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-all flex items-center justify-center"
-              >
-                <span>13 MORE PAYMENT METHODS</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5 ml-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button> -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column - Order Summary -->
-        <div class="lg:col-span-1">
-          <div
-            class="bg-white rounded-lg shadow-sm border border-gray-100 sticky top-6"
-          >
-            <div class="border-b border-gray-100 px-6 py-4">
-              <h2 class="font-semibold text-gray-800">INFORMASI PEMBAYARAN</h2>
             </div>
 
             <div class="p-6">
@@ -355,7 +363,7 @@ onMounted(() => {
                   <p class="font-medium text-gray-900">PA9855919</p>
                 </div>
                 <div class="flex justify-between items-center">
-                  <p class="text-gray-600">Dibuat</p>
+                  <p class="text-gray-600">Created</p>
                   <p class="text-gray-900">2023-12-08 16:04:42</p>
                 </div>
                 <div class="flex justify-between items-center">
@@ -365,34 +373,35 @@ onMounted(() => {
 
                 <div class="pt-4 border-t border-gray-100">
                   <div class="flex justify-between items-center">
-                    <p class="text-gray-600">Subtotal</p>
+                    <p class="text-gray-600">Donatur</p>
                     <p class="text-gray-900">
-                      IDR {{ totalPayment.subTotalPayment }}
+                      {{ userProfile.fullName }}
                     </p>
                   </div>
-                </div>
-              </div>
-
-              <div class="mb-4 bg-gray-50 p-4 rounded-lg">
-                <div class="flex justify-between items-center mb-4">
-                  <p class="text-gray-600 font-medium">PAY WITH</p>
-                  <img
-                    :src="ewalletChecked.ICON"
-                    :alt="ewalletChecked.eWalletName"
-                    class="h-6"
-                  />
-                </div>
-
-                <div class="flex justify-between items-center mb-2">
-                  <p class="text-gray-600">Biaya Pembayaran</p>
-                  <div class="text-right">
-                    <p class="font-medium">IDR {{ totalPayment.fee }}</p>
-                    <p
-                      v-if="totalPayment?.feePercentage"
-                      class="text-xs text-gray-500"
-                    >
-                      ({{ totalPayment.feePercentage }})
+                  <div class="flex mt-3 justify-between items-center">
+                    <p class="text-gray-600">Email</p>
+                    <p class="text-gray-900">
+                      {{ userProfile.email }}
                     </p>
+                  </div>
+                  <div class="flex mt-3 justify-between items-center">
+                    <p class="text-gray-600">Donasi</p>
+                    <p class="text-gray-900">
+                      {{ projectDetail?.projectTitle }}
+                    </p>
+                  </div>
+                  <!-- <div class="flex mt-3 justify-between items-center">
+                    <p class="text-gray-600">Address</p>
+                    <p class="text-gray-900">
+                      {{ projectDetail?.projectAddress }}
+                    </p>
+                  </div> -->
+                </div>
+
+                <div class="pt-4 border-t border-gray-100">
+                  <div class="flex justify-between items-center">
+                    <p class="text-gray-600">Subtotal</p>
+                    <p class="text-gray-900">IDR {{ amountPayment }}</p>
                   </div>
                 </div>
               </div>
@@ -401,7 +410,7 @@ onMounted(() => {
                 <div class="flex justify-between items-center mb-4">
                   <p class="text-lg font-semibold text-gray-800">Total</p>
                   <p class="text-xl font-bold text-blue-600">
-                    IDR {{ totalPayment.totalPayment }}
+                    IDR {{ amountPayment }}
                   </p>
                 </div>
 
@@ -410,7 +419,7 @@ onMounted(() => {
                     @click="startPaymentTransaction"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 px-6 rounded-lg flex justify-center items-center transition-all"
                   >
-                    PAY NOW
+                    DONATE NOW
                   </button>
                 </div>
               </div>

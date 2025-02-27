@@ -15,6 +15,7 @@ const activeChatId = ref();
 const messageText = ref("");
 const isLoading = ref(false);
 const chatNameHeader = ref("");
+const chatAvatarHeader = ref("");
 const showEmoji = ref(false);
 const fileInput = ref(null);
 const selectedFile = ref(null);
@@ -41,7 +42,7 @@ storeChatChannel.listen(".chat-event", function (data) {
     sender: data.chats.sender_name, // Sesuaikan dengan field yang relevan
     avatar: chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
     message: data.chats.chat_text,
-    image_path: data.chats.image_path ? "http://localhost:8000" + data.chats.image_path : null,
+    image_path: data.chats.image_path ? data.chats.image_path : null,
     date: data.chats.chat_send_time,
     isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
   };
@@ -216,19 +217,20 @@ const getChatMessage = async (messageType, key) => {
     const response = await api.get(
       `/test-private-id/${userID}/${key}`
     );
-    console.log(response.data);
+    console.log('get private chat : ', response.data);
     const newChat = response.data.chats.map((chat) => ({
       id: chat.chat_id,
       sender: chat.sender_name,
       avatar: chat.avatar,
       message: chat.chat_text,
-      image_path: "http://localhost:8000" + chat.image_path,
+      image_path: chat.image_path,
       date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
     }));
 
     chats.value = newChat;
     chatNameHeader.value = response.data.chat_name;
+    chatAvatarHeader.value = response.data.chat_avatar;
   } else if (messageType == "group-chat") {
     console.log("key : ", key);
     const response = await api.get(
@@ -240,7 +242,7 @@ const getChatMessage = async (messageType, key) => {
       sender: chat.sender_name,
       avatar: chat.avatar,
       message: chat.chat_text,
-      image_path: "http://localhost:8000" + chat.image_path,
+      image_path: chat.image_path,
       date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
     }));
@@ -265,7 +267,7 @@ const initialBodyChat = async () => {
     sender: chat.sender_name,
     avatar: chat.avatar,
     message: chat.chat_text,
-    image_path: "http://localhost:8000" + chat.image_path,
+    image_path:  chat.image_path,
     date: chat.chat_send_time,
     isSender: chat.sender_id == userID ? true : false,
   }));
@@ -298,7 +300,7 @@ const switchTab = async (tab) => {
         sender: chat.sender_name,
         avatar: chat.avatar,
         message: chat.chat_text,
-        image_path: "http://localhost:8000" + chat.image_path,
+        image_path: chat.image_path,
         date: chat.chat_send_time,
         isSender: chat.sender_id == userID ? true : false,
       }));
@@ -646,7 +648,7 @@ onUnmounted(() => {
                   v-if="isLoading"
                   class="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-danger w-[20px] h-[20px] text-center text-[10px] font-bold leading-none text-white group-[.active]:hidden"
                 >
-                  {{ groupMessages.length }}
+                  {{ groupMessages?.length }}
                 </span>
               </li>
             </ul>
@@ -761,10 +763,10 @@ onUnmounted(() => {
                     <!-- User Avatar -->
                     <img
                       class="w-[35px] h-[35px] rounded-full object-cover shadow-lg"
-                      :src="chatUserAvatar || defaultAvatar"
+                      :src="chatAvatarHeader"
                       alt="User avatar"
                       loading="lazy"
-                      @error="chatUserAvatar = defaultAvatar"
+                      
                     />
 
                     <!-- User Name -->

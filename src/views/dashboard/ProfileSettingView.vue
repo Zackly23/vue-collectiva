@@ -2,8 +2,9 @@
 import { onMounted, ref, watch } from "vue";
 import api from "@/api";
 import { useRoute } from "vue-router";
+import { useToast } from "vue-toast-notification";
 
-
+const toastNotification = useToast();
 const route = useRoute();
 const settingTab = ref(
   route.query.settingTab ? route.query.settingTab : "edit"
@@ -12,6 +13,9 @@ const user = JSON.parse(localStorage.getItem("user"));
 const userId = user.user_id;
 const isEmailVerified = ref(user.email_verified_at ? true : false);
 const token = localStorage.getItem("token");
+const newPasswordVisible = ref(false);
+const passwordVisible = ref(false);
+const confirmationPasswordVisible = ref(false);
 const passwordData = ref({
   oldPassword: "",
   newPassword: "",
@@ -112,6 +116,15 @@ const socialMediaFields = ref([
   },
 ]);
 
+const openNotificatication = (message, type="success") => {
+  toastNotification.open({
+    type: type,
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
+
 const handleImageUpload = (event, type) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -171,9 +184,11 @@ const changePassword = async () => {
 
     if (response.status === 200) {
       console.log("Password Berhasil Diubah");
+      openNotificatication('Password Berhasil Diubah', 'success');
     }
   } catch (error) {
     console.error("error change password : ", error);
+    openNotificatication(`Password Gagal Diubah \n${error.response.data.message}`, 'warning');
   }
 };
 
@@ -185,13 +200,16 @@ const verifyEmail = async () => {
     );
     if (response.status === 200) {
       console.log("Email Verifikasi Telah dikirim");
+      openNotificatication('Email Verifikasi Telah dikirim', 'success');
     } else if (response.status === 404) {
       console.log("User tidak ditemukan");
     } else {
       console.log("Ada kesalahan pada sistem");
+      openNotificatication('Ada kesalahan pada sistem', 'warning');
     }
   } catch (error) {
     console.error("error verifikasi : ", error);
+    openNotificatication(`Email Verifikasi Gagal Dikirim \n${error.response.data.message}`, 'warning');
   }
 };
 
@@ -215,10 +233,12 @@ const updateSocialMedia = async () => {
 
     if (response.status == 200) {
       console.log("Social Media updated successfully:", response.data);
+      openNotificatication('Social Media Berhasil Diupdate', 'success');
       getUserProfile();
     }
   } catch (error) {
     console.error("Error updating Social Media:", error);
+    openNotificatication(`Social Media Gagal Diupdate \n${error.response.data.message}`, 'warning');
   }
 };
 
@@ -231,6 +251,7 @@ const updateUserProfile = async () => {
     formData.append("address", userProfile.value.address);
     formData.append("nik", userProfile.value.nik);
     formData.append("jabatan", userProfile.value.jabatan);
+    
     formData.append("organization_name", userProfile.value.organizationName);
 
     if (userProfile.value.birthDate) {
@@ -280,9 +301,11 @@ const updateUserProfile = async () => {
     if (response.status == 200) {
       console.log("Profile updated successfully:", response.data);
       getUserProfile();
+      openNotificatication('Profile Berhasil Diupdate', 'success');
     }
   } catch (error) {
     console.error("Error updating profile:", error);
+    openNotificatication(`Profile Gagal Diupdate \n${error.response.data.message}`, 'warning')
   }
 };
 
@@ -328,6 +351,7 @@ watch(
   },
   { immediate: true } // Agar watch langsung dijalankan saat komponen dimuat
 );
+
 
 onMounted(() => {
   getUserProfile();
@@ -625,7 +649,7 @@ onMounted(() => {
                       <label
                         for="organisasi"
                         class="block text-gray-700 dark:text-gray-300 font-medium"
-                        >Organisasi</label
+                        >Organisasi <span class="text-xs text-gray-600">(opsional)</span></label
                       >
                       <input
                         id="organisasi"
@@ -636,11 +660,11 @@ onMounted(() => {
                     </div>
 
                     <!-- Jabatan  -->
-                    <div v-if="userProfile?.organizationName !== 'tidak ada'">
+                    <div >
                       <label
                         for="jabatan"
                         class="block text-gray-700 dark:text-gray-300 font-medium"
-                        >Jabatan</label
+                        >Jabatan <span class="text-xs text-gray-600">(opsional)</span></label
                       >
                       <input
                         id="organisasi"
@@ -803,7 +827,7 @@ onMounted(() => {
                       </div>
                     </div>
                     <!-- Password  -->
-                    <div>
+                    <div class="relative">
                       <label
                         class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
                       >
@@ -811,12 +835,15 @@ onMounted(() => {
                       </label>
                       <input
                         v-model="passwordData.oldPassword"
-                        type="password"
+                        :type="passwordVisible ? 'text' : 'password'"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
+                      <i v-if="!passwordVisible" @click="() => passwordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
+                      <i v-else @click="() => passwordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
+                   
                     </div>
                     <!-- New Password  -->
-                    <div>
+                    <div class="relative">
                       <label
                         class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
                       >
@@ -824,12 +851,15 @@ onMounted(() => {
                       </label>
                       <input
                         v-model="passwordData.newPassword"
-                        type="password"
+                        :type="newPasswordVisible ? 'text' : 'password'"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
+                      <i v-if="!newPasswordVisible" @click="() => newPasswordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
+                      <i v-else @click="() => newPasswordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
+                   
                     </div>
                     <!-- Confirmation New Password  -->
-                    <div>
+                    <div class="relative">
                       <label
                         class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
                       >
@@ -837,9 +867,12 @@ onMounted(() => {
                       </label>
                       <input
                         v-model="passwordData.newConfirmationPassword"
-                        type="password"
+                        :type="confirmationPasswordVisible ? 'text' : 'password'"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
+                      <i v-if="!confirmationPasswordVisible" @click="() => confirmationPasswordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
+                      <i v-else @click="() => confirmationPasswordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
+                   
                     </div>
                     <!-- Tombol Aksi -->
                     <div

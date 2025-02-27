@@ -6,7 +6,9 @@ import api from "@/api";
 const router = useRouter();
 const isLogin = ref(false);
 const activeDropdown = ref(null);
-
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
+  : null;
 
 const signOut = async () => {
   try {
@@ -104,7 +106,7 @@ onBeforeUnmount(() => {
             >Mulai Proyek</router-link
           >
 
-          <div class="relative" data-te-dropdown-ref>
+          <div v-if="user" class="relative" data-te-dropdown-ref>
             <button
               data-dropdown-button="profile"
               @click="toggleDropdown('profile')"
@@ -147,10 +149,10 @@ onBeforeUnmount(() => {
                   />
                   <figcaption>
                     <div class="text-dark dark:text-title-dark mb-0.5 text-sm">
-                      David Dwi Nugroho
+                      {{ user.full_name }}
                     </div>
                     <div class="mb-0 text-xs text-body dark:text-subtitle-dark">
-                      Software Engineer
+                      {{ user.badge }}
                     </div>
                   </figcaption>
                 </figure>
@@ -218,6 +220,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

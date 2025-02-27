@@ -35,10 +35,24 @@ const weekLineChart = ref([]);
 const dayLineChart = ref([]);
 const dummydata = ref([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const dummyPieChart = ref({
-  data: [10, 30, 20, 40],
-  labels: ["Facebook", "Instagram", "X", "LinkedIn"],
-  backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
-  hoverBackgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
+  data: [100],
+  labels: ["Belum Ada Share"],
+  backgroundColor: [
+    "#FF6384",
+    "#36A2EB",
+    "#FFCE56",
+    "#4BC0C0",
+    "#9966FF",
+    "#9966FA",
+  ],
+  hoverBackgroundColor: [
+    "#FF6384",
+    "#36A2EB",
+    "#FFCE56",
+    "#4BC0C0",
+    "#9966FF",
+    "#9966FB",
+  ],
 });
 
 const chartRef = ref();
@@ -197,26 +211,31 @@ const projectStatistics = ref([]);
 const socialMediaStatistic = ref([
   {
     social_media_id: 1,
-    social_media_name: "Facebook",
-    social_media_icon: "uil uil-facebook-f",
-    social_media_color: "bg-facebook/10 text-facebook",
-    social_media_statistic: 4621,
+    social_media_name: "facebook",
+    social_media_icon: "ui uil-facebook",
+    social_media_color: "bg-blue-600",
+    social_media_statistic: 0,
   },
   {
     social_media_id: 2,
-
-    social_media_name: "X",
-    social_media_icon: "uil uil-x",
-    social_media_color: "bg-twitter/10 text-twitter",
-    social_media_statistic: 3621,
+    social_media_name: "Twitter",
+    social_media_icon: "ui uil-twitter",
+    social_media_color: "bg-blue-200",
+    social_media_statistic: 0,
   },
   {
     social_media_id: 3,
-
-    social_media_name: "Google",
-    social_media_icon: "uil uil-google",
-    social_media_color: "bg-google/10 text-google",
-    social_media_statistic: 8945,
+    social_media_name: "Instagram",
+    social_media_icon: "ui uil-instagram",
+    social_media_color: "bg-red-200",
+    social_media_statistic: 0,
+  },
+  {
+    social_media_id: 4,
+    social_media_name: "WhatsApp",
+    social_media_icon: "ui uil-facebook",
+    social_media_color: "bg-green-600",
+    social_media_statistic: 0,
   },
 ]);
 
@@ -300,29 +319,31 @@ const getPieChart = async () => {
     const response = await api.get(
       `/test-dashboard/piechart-project/${userId}`
     );
+    console.log("aa : ", response.data.project_social_media.length);
+    if (response.data.project_social_media.length > 0) {
+      const projectShare = response.data.project_social_media.map((item) => ({
+        social_media_id: item.project_share_id,
+        social_media_name: item.sosmed_name,
+        social_media_icon: item.icon,
+        social_media_color: item.background_color,
+        social_media_statistic: item.count,
+      }));
 
-    const projectShare = response.data.project_social_media.map((item) => ({
-      social_media_id: item.project_share_id,
-      social_media_name: item.sosmed_name,
-      social_media_icon: item.icon,
-      social_media_color: item.backgroun_color,
-      social_media_statistic: item.count,
-    }));
+      socialMediaStatistic.value = projectShare;
 
-    socialMediaStatistic.value = projectShare;
+      const responseData = response.data.project_social_media;
 
-    const responseData = response.data.project_social_media;
+      dummyPieChart.value.labels = responseData.map((item) => item.sosmed_name);
+      dummyPieChart.value.data = responseData.map((item) => item.percentage);
+      dummyPieChart.backgroundColor = responseData.map(
+        (item) => item.background_color
+      );
+      dummyPieChart.value.hoverBackgroundColor = responseData.map(
+        (item) => item.hover_color
+      );
 
-    dummyPieChart.value.labels = responseData.map((item) => item.sosmed_name);
-    dummyPieChart.value.data = responseData.map((item) => item.percentage);
-    dummyPieChart.backgroundColor = responseData.map(
-      (item) => item.background_color
-    );
-    dummyPieChart.value.hoverBackgroundColor = responseData.map(
-      (item) => item.hover_color
-    );
-
-    console.log("piechart data : ", response.data.project_social_media);
+      console.log("piechart data : ", response.data.project_social_media);
+    }
   } catch (error) {
     console.error(error);
   }
@@ -671,10 +692,10 @@ onMounted(() => {
                 </li>
               </ul>
             </div>
-            <div class="p-[25px] pt-0 h-full">
+            <div class="p-[25px] pt-0 h-full min-h-24">
               <div
                 v-if="topDonatur?.length == 0"
-                class="flex justify-center items-center h-[90%]"
+                class="flex justify-center items-center h-[50%]"
               >
                 Ngga ada data
               </div>
@@ -798,9 +819,11 @@ onMounted(() => {
             </div>
             <div
               v-if="projectBestPerformace?.length == 0"
-              class="flex justify-center items-center h-[90%]"
+              class="p-[25px] pt-0 h-full min-h-24"
             >
-              Ngga ada data
+              <div class="flex justify-center items-center h-[50%]">
+                Ngga ada data
+              </div>
             </div>
             <div class="p-[25px] pt-0">
               <div class="max-h-[320px] scrollbar overflow-y-auto">

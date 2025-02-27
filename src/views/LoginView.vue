@@ -3,9 +3,21 @@
   import { useRouter } from "vue-router";
   import Icon from '@/assets/cuteicon.png';
   import api from "@/api";
+  import { useToast } from "vue-toast-notification";
+
+
   
  const router = useRouter();
+const toastNotification = useToast();
 
+const openNotificatication = (message, type = "success") => {
+  toastNotification.open({
+    type: type,
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+}
 
   // Reactive state for form data
   const form = reactive({
@@ -73,15 +85,19 @@
       localStorage.setItem('access_token', response.data.access_token)
       localStorage.setItem('refresh_token', response.data.refresh_token)
       if (response.status == 200) {
+        openNotificatication('Selamat Datang!, Anda Berhasil Login');
         router.push(`/dashboard/${userId}`);
 
       }
     } catch (error) {
+      openNotificatication('Terjadi Kesalahan Saat Login \nPastikan Email dan Password Benar!', 'warning')
+
       console.error('Error during Login:', error.response || error);
       const errorData = error.response.data.data
       Object.keys(errors).forEach((key) => {
         errors[key] = errorData[key] ? errorData[key][0] : null;
       })
+
       // alert('Login failed. Please try again.');
     }
     }

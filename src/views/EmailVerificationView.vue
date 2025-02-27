@@ -19,6 +19,9 @@ const verifyEmail = async () => {
     if (response.status === 200) {
       status.value = "success";
       message.value = "Email successfully verified! Redirecting...";
+      console.log("response.data.user : ", response.data);
+      localStorage.removeItem("user");
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       setTimeout(() => router.push("/"), 3000);
     } else {
       throw new Error("Verification failed");

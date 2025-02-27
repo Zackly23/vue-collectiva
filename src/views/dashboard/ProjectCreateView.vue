@@ -13,6 +13,7 @@ const lampiranList = ref([]);
 const userProfile = ref();
 const timelineDataUploadList = ref([]);
 const projectTagList = ref();
+const creatorSocialMedia = ref("twitter");
 //Wilayah
 const provinsiList = ref();
 const kabupatenList = ref();
@@ -51,7 +52,7 @@ const creatorInformation = ref({
   creatorName: "",
   creatorEmail: "",
   creatorPhone: "",
-  creatorSocialMedia: "",
+  creatorSocialMedia: {},
   creatorType: "",
   organizationName: "",
   creatorWebsite: "",
@@ -365,9 +366,7 @@ const getUserProfile = async () => {
     creatorInformation.value.creatorEmail = user.email;
     creatorInformation.value.creatorPhone = user.phone_number;
     creatorInformation.value.creatorID = user.nik;
-    creatorInformation.value.creatorSocialMedia = JSON.parse(
-      user.social_media
-    ).twitter;
+    creatorInformation.value.creatorSocialMedia = JSON.parse(user.social_media);
     console.log("user profile : ", userProfile.value);
   } catch (error) {
     console.error("error Fetch User : ", error);
@@ -1024,15 +1023,36 @@ onMounted(() => {
             </div>
 
             <!-- Sosial Media -->
-            <div>
+            <div class="relative">
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
                 >Sosial Media (Opsional)</label
               >
-              <input
-                type="text"
-                class="w-full px-4 py-2 border rounded-md"
-                v-model="creatorInformation.creatorSocialMedia"
-              />
+              <div class="flex justify-center items-center gap-2">
+                <div class="flex justify-start items-center">
+                  <div class="relative">
+                    <select
+                      class="w-full px-4 py-2 border rounded-md text-center"
+                      v-model="creatorSocialMedia"
+                      required
+                    >
+                    <option value="" disabled selected>Pilih Sosmed</option>
+
+                      <option selected value="twitter">Twitter</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="github">Github</option>
+                    </select>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  class="w-[70%] px-4 py-2 border rounded-md"
+                  v-model="
+                    creatorInformation.creatorSocialMedia[creatorSocialMedia]
+                  "
+                />
+              </div>
             </div>
 
             <!-- Tipe Creator -->
