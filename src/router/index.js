@@ -19,6 +19,7 @@ import ProjectMainDetailView from "@/views/ProjectMainDetailView.vue";
 import DonationView from "@/views/DonationView.vue";
 import PaymentDonationView from "@/views/PaymentDonationView.vue";
 import VolunteerView from "@/views/VolunteerView.vue";
+import ProjectManagementView from "@/views/dashboard/admin/ProjectManagementView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -126,6 +127,11 @@ const router = createRouter({
         path: 'calendar',
         name: 'calender',
         component: CalenderView
+      },
+      {
+        path: 'management/project',
+        name: 'management-project',
+        component: ProjectManagementView
       }
     ]
     },

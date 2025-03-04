@@ -11,6 +11,9 @@ const dropdownAgenda = ref(null);
 const isInformationOpen = ref(false);
 const dropdownInformation = ref(null);
 
+const isManagementOpen = ref(false);
+const dropdownManagement = ref(null);
+
 const dropdownAgendaStyle = computed(() => ({
   height:
     isAgendaOpen.value && dropdownAgenda.value
@@ -23,6 +26,13 @@ const dropdownStyle = computed(() => ({
   height:
     isProjectOpen.value && dropdownMenu.value
       ? `${dropdownMenu.value.scrollHeight}px`
+      : "0px",
+}));
+
+const dropdownManagementStyle = computed(() => ({
+  height:
+    isManagementOpen.value && dropdownManagement.value
+      ? `${dropdownManagement.value.scrollHeight}px`
       : "0px",
 }));
 
@@ -44,6 +54,10 @@ const toggleDropdown = async (menu) => {
   } else if (menu === "information") {
     isInformationOpen.value = !isInformationOpen.value;
     isProjectOpen.value = false; // Tutup dropdown lain
+  } else if (menu === "manage") {
+    isManagementOpen.value = !isManagementOpen.value;
+    isProjectOpen.value = false; // Tutup dropdown lain
+    console.log('manage : ', isManagementOpen.value)
   }
   await nextTick();
 };
@@ -176,6 +190,52 @@ defineProps({
                 class="rounded-e-[20px] hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark focus:bg-primary/10 focus:text-inherit active:bg-primary/10 active:text-inherit [&.active]:text-primary focus:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark dark:text-subtitle-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] text-body outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
               >
                 kontribusi
+              </router-link>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Manage Project  -->
+        <li
+          class="relative sub-item-wrapper group"
+          :class="{ open: isManagementOpen }"
+        >
+          <a
+            @click="toggleDropdown('manage')"
+            class="group-[.open]:bg-primary/10 rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary dark:active:text-title-dark active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize active"
+          >
+            <span
+              class="nav-icon dark:text-subtitle-dark text-[18px] text-light-extra group-hover:text-current group-[&.active]:text-current group-focus:text-current"
+            >
+              <i class="uil uil-folder"></i>
+            </span>
+            <span class="capitalize title">Management</span>
+            <span
+              class="arrow-down text-gray-600 dark:text-subtitle-dark absolute end-0 me-[0.8rem] ms-auto text-[18px] transition-transform duration-300 ease-linear motion-reduce:transition-none group-hover:text-current"
+              :class="{ 'rotate-180': isManagementOpen }"
+            >
+              <i class="uil uil-angle-down"></i>
+            </span>
+          </a>
+          <ul
+            ref="dropdownManagement"
+            :style="dropdownManagementStyle"
+            class="sub-item m-0 list-none overflow-hidden transition-all duration-300 ease-in-out"
+          >
+            <li class="relative">
+              <router-link
+                to="/dashboard/management/project"
+                class="rounded-e-[20px] hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark focus:bg-primary/10 focus:text-inherit active:bg-primary/10 active:text-inherit [&.active]:text-primary focus:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark dark:text-subtitle-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] text-body outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize active"
+              >
+                project
+              </router-link>
+            </li>
+            <li class="relative">
+              <router-link
+                to="/dashboard/kontribusi"
+                class="rounded-e-[20px] hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark focus:bg-primary/10 focus:text-inherit active:bg-primary/10 active:text-inherit [&.active]:text-primary focus:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark dark:text-subtitle-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] text-body outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
+              >
+                Akun
               </router-link>
             </li>
           </ul>
@@ -341,8 +401,8 @@ defineProps({
         </li>
 
         <li class="relative">
-          <a
-            href="chat.html"
+          <router-link
+            :to="{path: '/dashboard/profile/setting', query: {settingTab: 'edit'}}"
             class="rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize"
           >
             <span
@@ -356,13 +416,13 @@ defineProps({
             >
               3
             </span>
-          </a>
+          </router-link>
         </li>
 
         <li class="relative">
-          <a
-            href="chat.html"
-            class="rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize"
+          <router-link
+          :to="{path: '/dashboard/profile/setting', query: {settingTab: 'account'}}"
+                      class="rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize"
           >
             <span
               class="nav-icon dark:text-subtitle-dark text-[18px] text-light-extra group-hover:text-current group-[&.active]:text-current group-focus:text-current"
@@ -375,7 +435,7 @@ defineProps({
             >
               3
             </span>
-          </a>
+          </router-link>
         </li>
       </ul>
     </nav>

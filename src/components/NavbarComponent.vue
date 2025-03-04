@@ -6,7 +6,9 @@ import api from "@/api";
 const router = useRouter();
 const isLogin = ref(false);
 const activeDropdown = ref(null);
-
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
+  : null;
 
 const signOut = async () => {
   try {
@@ -104,7 +106,7 @@ onBeforeUnmount(() => {
             >Mulai Proyek</router-link
           >
 
-          <div class="relative" data-te-dropdown-ref>
+          <div v-if="user" class="relative" data-te-dropdown-ref>
             <button
               data-dropdown-button="profile"
               @click="toggleDropdown('profile')"
@@ -147,10 +149,10 @@ onBeforeUnmount(() => {
                   />
                   <figcaption>
                     <div class="text-dark dark:text-title-dark mb-0.5 text-sm">
-                      David Dwi Nugroho
+                      {{ user.full_name }}
                     </div>
                     <div class="mb-0 text-xs text-body dark:text-subtitle-dark">
-                      Software Engineer
+                      {{ user.badge }}
                     </div>
                   </figcaption>
                 </figure>
@@ -209,15 +211,16 @@ onBeforeUnmount(() => {
                     </div>
                   </li>
                 </ul>
-                <a
+                <button
                   @click="signOut"
-                  class="flex items-center cursor-pointer justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark mx-[-15px] mb-[-15px] rounded-b-6 gap-[6px]"
-                >
-                  <i class="uil uil-sign-out-alt"></i> Sign Out</a
+                  class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
+                  >
+                  <i class="uil uil-sign-out-alt"></i> Sign Out</button
                 >
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

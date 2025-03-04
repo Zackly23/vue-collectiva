@@ -6,18 +6,30 @@ import * as L from "leaflet";
 import api from "@/api";
 import { useToast } from "vue-toast-notification";
 import "vue-toast-notification/dist/theme-sugar.css";
+import HardWarningComponent from "@/components/dashboard/modal/HardWarningComponent.vue";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
+const props = defineProps({
+  isLoading: Boolean,
+});
+
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 //Toast Notification
 const toastNotification = useToast();
 
 const isConfirmationModalOpen = ref(false);
 const isConfirmationInactiveModalOpen = ref(false);
+const dropdownComponentTag = ref(false);
+const selectedComponentTag = ref("");
+const evaluationText = ref("");
 const initialMap = ref(null);
 const router = useRouter();
 const route = useRoute();
 const dropdownEvaluationId = ref();
 // Reactive modal state
 const isTagDropdownOpen = ref(false);
+const tabInformation = ref("evaluation");
+
 //
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
@@ -29,6 +41,33 @@ console.log("edit mode from quey : ", editModeFromProject);
 
 //Data
 const editMode = ref(editModeFromProject);
+
+const toggleSelectTagDropdown = () => {
+  dropdownComponentTag.value = !dropdownComponentTag.value;
+};
+
+const selectComponentTag = (tag) => {
+  selectedComponentTag.value = tag;
+  dropdownComponentTag.value = false;
+};
+const componentTagList = ref([
+  { componentId: 1, componentTag: "image" },
+  { componentId: 2, componentTag: "title" },
+  { componentId: 3, componentTag: "description" },
+  { componentId: 4, componentTag: "point" },
+  { componentId: 5, componentTag: "address" },
+  { componentId: 6, componentTag: "tag" },
+  { componentId: 7, componentTag: "file attachment" },
+  { componentId: 8, componentTag: "timelines" },
+  { componentId: 9, componentTag: "date" },
+  { componentId: 10, componentTag: "amount" },
+  { componentId: 11, componentTag: "article" },
+  { componentId: 12, componentTag: "campaign" },
+  { componentId: 13, componentTag: "strategy" },
+  { componentId: 14, componentTag: "feedback" },
+]);
+
+console.log(componentTagList);
 
 //Wilayah
 const provinsiList = ref();
@@ -47,6 +86,9 @@ const timelineDetailList = ref([]);
 const timelineDetailData = ref();
 const evaluationList = ref();
 const projectDetail = ref();
+const donaturList = ref();
+const volunteerList = ref();
+const volunteerCriteriaChecked = ref();
 const projectModalData = ref({
   projectTitle: "",
   projectDescription: "",
@@ -63,7 +105,7 @@ const isProjectModalOpen = ref(false); //General Form
 const isFileModalOpen = ref(false);
 const isCriteriaModalOpen = ref(false);
 const isRoleModalOpen = ref(false);
-
+const isVolunteerModalOpen = ref(false);
 //State Reference
 const isUpdating = ref(false);
 
@@ -83,8 +125,24 @@ const activityData = ref({
 
 const isDateSelected = ref(false);
 
+const clickTabInformation = (tab) => {
+  tabInformation.value = tab;
+
+  console.log("tab information : ", tabInformation.value);
+};
+
+const checkTabInformation = (tab) => {
+  return tabInformation.value === tab;
+};
+
 const disableSelectDate = () => {
   isDateSelected.value = !isDateSelected.value;
+};
+
+const openModalVolunteer = (volunteerId) => {
+  getCriteriaChecked(volunteerId);
+
+  openGeneralModal("volunteer");
 };
 
 //Open Modal
@@ -109,7 +167,10 @@ const openGeneralModal = (value) => {
     case "role":
       isRoleModalOpen.value = true;
       console.log("Kebutuhan Role : ", projectDetail.value.projectRole);
-
+      break;
+    case "volunteer":
+      isVolunteerModalOpen.value = true;
+      // console.log("Kebutuhan Role : ", projectDetail.value.projectRole);
       break;
     default:
       isTimelineModalOpen.value = false;
@@ -117,6 +178,21 @@ const openGeneralModal = (value) => {
       isProjectModalOpen.value = false;
       isFileModalOpen.value = false;
   }
+};
+
+const getCriteriaChecked = (volunteerId) => {
+  console.log("v: ", volunteerId);
+  // console.log('vv : ', volunteerList.value[0].volunteerId)
+
+  // Ambil hanya yang volunteer_id SAMA dengan volunteerId
+  const vol = volunteerList.value.filter(
+    (item) => item.volunteerId === volunteerId
+  );
+
+  console.log("vol : ", vol);
+  volunteerCriteriaChecked.value = vol[0];
+
+  console.log("criteria checked : ", volunteerCriteriaChecked.value);
 };
 
 const openConfirmationModal = () => {
@@ -160,6 +236,10 @@ const closeLocationModal = () => {
 
 const closeProjectModal = () => {
   isProjectModalOpen.value = false;
+};
+
+const closeVolunteerModal = () => {
+  isVolunteerModalOpen.value = false;
 };
 
 // Fungsi reset data
@@ -219,6 +299,33 @@ const addRole = () => {
 // Fungsi untuk menghapus baris input tertentu
 const removeRole = (index) => {
   projectDetail.value.projectRole.splice(index, 1);
+};
+
+const storeEvaluation = async () => {
+  try {
+    const evaluasi = {
+      tag_component: selectedComponentTag.value,
+      task_comment: evaluationText.value,
+    };
+
+    console.log("evaluasi : ", evaluasi);
+    console.log("simpan evaluasi");
+    const response = await api.post(
+      `/test-project-evaluation-id/${projectId}`,
+      evaluasi
+    );
+
+    console.log("response : ", response.data);
+    if (response.status == 201) {
+      console.log("Evaluasi Berhasil Disimpan");
+      openNotificatication("Evaluasi Berhasil Disimpan", "success");
+      selectedComponentTag.value = "";
+      evaluationText.value = "";
+      getEvaluationList();
+    }
+  } catch (error) {
+    console.error("error menyimpan evaluasi : ", error);
+  }
 };
 
 const storeTimeline = async () => {
@@ -284,6 +391,32 @@ const storeTimelineDetail = async () => {
     resetActivityData();
   } catch (error) {
     console.error("Error saving activity:", error);
+  }
+};
+
+//Update status volunteer
+const updateStatusVolunteer = async (status) => {
+  console.log("update status vol");
+
+  try {
+    const volunteerId = volunteerCriteriaChecked.value.volunteerId;
+    const response = await api.put(`/test-volunteer/${volunteerId}/status`, {
+      status: status,
+    });
+
+    console.log("message : ", response.data);
+    if (response.status === 200) {
+      const message =
+        status === "decline"
+          ? `Persetujuan volunteer ${volunteerCriteriaChecked.value.volunteerName} Telah Di-Tolak`
+          : `Persetujuan volunteer ${volunteerCriteriaChecked.value.volunteerName} Telah Di-Terima`;
+
+      openNotificatication(message);
+      getVolunteer();
+      closeVolunteerModal();
+    }
+  } catch (error) {
+    console.log("error update status :", error);
   }
 };
 
@@ -659,6 +792,7 @@ const addFile = () => {
 
       // **Tambahkan ke lampiranList setelah sukses**
       if (response.status == 201) {
+        console.log("respon lampiran : ", response.data);
         openNotificatication("Lampiran Berhasil Ditambahkan");
         getLampiran();
         console.log("lampiranList updated: ", lampiranList.value);
@@ -737,7 +871,9 @@ const openNotificatication = (message) => {
 const updateStatusProject = async () => {
   console.log("ubah status");
   try {
-    const response = await api.put(`/test-project-status-id/${projectId}`);
+    const response = await api.put(`/test-project-status-id/${projectId}`, {
+      status: 'in active'
+    });
 
     if (response.status == 200) {
       console.log("response status", response.data);
@@ -866,6 +1002,9 @@ const getProjectDetail = async () => {
         : [{ key: "", value: "" }],
       projectCreatorName: project.project_creator_name,
       projectKodeDesa: project.project_kode_desa,
+      projectKodeKecamatan: project.project_kode_kecamatan,
+      projectKodeKabupaten: project.project_kode_kabupaten,
+      projectKodeProvinsi: project.project_kode_provinsi,
       projectPointLatitude: project.project_latitude,
       projectPointlongitude: project.project_longitude,
       projectCategory: project.project_category,
@@ -882,13 +1021,89 @@ const getProjectDetail = async () => {
     projectModalData.value.projectTags = projectdetailList[0].projectTags;
     projectModalData.value.projectImage = projectdetailList[0].projectImage;
 
+    locationForm.value.address = projectdetailList[0].projectAddress;
+    // locationForm.value.provinsi = projectdetailList[0].projectKodeProvinsi;
+    // locationForm.value.kabupaten = projectdetailList[0].projectKodeKabupaten;
+    // locationForm.value.kecamatan = projectdetailList[0].projectKodeKecamatan;
+    // locationForm.value.desa = projectdetailList[0].projectKodeDesa;
+    locationForm.value.latitude = projectdetailList[0].projectPointLatitude;
+    locationForm.value.longitude = projectdetailList[0].projectPointlongitude;
+
+    console.log;
+
     // selectedTags.value = projectdetailList[0].projectTags.map((tag) => tag.tagName);
     console.log("project detail : ", projectDetail.value);
     console.log("pmd : ", projectModalData.value);
 
     initialMapLayer();
+
+    if (projectDetail.value.projectCategory === "donation") {
+      getDonatur();
+    } else if (projectDetail.value.projectCategory === "volunteer") {
+      getVolunteer();
+    } else {
+      console.log("category tidak ada");
+    }
   } catch (error) {
     console.error("error Fetch Project : ", error);
+  }
+};
+
+const getDonatur = async () => {
+  try {
+    const responses = await api.get(`/test-donation/donatur/${projectId}`);
+    console.log("donatur : ", responses.data);
+    const donaturLists = responses.data.donaturs.map((donatur) => ({
+      donaturId: donatur.project_donatur_id,
+      projectTitle: donatur.project_title,
+      donaturName: donatur.donatur_name,
+      donaturAvatar: donatur.donatur_avatar,
+      donaturAmountDonation: donatur.donatur_amount,
+      donaturDatePayment: donatur.donatur_date_payment,
+      donaturChannelPayment: donatur.donatur_channel_payment,
+      donaturStatusPayment: donatur.donatur_status_payment,
+    }));
+
+    donaturList.value = donaturLists;
+    console.log("donatur : ", donaturList.value);
+  } catch (error) {
+    console.error(error.response.data);
+  }
+};
+
+const getVolunteer = async () => {
+  try {
+    const responses = await api.get(`/test-volunteer/${projectId}`);
+    console.log("volunteer : ", responses.data);
+    const volunteerLists = responses.data.volunteers.map((volunteer) => ({
+      volunteerId: volunteer.project_volunteer_id,
+      projectTitle: volunteer.project_title,
+      volunteerName: volunteer.volunteer_name,
+      volunteerAvatar: volunteer.volunteer_avatar,
+      volunteerDate: volunteer.volunteer_date,
+      volunteerRole: volunteer.volunteer_role,
+      volunteerStatus: volunteer.volunteer_status,
+      volunteerEmail: volunteer.volunteer_email,
+      volunteerPhoneNumber: volunteer.volunteer_phone_number,
+      volunteerAddress: volunteer.volunteer_address,
+      involvementStartDate: volunteer.involvement_start_date,
+      involvementEndDate: volunteer.involvement_end_date,
+      involvementStartTime: volunteer.involvement_start_time,
+      involvementEndTime: volunteer.involvement_end_time,
+      volunteerCriteria: volunteer.volunteer_criteria_checked
+        ? JSON.parse(volunteer.volunteer_criteria_checked).map((criteria) => ({
+            key: criteria.key,
+            value: criteria.value,
+            role: criteria.role,
+            fullfiled: criteria.checked,
+          }))
+        : [{ key: "", value: "", role: "" }],
+    }));
+
+    volunteerList.value = volunteerLists;
+    console.log("volunteerList : ", volunteerList.value);
+  } catch (error) {
+    console.error(error.response.data);
   }
 };
 
@@ -1082,18 +1297,31 @@ const getIconList = async () => {
   }
 };
 
-onMounted(() => {
-  getProjectDetail();
-  getLampiran();
-  getProvinsi();
-  getIconList();
-  getProjectTagsList();
-  getEvaluationList();
-  getTimeline();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+      getProjectDetail(),
+      getLampiran(),
+      getProvinsi(),
+      getIconList(),
+      getProjectTagsList(),
+      getEvaluationList(),
+      getTimeline(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data selesai
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
 onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
   document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 </script>
@@ -1450,7 +1678,9 @@ onBeforeMount(() => {
                     }}
                     {{ projectDetail?.projectTargetAmount }}
                     {{
-                      projectDetail?.projectCategory === "donation" ? "" : " p"
+                      projectDetail?.projectCategory === "donation"
+                        ? ""
+                        : " Partisipan"
                     }}
                   </p>
                 </div>
@@ -1785,35 +2015,71 @@ onBeforeMount(() => {
               role="tablist"
               data-te-nav-ref
             >
-              <li role="presentation">
-                <a
-                  href="#tabs-list"
-                  data-te-toggle="pill"
-                  data-te-target="#tabs-list"
-                  data-te-nav-active
-                  role="tab"
-                  aria-controls="tabs-list"
-                  aria-selected="true"
-                  class="relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] text-body dark:text-subtitle-dark data-[te-nav-active]:text-primary data-[te-nav-active]:after:bg-primary cursor-pointer duration-300 ease-in-out capitalize"
+              <li
+                @click="clickTabInformation('evaluation')"
+                role="presentation"
+              >
+                <span
+                  :class="{
+                    ' relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] dark:text-subtitle-dark  cursor-pointer duration-300 ease-in-out capitalize': true,
+                    'border-b-2 border-primary text-primary':
+                      checkTabInformation('evaluation'),
+                    ' text-body': !checkTabInformation('evaluation'),
+                  }"
                 >
                   Evaluation List
-                </a>
+                </span>
               </li>
 
-              <li role="presentation">
-                <a
-                  href="#tabs-activites"
-                  data-te-toggle="pill"
-                  data-te-target="#tabs-activites"
-                  role="tab"
-                  aria-controls="tabs-activites"
-                  aria-selected="false"
-                  class="relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] text-body dark:text-subtitle-dark data-[te-nav-active]:text-primary data-[te-nav-active]:after:bg-primary cursor-pointer duration-300 ease-in-out capitalize"
+              <li
+                v-if="projectDetail?.projectCategory === 'donation'"
+                @click="clickTabInformation('donatur')"
+                role="presentation"
+              >
+                <span
+                  :class="{
+                    ' relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] dark:text-subtitle-dark  cursor-pointer duration-300 ease-in-out capitalize': true,
+                    'border-b-2 border-primary text-primary':
+                      checkTabInformation('donatur'),
+                    ' text-body': !checkTabInformation('donatur'),
+                  }"
+                >
+                  List Donatur
+                </span>
+              </li>
+              <li
+                v-if="projectDetail?.projectCategory === 'volunteer'"
+                @click="clickTabInformation('volunteer')"
+                role="presentation"
+              >
+                <span
+                  :class="{
+                    ' relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] dark:text-subtitle-dark  cursor-pointer duration-300 ease-in-out capitalize': true,
+                    'border-b-2 border-primary text-primary':
+                      checkTabInformation('volunteer'),
+                    ' text-body': !checkTabInformation('volunteer'),
+                  }"
+                >
+                  List Volunteer
+                </span>
+              </li>
+              <li @click="clickTabInformation('document')" role="presentation">
+                <span
+                  :class="{
+                    ' relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] dark:text-subtitle-dark  cursor-pointer duration-300 ease-in-out capitalize': true,
+                    'border-b-2 border-primary text-primary':
+                      checkTabInformation('document'),
+                    ' text-body': !checkTabInformation('evaludocumentation'),
+                  }"
                 >
                   Supporting Documents
-                </a>
+                </span>
               </li>
-              <li class="absolute right-6" role="presentation">
+              <li
+                v-if="checkTabInformation('evaluation')"
+                class="absolute right-6"
+                role="presentation"
+              >
                 <button
                   type="submit"
                   @click="saveChangeEvaluation"
@@ -1826,7 +2092,8 @@ onBeforeMount(() => {
             </ul>
 
             <div
-              class="hidden opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block pb-[25px]"
+              v-if="tabInformation === 'evaluation'"
+              class="opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block pb-[25px] pt-[10px]"
               id="tabs-list"
               role="tabpanel"
               aria-labelledby="tabs-list-tab"
@@ -1884,7 +2151,7 @@ onBeforeMount(() => {
                             />
                             <span
                               :class="{
-                                'line-through': evaluation.evaluationChecked,
+                                'line-through': evaluation.evaluationChecked || evaluation.evaluationStatus === 'approve',
                               }"
                               >{{ evaluation.evaluationTaskComment }}</span
                             >
@@ -2061,6 +2328,262 @@ onBeforeMount(() => {
                 </table>
               </div>
             </div>
+
+            <!-- List Donatur  -->
+            <div
+              v-if="tabInformation === 'donatur'"
+              class="opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block pb-[25px]"
+              id="tabs-list"
+              role="tabpanel"
+              aria-labelledby="tabs-list-tab"
+              data-te-tab-active
+            >
+              <div class="relative py-4 overflow-x-auto max-h-[360px]">
+                <table
+                  class="min-w-full text-sm font-light text-start whitespace-nowrap"
+                >
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Nama Donatur
+                      </th>
+
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Jumlah Donasi
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Tanggal Donasi
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Channel Pembayaran
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Status Pembayaran
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="donatur in donaturList" :key="donatur.donaturId">
+                      <td class="px-6 py-3">
+                        <div class="flex items-center gap-x-2 pl-16">
+                          <img
+                            class="w-8 h-8 rounded-full"
+                            :src="donatur.donaturAvatar"
+                            alt="Avatar"
+                          />
+                          <span> {{ donatur.donaturName }}</span>
+                        </div>
+                      </td>
+
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          Rp {{ donatur.donaturAmountDonation }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          {{ donatur.donaturDatePayment }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          {{ donatur.donaturChannelPayment }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          <span
+                            class="px-3 py-1 text-sm font-medium rounded-lg"
+                            :class="{
+                              'bg-green-100 text-green-700':
+                                donatur.donaturStatusPayment === 'settlement',
+                              'bg-red-100 text-red-700':
+                                donatur.donaturStatusPayment === 'decline',
+                              'bg-blue-100 text-blue-700':
+                                donatur.donaturStatusPayment === 'capture',
+                              'bg-gray-100 text-gray-700':
+                                donatur.donaturStatusPayment === 'pending',
+                            }"
+                          >
+                            {{ donatur.donaturStatusPayment }}</span
+                          >
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- List Volunteer  -->
+            <div
+              v-if="tabInformation === 'volunteer'"
+              class="opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block pb-[25px] pt-[10px]"
+              id="tabs-list"
+              role="tabpanel"
+              aria-labelledby="tabs-list-tab"
+              data-te-tab-active
+            >
+              <div class="relative overflow-x-auto max-h-[360px]">
+                <table
+                  class="min-w-full text-sm font-light text-start whitespace-nowrap"
+                >
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Nama Partisipan
+                      </th>
+
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Role
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Tanggal Input
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Status
+                      </th>
+                      <th
+                        class="px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+                      >
+                        Review
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="volunteer in volunteerList"
+                      :key="volunteer.volunteerId"
+                    >
+                      <td class="px-6 py-3">
+                        <div class="flex pl-16 items-center gap-x-2">
+                          <img
+                            class="w-8 h-8"
+                            :src="volunteer.volunteerAvatar"
+                            alt="Avatar"
+                          />
+                          <span> {{ volunteer.volunteerName }}</span>
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          {{ volunteer.volunteerRole }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          {{ volunteer.volunteerDate }}
+                        </div>
+                      </td>
+
+                      <td class="px-6 py-3">
+                        <div class="flex justify-center items-center">
+                          <span
+                            class="px-3 py-1 text-sm font-medium rounded-lg"
+                            :class="{
+                              'bg-green-100 text-green-700':
+                                volunteer.volunteerStatus === 'approved',
+                              'bg-red-100 text-red-700':
+                                volunteer.volunteerStatus === 'decline',
+                              'bg-blue-100 text-blue-700':
+                                volunteer.volunteerStatus === 'need review',
+                              'bg-gray-100 text-gray-700':
+                                volunteer.volunteerStatus === 'complete',
+                            }"
+                          >
+                            {{ volunteer.volunteerStatus }}</span
+                          >
+                        </div>
+                      </td>
+                      <td class="px-6 py-3">
+                        <div
+                          @click="openModalVolunteer(volunteer.volunteerId)"
+                          class="flex justify-center items-center cursor-pointer"
+                        >
+                          <i
+                            class="flex justify-center items-center ui uil-eye bg-blue-300 w-6 h-6 rounded-lg hover:bg-white hover:text-blue-300 hover:border-blue-300 hover:border-2"
+                          ></i>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full bg-white mt-10 p-6 shadow-md rounded-lg">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Textarea -->
+          <div class="md:col-span-2">
+            <label
+              for="evaluation_input"
+              class="block text-sm font-semibold text-gray-700"
+              >Masukkan Evaluasi</label
+            >
+            <textarea
+              id="evaluation_input"
+              rows="3"
+              v-model="evaluationText"
+              placeholder="Masukkan evaluasi..."
+              class="w-full mt-2 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
+            ></textarea>
+          </div>
+
+          <!-- Select & Button -->
+          <div class="flex flex-col justify-end space-y-3">
+            <div class="relative">
+              <button
+                @click="toggleSelectTagDropdown"
+                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 bg-white text-center"
+              >
+                {{ selectedComponentTag || "Select Component Tag" }}
+              </button>
+
+              <div
+                v-if="dropdownComponentTag"
+                class="absolute w-full border rounded-md bg-white shadow-md max-h-40 overflow-y-auto z-50"
+              >
+                <div
+                  v-for="component in componentTagList"
+                  :key="component.componentId"
+                  @click="selectComponentTag(component.componentTag)"
+                  class="p-2 hover:bg-gray-200 cursor-pointer text-center"
+                >
+                  {{ component.componentTag }}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              @click="storeEvaluation"
+              class="flex items-center justify-center px-4 py-2 text-white font-semibold bg-blue-600 border border-blue-600 rounded-md transition-all hover:bg-blue-700 focus:ring-2 focus:ring-blue-300"
+            >
+              <i class="uil uil-plus text-lg mr-2"></i>
+              <span class="hidden md:inline">Simpan Evaluasi</span>
+              <span class="md:hidden">Evaluasi</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2992,74 +3515,43 @@ onBeforeMount(() => {
     </div>
   </div>
 
-  <div>
-    <div
-      v-if="isConfirmationModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div class="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between pb-3 border-b">
-          <h5 class="text-lg font-semibold text-gray-800">Konfirmasi Hapus</h5>
-          <button
-            @click="closeConfirmationModal"
-            class="text-gray-500 hover:text-red-500"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="py-4 text-center">
-          <img
-            src="../../assets/images/confirmations/red warning.png"
-            alt="Warning"
-            class="mx-auto mb-4 w-16 h-16"
-          />
-          <p class="text-gray-600">
-            Apakah Anda yakin ingin menghapus proyek ini? Tindakan ini tidak
-            dapat dibatalkan.
-          </p>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="flex justify-end pt-3 border-t space-x-2">
-          <button
-            @click="closeConfirmationModal"
-            class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-          >
-            Batal
-          </button>
-          <button
-            @click="deleteProjectId"
-            class="px-4 py-2 text-white bg-red-400 rounded hover:bg-red-500"
-          >
-            Hapus
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Konfirmasi Delete Modal  -->
+  <HardWarningComponent
+    :is-confirmation-modal-open="isConfirmationModalOpen"
+    :description="'    Apakah Anda yakin ingin menghapus proyek ini? Tindakan ini tidak dapat dibatalkan.'"
+    @close-confirmation-modal="closeConfirmationModal"
+    @action-modal="deleteProjectId"
+    :action="'Hapus'"
+    :title="'Konfirmasi Hapus'"
+  />
 
   <!-- Mark as In active -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isConfirmationInactiveModalOpen"
+    :description="'    Apakah Anda yakin ingin Menon-aktifkan proyek ini? Tindakan ini tidak dapat dibatalkan.'"
+    @close-confirmation-modal="closeConfirmationInactiveModal"
+    @action-modal="updateStatusProject"
+    :action="'Ubah Status'"
+    :title="'Konfirmasi Non Aktif Project'"
+  />
+
+  <!-- Volunteer Modal  -->
   <div>
+    <!-- Modal -->
     <div
-      v-if="isConfirmationInactiveModalOpen"
+      v-if="isVolunteerModalOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       role="dialog"
       aria-modal="true"
     >
-      <div class="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
+      <div
+        class="mt-6 relative w-full max-w-3xl p-6 bg-white rounded-lg shadow-lg"
+      >
         <!-- Modal Header -->
         <div class="flex items-center justify-between pb-3 border-b">
-          <h5 class="text-lg font-semibold text-gray-800">
-            Konfirmasi Non Aktif Project
-          </h5>
+          <h5 class="text-lg font-semibold text-gray-800">Edit Form</h5>
           <button
-            @click="closeConfirmationInactiveModal"
+            @click="closeVolunteerModal"
             class="text-gray-500 hover:text-red-500"
             aria-label="Close"
           >
@@ -3068,31 +3560,196 @@ onBeforeMount(() => {
         </div>
 
         <!-- Modal Body -->
-        <div class="py-4 text-center">
-          <img
-            src="../../assets/images/confirmations/yellow warning.png"
-            alt="Warning"
-            class="mx-auto mb-4 w-16 h-16"
-          />
-          <p class="text-gray-600">
-            Apakah Anda yakin ingin mengnon-aktifkan proyek ini? Tindakan ini
-            tidak dapat dibatalkan.
-          </p>
+        <div
+          class="py-4 grid grid-cols-2 gap-6 relative overflow-x-auto max-h-[360px]"
+        >
+          <!-- partisipan -->
+          <div>
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              Partisipan
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.volunteerName }}
+            </div>
+          </div>
+
+          <!-- Role -->
+          <div>
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              Role
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.volunteerRole }}
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.volunteerEmail }}
+            </div>
+          </div>
+
+          <!-- Phone Number -->
+          <div>
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              No Handphone
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.volunteerPhoneNumber }}
+            </div>
+          </div>
+
+          <!-- Alamat -->
+          <div class="col-span-2">
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              Alamat
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.volunteerAddress }}
+            </div>
+          </div>
+
+          <!-- Start Date  -->
+          <div>
+            <label
+              for="date"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              Start Date
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.involvementStartDate }}
+            </div>
+          </div>
+
+          <!-- End Date -->
+          <div>
+            <label
+              for="date"
+              class="block mb-2 text-sm font-medium text-gray-700"
+            >
+              End Date
+            </label>
+
+            <div class="w-full px-3 py-2 border rounded-md">
+              {{ volunteerCriteriaChecked.involvementEndDate }}
+            </div>
+          </div>
+
+          <!-- Kriteria Cheked -->
+          <div class="col-span-2 overflow-y-auto max-h-[50vh]">
+            <label
+              for="criteria_volunteer"
+              class="block text-gray-700 dark:text-gray-300 font-medium"
+            >
+              Kriteria Volunteer
+            </label>
+            <table class="min-w-full bg-white border rounded-md mt-1">
+              <!-- Klik pada header untuk menambah baris -->
+              <thead @click="addCriteria" class="cursor-pointer">
+                <tr class="bg-gray-100">
+                  <th
+                    class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                  >
+                    Kriteria
+                  </th>
+                  <th
+                    class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                  >
+                    Nilai
+                  </th>
+                  <th
+                    class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                  >
+                    Role
+                  </th>
+                  <th
+                    class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                  >
+                    Checked
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(
+                    criteria, index
+                  ) in volunteerCriteriaChecked.volunteerCriteria"
+                  :key="index"
+                >
+                  <td class="border px-4 py-2">
+                    <div
+                      class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                    >
+                      {{ criteria.key }}
+                    </div>
+                  </td>
+                  <td class="border px-4 py-2 flex">
+                    <div
+                      class="flex justify-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                    >
+                      {{ criteria.value }}
+                    </div>
+                  </td>
+                  <td class="border px-4 py-2">
+                    <div class="flex justify-center">
+                      {{ criteria.role }}
+                    </div>
+                  </td>
+                  <td class="border px-4 py-2 text-center">
+                    <i
+                      v-if="criteria.fullfiled"
+                      class="uil uil-check-circle text-2xl text-green-600"
+                    ></i>
+                    <i
+                      v-else
+                      class="uil uil-times-circle text-2xl text-red-600"
+                    ></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="flex justify-end pt-3 border-t space-x-2">
+        <div class="flex justify-end pt-3 border-t">
           <button
-            @click="closeConfirmationInactiveModal"
-            class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+            @click="updateStatusVolunteer('approved')"
+            class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
           >
-            Batal
+            Approve
           </button>
           <button
-            @click="updateStatusProject"
-            class="px-4 py-2 text-black bg-yellow-300 rounded hover:bg-yellow-400"
+            @click="updateStatusVolunteer('decline')"
+            class="px-4 py-2 ml-3 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
           >
-            Ubah Status
+            Decline
           </button>
         </div>
       </div>
@@ -3105,5 +3762,10 @@ onBeforeMount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.select-dropdown {
+  max-height: 50px; /* Batasi tinggi dropdown */
+  overflow-y: auto; /* Aktifkan scrolling jika opsi terlalu banyak */
 }
 </style>

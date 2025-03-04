@@ -4,13 +4,20 @@ import { start } from "@popperjs/core";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 
-const token = localStorage.getItem("token");
+const token = localStorage.getItem("access_token");
 const router = useRouter();
 const route = useRoute();
 const projectId = route.params.projectId;
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
   : null;
+const involvementDetail = ref({
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
+});
+
 const projectDetail = ref({
   projectId: "",
   projectTitle: "",
@@ -110,13 +117,55 @@ const getUserProfile = async () => {
   }
 };
 
-const startPaymentTransaction = async () => {
+const storeVolunteerInvolvment = async () => {
   try {
-    console.log("push to payment");
+    const criteria = JSON.stringify(
+      projectDetail.value.projectCriteria.map((criteria) => ({
+        key: criteria.key,
+        value: criteria.value,
+        role: criteria.role,
+      }))
+    );
+    console.log("checked criteria : ", criteria);
+    console.log("involvement start time : ", involvementDetail.value.startTime);
+    console.log("involvement END time : ", involvementDetail.value.endTime);
+    console.log('role : ', roleChecked.value)
+
+    console.log("store volunteer Information");
+    const formData = new FormData();
+
+    formData.append("email", userProfile.value.email);
+    formData.append("full_name", userProfile.value.fullName);
+    formData.append("address", userProfile.value.address);
+    formData.append("phone_number", userProfile.value.phoneNumber);
+    formData.append(
+      "criteria_checked",
+      JSON.stringify(
+        projectDetail.value.projectCriteria.map((criteria) => ({
+          key: criteria.key,
+          value: criteria.value,
+          role: criteria.role,
+          checked: criteria.fulfilled
+        }))
+      )
+    );
+    formData.append(
+      "involvement_start_date",
+      involvementDetail.value.startDate
+    );
+    formData.append("involvement_end_date", involvementDetail.value.endDate);
+    formData.append(
+      "involvement_start_time",
+      involvementDetail.value.startTime
+    );
+    formData.append("involvement_end_time", involvementDetail.value.endTime);
+    formData.append("role", roleChecked.value.key);
+
+    const response = await api.post(`test-volunteer/${projectId}`, formData);
+
+    console.log("volunteer bergabung : ", response.data);
     router.push({
-      path: `/donation/payment/${projectId}`,
-      name: "donation-payment",
-      query: { orderId: "PA9855919" },
+      path: `/project/${projectId}`,
     });
   } catch (error) {
     console.log(error);
@@ -154,9 +203,9 @@ const getProjectDetail = async () => {
     projectDetail.value = projectdetailList[0];
 
     // selectedTags.value = projectdetailList[0].projectTags.map((tag) => tag.tagName);
-    console.log("project detail : ", projectDetail[0].value);
+    // console.log("project detail : ", projectDetail[0].value);
 
-    initialMapLayer();
+    // initialMapLayer();
   } catch (error) {
     console.error("error Fetch Project : ", error);
   }
@@ -383,9 +432,6 @@ onMounted(() => {
                         </span>
                       </label>
                     </div>
-                    <span class="h-8 text-blue-600 font-semibold">
-                      {{ criteria.role }}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -458,6 +504,7 @@ onMounted(() => {
                     type="date"
                     id="start_date"
                     name="start_date"
+                    v-model="involvementDetail.startDate"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
@@ -472,6 +519,7 @@ onMounted(() => {
                     type="date"
                     id="end_date"
                     name="end_date"
+                    v-model="involvementDetail.endDate"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
@@ -491,6 +539,7 @@ onMounted(() => {
                       type="time"
                       id="start_time"
                       name="start_time"
+                      v-model="involvementDetail.startTime"
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     />
                     <span class="absolute right-4 top-3 text-gray-400">
@@ -510,6 +559,7 @@ onMounted(() => {
                       type="time"
                       id="end_time"
                       name="end_time"
+                      v-model="involvementDetail.endTime"
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     />
                     <span class="absolute right-4 top-3 text-gray-400">
@@ -522,7 +572,7 @@ onMounted(() => {
           </div>
           <div class="flex justify-end mt-4">
             <button
-              @click="startPaymentTransaction"
+              @click="storeVolunteerInvolvment"
               class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300"
             >
               Gabung Sebagai Volunteer

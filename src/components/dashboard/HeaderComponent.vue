@@ -5,8 +5,9 @@ import axios from "axios";
 import api from "@/api";
 
 const router = useRouter();
-const userProfile = ref({});
-
+const userProfile = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
+  : null;
 //Elipsis Right Menu
 const isElipsisRightMenu = ref(false);
 
@@ -39,28 +40,10 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
-const getUserProfile = async () => {
-  try {
-    const responses = await api.get(
-      "/test-profile",
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      }
-    );
-    console.log("user : ", responses.data.user);
-    const user = responses.data.user;
-    userProfile.value = user;
-    console.log("user profile HEADER : ", userProfile.value);
-  } catch (error) {
-    console.error("error Fetch User : ", error);
-  }
-};
 
-// Attach and detach event listeners
+
+// Attach and detach event sig
 onMounted(() => {
-  getUserProfile();
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
@@ -1174,18 +1157,7 @@ defineProps({
                         </button>
                       </div>
                     </li>
-                    <li class="w-full">
-                      <div
-                        class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
-                      >
-                        <button
-                          class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
-                        >
-                          <i class="text-[16px] uil uil-key-skeleton"></i>
-                          Billing
-                        </button>
-                      </div>
-                    </li>
+      
                     <li class="w-full">
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
@@ -1211,11 +1183,11 @@ defineProps({
                       </div>
                     </li>
                   </ul>
-                  <a
+                  <button
                     @click="signOut"
-                    class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark mx-[-15px] mb-[-15px] rounded-b-6 gap-[6px]"
+                    class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
                   >
-                    <i class="uil uil-sign-out-alt"></i> Sign Out</a
+                    <i class="uil uil-sign-out-alt"></i> Sign Out</button
                   >
                 </div>
               </div>

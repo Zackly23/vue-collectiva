@@ -6,8 +6,8 @@ import { useRoute } from "vue-router";
 import api from "@/api";
 
 
-const userId = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user")).user_id
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
   : null;
 const route = useRoute();
 const projectId = route.params.projectId ? route.params.projectId : null;
@@ -133,6 +133,7 @@ const getProjectDetail = async () => {
           }))
         : [{ key: "", value: "" }],
       projectCreatorName: project.project_creator_name,
+      projectCreatorAvatar: project.user_avatar,
       projectKodeDesa: project.project_kode_desa,
       projectPointLatitude: project.project_latitude,
       projectPointlongitude: project.project_longitude,
@@ -221,15 +222,8 @@ const storeComment = async () => {
   try {
     console.log("comment : ", commentText.value);
     // 🔹 Cek apakah user login (cek token di localStorage)
-    const token = localStorage.getItem("token");
-    const headers = {
-      "Content-Type": "application/json",
-    };
+    const token = localStorage.getItem("access_token");
 
-    // 🔹 Jika user login, tambahkan Authorization
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
 
     // 🔹 Kirim request
     const response = await api.post(
@@ -237,7 +231,7 @@ const storeComment = async () => {
       {
         comment: commentText.value,
       },
-      { headers }
+    
     );
       
     if (response.status === 201) {
@@ -493,7 +487,7 @@ onMounted(() => {
         <div class="bg-white border rounded-lg p-6 mb-6">
           <div class="flex items-center space-x-4">
             <img
-              src="C:\Users\hp\Pictures\Filtering\david.jpg"
+              :src="projectDetail?.projectCreatorAvatar"
               alt="Profil"
               class="w-12 h-12 rounded-full"
             />
@@ -562,7 +556,7 @@ onMounted(() => {
           class="mt-8">
             <div class="flex items-start space-x-4">
               <img
-                src="C:\Users\hp\Pictures\Filtering\david.jpg"
+                :src="user.profile_picture"
                 alt="User Avatar"
                 class="w-8 h-8 rounded-full mt-2"
               />
@@ -605,7 +599,7 @@ onMounted(() => {
             <!-- Donasi Info -->
             <div class="grid grid-cols-2 gap-2 text-center">
               <div class="bg-gray-100 p-3 rounded-lg">
-                <p class="text-sm font-semibold text-gray-700">Terkumpul</p>
+                <p class="text-sm font-semibold text-gray-700">{{ projectDetail?.projectCategory === 'donation' ? 'Terkumpul' : 'Partisipan' }}</p>
                 <p class="text-lg font-bold text-green-600">
                   {{ projectDetail?.projectProgressAmount }}
                 </p>
@@ -616,8 +610,14 @@ onMounted(() => {
                   {{ projectDetail?.projectTargetAmount }}
                 </p>
               </div>
-              <div class="bg-gray-100 p-3 rounded-lg">
+              <div v-if="projectDetail?.projectCategory === 'donation'" class="bg-gray-100 p-3 rounded-lg">
                 <p class="text-sm font-semibold text-gray-700">Donatur</p>
+                <p class="text-lg font-bold text-gray-700">
+                  {{ projectDetail?.projectDonaturAmount }}
+                </p>
+              </div>
+              <div v-else class="bg-gray-100 p-3 rounded-lg">
+                <p class="text-sm font-semibold text-gray-700">Terverifikasi</p>
                 <p class="text-lg font-bold text-gray-700">
                   {{ projectDetail?.projectDonaturAmount }}
                 </p>
@@ -787,7 +787,7 @@ onMounted(() => {
             <!-- Klik pada header untuk menambah baris -->
             <thead>
               <tr class="bg-gray-100">
-                <th
+              <th
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
                   Kriteria

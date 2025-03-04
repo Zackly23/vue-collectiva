@@ -114,7 +114,7 @@ const handleSubmit = async () => {
       // alert('Registration successful!');
       console.log("Response:", response.data);
 
-      router.push("/");
+      router.push("/login");
     } catch (error) {
       const errorData = error.response.data.errors;
       Object.keys(errors).forEach((key) => {
