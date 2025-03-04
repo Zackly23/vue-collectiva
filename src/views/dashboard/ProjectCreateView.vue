@@ -1,9 +1,18 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import readXlsxFile from "read-excel-file";
+import { useToast } from "vue-toast-notification";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
+const props = defineProps({
+  isLoading: Boolean,
+});
+
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
+
+const toastNotification = useToast();
 const token = localStorage.getItem("access_token");
 const route = useRoute();
 const router = useRouter();
@@ -13,7 +22,9 @@ const lampiranList = ref([]);
 const userProfile = ref();
 const timelineDataUploadList = ref([]);
 const projectTagList = ref();
-const creatorSocialMedia = ref("twitter");
+const creatorSocialMedia = ref("");
+const creatorSocialMediaJSON = ref({});
+const isConfirmatioModalOpen = ref(false);
 //Wilayah
 const provinsiList = ref();
 const kabupatenList = ref();
@@ -88,6 +99,19 @@ const imagePreview = ref(null);
 
 // Path file di folder public (langsung diakses)
 const templateUrl = ref("/timeline_template.xlsx");
+
+const closeConfirmationModal = () => {
+  isConfirmatioModalOpen.value = false;
+};
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
 
 // Fungsi untuk mencocokkan icon
 const getMatchingIconId = (iconName) => {
@@ -263,9 +287,10 @@ const goToStep = (step) => {
     },
   });
   console.log("step : ", step);
-  console.log("creator ", creatorInformation.value);
-  console.log("beneficial : ", beneficialInformation.value);
-  console.log("projectdata : ", projectData.value);
+  // console.log("social media : ", JSON.stringify(creatorInformation.value.creatorSocialMedia))
+  // console.log("creator ", creatorInformation.value);
+  // console.log("beneficial : ", beneficialInformation.value);
+  // console.log("projectdata : ", projectData.value);
 };
 
 const resetTimelineData = () => {
@@ -451,6 +476,10 @@ const getDesa = async (kodeKecamatan) => {
 };
 
 // Store Project
+const storeProject = () => {
+  isConfirmatioModalOpen.value = true;
+};
+
 const storeNewProject = async () => {
   console.log("projectData : ", projectData.value);
   console.log("locationForm : ", locationForm.value);
@@ -529,21 +558,13 @@ const storeNewProject = async () => {
     if (response.status == 200 || response.status == 201) {
       console.log(response.data);
       const projectId = response.data.project_id;
-      const responseProjectInfromation = storeProjectInformation(projectId);
-      const responseProjectTimeline = storeProjectTimeline(projectId);
-      const responseProjectLampiran = storeProjectLampiran(projectId);
 
-      // if (
-      //   responseProjectInfromation == 201 &&
-      //   responseProjectTimeline == 201 &&
-      //   responseProjectLampiran == 201
-      // ) {
+      await storeProjectInformation(projectId);
+      await storeProjectTimeline(projectId);
+      await storeProjectLampiran(projectId);
 
-      // }
-      console.log("responseProjectInfromation : ", responseProjectInfromation);
-      console.log("responseProjectTimeline : ", responseProjectTimeline);
-      console.log("responseProjectLampiran : ", responseProjectLampiran);
       console.log("Project berhasil disimpan!");
+      openNotificatication("Project Berhasil Dibuat");
       router.push("/dashboard/project");
     }
   } catch (error) {
@@ -558,7 +579,17 @@ const storeProjectInformation = async (projectId) => {
   const formDataCreator = new FormData();
   const formDataBeneficial = new FormData();
 
+  console.log(
+    "creator social media : ",
+    creatorInformation.value.creatorSocialMedia
+  );
+  console.log(
+    "creator social website : ",
+    creatorInformation.value.creatorWebsite
+  );
+
   // Tambahkan data creator ke FormData
+
   formDataCreator.append("creator_name", creatorInformation.value.creatorName);
   formDataCreator.append(
     "creator_email",
@@ -575,8 +606,17 @@ const storeProjectInformation = async (projectId) => {
   );
   formDataCreator.append(
     "creator_website",
-    creatorInformation.value.creatorSocialMedia
+    creatorInformation.value.creatorWebsite
   );
+
+  formDataCreator.append(
+    "creator_social_media",
+    JSON.stringify({
+      key: creatorSocialMedia.value,
+      value: creatorInformation.value.creatorSocialMedia[creatorSocialMedia.value],
+    })
+  );
+
   formDataCreator.append(
     "creator_identifier",
     creatorInformation.value.creatorID
@@ -664,16 +704,11 @@ const storeProjectInformation = async (projectId) => {
     ]);
 
     console.log("Response Creator:", response1.data);
-    console.log("Response Beneficiary:", response2.data);
 
-    if (response1.status == 201 || response1.status == 201) {
-      return 201;
-    }
+    console.log("Response Beneficiary:", response2.data);
   } catch (error) {
     console.log("Error menyimpan creator dan beneficiary information");
     console.error("Error:", error.response?.data || error.message);
-
-    return error.response?.status || 500;
   }
 };
 
@@ -699,12 +734,10 @@ const storeProjectTimeline = async (projectId) => {
     );
 
     if (response.status == 200 || response.status == 201) {
-      console.log(response.data);
-      return 201;
+      console.log("Timeline Berhasil Disimpan : ", response.data);
     }
   } catch (error) {
     console.error("Error saving activity:", error);
-    return error.response?.status || 500;
   }
 
   console.log("storeProjectTimeline : ", timelineStoreList);
@@ -731,17 +764,14 @@ const storeProjectLampiran = async (projectId) => {
       }
     );
 
-    if (response.status === 201) {
+    if (response.status == 201 || response.status == 200) {
       console.log("Lampiran berhasil disimpan:", response.data);
-      return 201;
     }
   } catch (error) {
     console.log(
       "Error menyimpan lampiran:",
       error.response?.data || error.message
     );
-
-    return error.response?.status || 500;
   }
 };
 
@@ -920,12 +950,26 @@ const removeTag = (tag) => {
   );
 };
 
-onMounted(() => {
-  getProvinsi();
-  getIconList();
-  getProjectTag();
-  getUserProfile();
-  // getTimeline();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+      getProvinsi(),
+      getIconList(),
+      getProjectTag(),
+      getUserProfile(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data di-fetch
+  emits("toggle-loading"); // Matikan loading setelah data selesai
+});
+
+onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
 });
 </script>
 
@@ -1035,9 +1079,9 @@ onMounted(() => {
                       v-model="creatorSocialMedia"
                       required
                     >
-                    <option value="" disabled selected>Pilih Sosmed</option>
+                      <option value="" disabled selected>Pilih Sosmed</option>
 
-                      <option selected value="twitter">Twitter</option>
+                      <option value="twitter">Twitter</option>
                       <option value="facebook">Facebook</option>
                       <option value="instagram">Instagram</option>
                       <option value="linkedin">LinkedIn</option>
@@ -2233,7 +2277,7 @@ onMounted(() => {
             Kembali
           </button>
           <button
-            @click="storeNewProject"
+            @click="storeProject"
             class="px-[30px] h-[44px] bg-primary border-primary text-white text-sm py-2 rounded-md shadow-md hover:bg-white hover:text-primary hover:ring-2 hover:ring-primary transition-all duration-300 ease-in-out"
           >
             Simpan
@@ -2242,4 +2286,13 @@ onMounted(() => {
       </div>
     </div>
   </main>
+
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isConfirmatioModalOpen"
+    :description="'Apakah Anda yakin ingin menyimpan project ini? Pastikan semua data sudah diisi dengan benar sebelum melanjutkan.'"
+    @close-confirmation-modal="closeConfirmationModal"
+    @action-modal="storeNewProject"
+    :action="'Buat Proyek'"
+    :title="'Konfirmasi Project'"
+  />
 </template>

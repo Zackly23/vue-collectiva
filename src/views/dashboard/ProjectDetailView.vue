@@ -9,11 +9,19 @@ import "vue-toast-notification/dist/theme-sugar.css";
 import HardWarningComponent from "@/components/dashboard/modal/HardWarningComponent.vue";
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
+const props = defineProps({
+  isLoading: Boolean,
+});
+
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 //Toast Notification
 const toastNotification = useToast();
 
 const isConfirmationModalOpen = ref(false);
 const isConfirmationInactiveModalOpen = ref(false);
+const dropdownComponentTag = ref(false);
+const selectedComponentTag = ref("");
+const evaluationText = ref("");
 const initialMap = ref(null);
 const router = useRouter();
 const route = useRoute();
@@ -33,6 +41,33 @@ console.log("edit mode from quey : ", editModeFromProject);
 
 //Data
 const editMode = ref(editModeFromProject);
+
+const toggleSelectTagDropdown = () => {
+  dropdownComponentTag.value = !dropdownComponentTag.value;
+};
+
+const selectComponentTag = (tag) => {
+  selectedComponentTag.value = tag;
+  dropdownComponentTag.value = false;
+};
+const componentTagList = ref([
+  { componentId: 1, componentTag: "image" },
+  { componentId: 2, componentTag: "title" },
+  { componentId: 3, componentTag: "description" },
+  { componentId: 4, componentTag: "point" },
+  { componentId: 5, componentTag: "address" },
+  { componentId: 6, componentTag: "tag" },
+  { componentId: 7, componentTag: "file attachment" },
+  { componentId: 8, componentTag: "timelines" },
+  { componentId: 9, componentTag: "date" },
+  { componentId: 10, componentTag: "amount" },
+  { componentId: 11, componentTag: "article" },
+  { componentId: 12, componentTag: "campaign" },
+  { componentId: 13, componentTag: "strategy" },
+  { componentId: 14, componentTag: "feedback" },
+]);
+
+console.log(componentTagList);
 
 //Wilayah
 const provinsiList = ref();
@@ -264,6 +299,33 @@ const addRole = () => {
 // Fungsi untuk menghapus baris input tertentu
 const removeRole = (index) => {
   projectDetail.value.projectRole.splice(index, 1);
+};
+
+const storeEvaluation = async () => {
+  try {
+    const evaluasi = {
+      tag_component: selectedComponentTag.value,
+      task_comment: evaluationText.value,
+    };
+
+    console.log("evaluasi : ", evaluasi);
+    console.log("simpan evaluasi");
+    const response = await api.post(
+      `/test-project-evaluation-id/${projectId}`,
+      evaluasi
+    );
+
+    console.log("response : ", response.data);
+    if (response.status == 201) {
+      console.log("Evaluasi Berhasil Disimpan");
+      openNotificatication("Evaluasi Berhasil Disimpan", "success");
+      selectedComponentTag.value = "";
+      evaluationText.value = "";
+      getEvaluationList();
+    }
+  } catch (error) {
+    console.error("error menyimpan evaluasi : ", error);
+  }
 };
 
 const storeTimeline = async () => {
@@ -809,7 +871,9 @@ const openNotificatication = (message) => {
 const updateStatusProject = async () => {
   console.log("ubah status");
   try {
-    const response = await api.put(`/test-project-status-id/${projectId}`);
+    const response = await api.put(`/test-project-status-id/${projectId}`, {
+      status: 'in active'
+    });
 
     if (response.status == 200) {
       console.log("response status", response.data);
@@ -938,6 +1002,9 @@ const getProjectDetail = async () => {
         : [{ key: "", value: "" }],
       projectCreatorName: project.project_creator_name,
       projectKodeDesa: project.project_kode_desa,
+      projectKodeKecamatan: project.project_kode_kecamatan,
+      projectKodeKabupaten: project.project_kode_kabupaten,
+      projectKodeProvinsi: project.project_kode_provinsi,
       projectPointLatitude: project.project_latitude,
       projectPointlongitude: project.project_longitude,
       projectCategory: project.project_category,
@@ -953,6 +1020,16 @@ const getProjectDetail = async () => {
       projectdetailList[0].projectEndDateFull;
     projectModalData.value.projectTags = projectdetailList[0].projectTags;
     projectModalData.value.projectImage = projectdetailList[0].projectImage;
+
+    locationForm.value.address = projectdetailList[0].projectAddress;
+    // locationForm.value.provinsi = projectdetailList[0].projectKodeProvinsi;
+    // locationForm.value.kabupaten = projectdetailList[0].projectKodeKabupaten;
+    // locationForm.value.kecamatan = projectdetailList[0].projectKodeKecamatan;
+    // locationForm.value.desa = projectdetailList[0].projectKodeDesa;
+    locationForm.value.latitude = projectdetailList[0].projectPointLatitude;
+    locationForm.value.longitude = projectdetailList[0].projectPointlongitude;
+
+    console.log;
 
     // selectedTags.value = projectdetailList[0].projectTags.map((tag) => tag.tagName);
     console.log("project detail : ", projectDetail.value);
@@ -1220,18 +1297,31 @@ const getIconList = async () => {
   }
 };
 
-onMounted(() => {
-  getProjectDetail();
-  getLampiran();
-  getProvinsi();
-  getIconList();
-  getProjectTagsList();
-  getEvaluationList();
-  getTimeline();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+      getProjectDetail(),
+      getLampiran(),
+      getProvinsi(),
+      getIconList(),
+      getProjectTagsList(),
+      getEvaluationList(),
+      getTimeline(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data selesai
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
 onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
   document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 </script>
@@ -2061,7 +2151,7 @@ onBeforeMount(() => {
                             />
                             <span
                               :class="{
-                                'line-through': evaluation.evaluationChecked,
+                                'line-through': evaluation.evaluationChecked || evaluation.evaluationStatus === 'approve',
                               }"
                               >{{ evaluation.evaluationTaskComment }}</span
                             >
@@ -2438,6 +2528,62 @@ onBeforeMount(() => {
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full bg-white mt-10 p-6 shadow-md rounded-lg">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Textarea -->
+          <div class="md:col-span-2">
+            <label
+              for="evaluation_input"
+              class="block text-sm font-semibold text-gray-700"
+              >Masukkan Evaluasi</label
+            >
+            <textarea
+              id="evaluation_input"
+              rows="3"
+              v-model="evaluationText"
+              placeholder="Masukkan evaluasi..."
+              class="w-full mt-2 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
+            ></textarea>
+          </div>
+
+          <!-- Select & Button -->
+          <div class="flex flex-col justify-end space-y-3">
+            <div class="relative">
+              <button
+                @click="toggleSelectTagDropdown"
+                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 bg-white text-center"
+              >
+                {{ selectedComponentTag || "Select Component Tag" }}
+              </button>
+
+              <div
+                v-if="dropdownComponentTag"
+                class="absolute w-full border rounded-md bg-white shadow-md max-h-40 overflow-y-auto z-50"
+              >
+                <div
+                  v-for="component in componentTagList"
+                  :key="component.componentId"
+                  @click="selectComponentTag(component.componentTag)"
+                  class="p-2 hover:bg-gray-200 cursor-pointer text-center"
+                >
+                  {{ component.componentTag }}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              @click="storeEvaluation"
+              class="flex items-center justify-center px-4 py-2 text-white font-semibold bg-blue-600 border border-blue-600 rounded-md transition-all hover:bg-blue-700 focus:ring-2 focus:ring-blue-300"
+            >
+              <i class="uil uil-plus text-lg mr-2"></i>
+              <span class="hidden md:inline">Simpan Evaluasi</span>
+              <span class="md:hidden">Evaluasi</span>
+            </button>
           </div>
         </div>
       </div>
@@ -3616,5 +3762,10 @@ onBeforeMount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.select-dropdown {
+  max-height: 50px; /* Batasi tinggi dropdown */
+  overflow-y: auto; /* Aktifkan scrolling jika opsi terlalu banyak */
 }
 </style>

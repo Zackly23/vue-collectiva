@@ -2,10 +2,10 @@
 
 <template>
   <!-- Footer -->
-  <footer class="px-[25px] bg-white dark:bg-box-dark">
+  <footer class="px-[25px]  bg-white dark:bg-box-dark">
     <!-- Footer content -->
     <div
-      class="flex justify-between flex-wrap py-[22px] gap-x-[30px] gap-y-[15px] max-ssm:gap-y-[8px] items-center max-md:flex-col"
+      class="bottom-0 flex justify-between flex-wrap py-[22px] gap-x-[30px] gap-y-[15px] max-ssm:gap-y-[8px] items-center max-md:flex-col"
     >
       <!-- Copyright information -->
       <div

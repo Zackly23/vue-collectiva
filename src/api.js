@@ -39,7 +39,7 @@ api.interceptors.response.use(
                 }
 
                 // Minta token baru dari server
-                const refreshResponse = await axios.post('http://127.0.0.1:8000/api/refresh', {}, {
+                const refreshResponse = await axios.post(`${API_BASE_URL}/refresh`, {}, {
                     headers: { 'Authorization': `Bearer ${refreshToken}` }
                 });
 

@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onBeforeMount, onMounted, ref, watch } from "vue";
 import api from "@/api";
 import { useRoute } from "vue-router";
 import { useToast } from "vue-toast-notification";
 
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const toastNotification = useToast();
 const route = useRoute();
 const settingTab = ref(
@@ -330,6 +331,7 @@ const getUserProfile = async () => {
       organizationName: data.organization_name,
       jabatan: data.jabatan,
       socialMedia: JSON.parse(data.social_media), // Parsing string JSON menjadi objek
+
     };
 
     profileImage.value = userProfile.value.profilePicture;
@@ -353,9 +355,20 @@ watch(
 );
 
 
-onMounted(() => {
-  getUserProfile();
+onMounted(async () => {
+  try {
+    await getUserProfile(); // Tunggu fetching selesai
+  } catch (error) {
+    console.error("Gagal mengambil data:", error);
+  }
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
 });
+
+onBeforeMount(() => {
+  emits("toggle-active-loading");
+
+})
 </script>
 
 <template>

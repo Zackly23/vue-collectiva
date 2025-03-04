@@ -16,6 +16,21 @@ import FooterComponent from "@/components/dashboard/FooterComponent.vue";
 import { ref } from "vue";
 
 const isCollapsed = ref(true);
+const isLoading = ref(true);
+
+const toggleLoading = () => {
+  console.log('before loading : ', isLoading.value);
+
+  isLoading.value = false;
+  console.log('loading : ', isLoading.value);
+};
+
+const toggleActiveLoading = () => {
+  console.log('before loading : ', isLoading.value);
+
+  isLoading.value = true;
+  console.log('loading : ', isLoading.value);
+};
 
 const toggleAside = () => {
   isCollapsed.value = !isCollapsed.value;
@@ -36,10 +51,10 @@ const toggleAside = () => {
       id="content"
     >
       <HeaderComponent @toggle-aside="toggleAside" :isCollapsed="isCollapsed" />
-      <router-view />
+      <router-view  @toggle-active-loading="toggleActiveLoading"  @toggle-loading="toggleLoading" />
       <FooterComponent />
     </div>
-    <PreloaderComponent />
+    <PreloaderComponent v-if="isLoading"/>
   </div>
 </template>
 

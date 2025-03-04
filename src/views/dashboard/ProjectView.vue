@@ -7,7 +7,7 @@ import api from '@/api';
 import 'vue-toast-notification/dist/theme-sugar.css';
 
 const userID = JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null; // Ambil data JSON dari localStorage
-
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const router = useRouter();
 const toastNotification = useToast();
 const projects = ref();
@@ -160,12 +160,21 @@ const deleteProjectId = async (projectId) => {
 // Pantau perubahan pada status dan kategori
 watch([selectedStatus, selectedCategory, selectedSort, searchProjectBar], getProjectsList);
 
-onMounted(() => {
-  getProjectsList();
+
+onMounted(async () => {
+  try {
+    await getProjectsList(); // Tunggu fetching selesai
+  } catch (error) {
+    console.error("Gagal mengambil data:", error);
+  }
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
+
 onBeforeMount(() => {
+  emits("toggle-active-loading");
   document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 </script>

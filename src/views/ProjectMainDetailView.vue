@@ -599,7 +599,7 @@ onMounted(() => {
             <!-- Donasi Info -->
             <div class="grid grid-cols-2 gap-2 text-center">
               <div class="bg-gray-100 p-3 rounded-lg">
-                <p class="text-sm font-semibold text-gray-700">Terkumpul</p>
+                <p class="text-sm font-semibold text-gray-700">{{ projectDetail?.projectCategory === 'donation' ? 'Terkumpul' : 'Partisipan' }}</p>
                 <p class="text-lg font-bold text-green-600">
                   {{ projectDetail?.projectProgressAmount }}
                 </p>
@@ -610,8 +610,14 @@ onMounted(() => {
                   {{ projectDetail?.projectTargetAmount }}
                 </p>
               </div>
-              <div class="bg-gray-100 p-3 rounded-lg">
+              <div v-if="projectDetail?.projectCategory === 'donation'" class="bg-gray-100 p-3 rounded-lg">
                 <p class="text-sm font-semibold text-gray-700">Donatur</p>
+                <p class="text-lg font-bold text-gray-700">
+                  {{ projectDetail?.projectDonaturAmount }}
+                </p>
+              </div>
+              <div v-else class="bg-gray-100 p-3 rounded-lg">
+                <p class="text-sm font-semibold text-gray-700">Terverifikasi</p>
                 <p class="text-lg font-bold text-gray-700">
                   {{ projectDetail?.projectDonaturAmount }}
                 </p>
@@ -781,7 +787,7 @@ onMounted(() => {
             <!-- Klik pada header untuk menambah baris -->
             <thead>
               <tr class="bg-gray-100">
-                <th
+              <th
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
                   Kriteria

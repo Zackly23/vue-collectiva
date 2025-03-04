@@ -11,7 +11,8 @@ const userID = JSON.parse(localStorage.getItem("user"))
   : null; // Ambil data JSON dari localStorage
 
 const router = useRouter();
-const toastNotification = useToast();
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
+
 const projectContribution = ref();
 const projectsCount = ref();
 const statusActive = ref("all");
@@ -22,7 +23,7 @@ const selectedSort = ref("asc");
 const statusList = ["all", "in progress", "completed"];
 const dropdownEditorId = ref();
 
-const getProjectsList = async () => {
+const getContributionList = async () => {
   console.log("user id : ", userID);
   console.log("sort : ", selectedSort.value);
   console.log("status : ", selectedStatus.value);
@@ -129,48 +130,29 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
-const createProject = () => {
-  router.push("/dashboard/project/create");
-};
 
-const openNotificatication = (message) => {
-  toastNotification.open({
-    type: "success",
-    message: message,
-    position: "top-right",
-    duration: 3000,
-  });
-};
 
-const deleteProjectId = async (projectId) => {
-  try {
-    const response = await api.delete(
-      `/test-project-delete/${projectId}`
-    );
-    console.log("delete : ", response.data);
-    if (response.status == 200) {
-      openNotificatication(`Project ${projectId} Berhasil Dihapus`);
-    }
-    dropdownEditorId.value = null;
-
-    getProjectsList();
-  } catch (error) {
-    console.error(error.response);
-  }
-};
 
 // Pantau perubahan pada status dan kategori
 watch(
   [selectedStatus, selectedCategory, selectedSort, searchProjectBar],
-  getProjectsList
+  getContributionList
 );
 
-onMounted(() => {
-  getProjectsList();
+onMounted( async() => {
+  try {
+    await   getContributionList();
+  } catch (error) {
+    console.error("Gagal mengambil data:", error);
+  }
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
 
 onBeforeMount(() => {
+  emits("toggle-active-loading");
+
   document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 </script>

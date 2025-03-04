@@ -211,11 +211,11 @@ onBeforeUnmount(() => {
                     </div>
                   </li>
                 </ul>
-                <a
+                <button
                   @click="signOut"
-                  class="flex items-center cursor-pointer justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark mx-[-15px] mb-[-15px] rounded-b-6 gap-[6px]"
-                >
-                  <i class="uil uil-sign-out-alt"></i> Sign Out</a
+                  class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
+                  >
+                  <i class="uil uil-sign-out-alt"></i> Sign Out</button
                 >
               </div>
             </div>

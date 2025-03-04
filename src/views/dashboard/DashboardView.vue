@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch, computed } from "vue";
+import { onMounted, ref, watch, computed, onBeforeMount } from "vue";
 import api from "@/api";
 import {
   Chart as ChartJS,
@@ -27,6 +27,12 @@ ChartJS.register(
   ArcElement
 );
 
+
+const props = defineProps({
+  isLoading: Boolean,
+});
+
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
   : null;
@@ -268,10 +274,11 @@ const getTopDonatur = async () => {
     // })
     // console.log('before: ', projectStatistics.value);
     topDonatur.value = topDonaturData;
-    // console.log('after: ', projectStatistics.value);
+    // console.log('after: ', pprojectStatistics.value);
   } catch (error) {
-    console.log("error : ", error.response.data);
     console.log("lenght : ", topDonatur.value.length);
+
+    console.log("error : ", error.response.data); 
   }
 };
 
@@ -373,13 +380,30 @@ const getLineChart = async () => {
   }
 };
 
-onMounted(() => {
-  getLineChart();
-  getPieChart();
-  getProjectCardStatistic();
-  getTopDonatur();
-  getBestProjectPerformance();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+    getLineChart(),
+  getPieChart(),
+  getProjectCardStatistic(),
+  getTopDonatur(),
+  getBestProjectPerformance(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData();
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
 });
+
+onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
+
+})
 </script>
 
 <template>

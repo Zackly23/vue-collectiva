@@ -42,7 +42,7 @@ const closeDropdownOnClickOutside = (event) => {
 
 
 
-// Attach and detach event listeners
+// Attach and detach event sig
 onMounted(() => {
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
@@ -1157,18 +1157,7 @@ defineProps({
                         </button>
                       </div>
                     </li>
-                    <li class="w-full">
-                      <div
-                        class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
-                      >
-                        <button
-                          class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
-                        >
-                          <i class="text-[16px] uil uil-key-skeleton"></i>
-                          Billing
-                        </button>
-                      </div>
-                    </li>
+      
                     <li class="w-full">
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
@@ -1196,7 +1185,7 @@ defineProps({
                   </ul>
                   <button
                     @click="signOut"
-                    class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark mx-[-15px] mb-[-15px] rounded-b-6 gap-[6px] w-full"
+                    class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
                   >
                     <i class="uil uil-sign-out-alt"></i> Sign Out</button
                   >
