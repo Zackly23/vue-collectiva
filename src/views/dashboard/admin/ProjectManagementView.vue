@@ -338,7 +338,6 @@ const getProjectDetail = async (projectId) => {
       console.log("Mapped Project Data:", projectData.value);
       console.log("Mapped Creator Info:", creatorInformation.value);
       console.log("Mapped Beneficial Info:", beneficialInformation.value);
-
     }
   } catch (error) {
     console.error(error);
@@ -844,22 +843,30 @@ const toggleGeneralInfo = () => {
             </td>
             <td class="px-6 py-3">
               <div class="flex justify-center items-center gap-x-2">
+                <!-- View (Lihat Detail) -->
                 <button
                   @click="getProjectDetails(project.projectId)"
-                  class="py-1 px-2 text-sm font-medium text-white bg-yellow-500 rounded-lg"
+                  class="py-1 px-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+                  title="Lihat Detail"
                 >
-                  <i class="ui uil-eye text-sm"></i>
+                  <i class="uil uil-edit-alt text-[16px]"></i>
                 </button>
+
+                <!-- Edit (Evaluasi) -->
                 <button
                   @click="evaluationListUpdate(project.projectId)"
-                  class="py-1 px-2 text-sm font-medium text-white bg-blue-500 rounded-lg"
+                  class="py-1 px-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600 transition"
+                  title="Evaluasi"
                 >
-                  <i class="ui uil-edit text-sm"></i>
+                  <i class="uil uil-eye text-[16px]"></i>
                 </button>
+
+                <!-- Delete (Hapus) -->
                 <button
-                  class="px-2 py-1 text-sm font-medium text-white bg-red-500 rounded-lg"
+                  class="px-2 py-1 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+                  title="Hapus Project"
                 >
-                  <i class="ui uil-trash text-sm"></i>
+                  <i class="uil uil-trash-alt text-[16px]"></i>
                 </button>
               </div>
             </td>
@@ -1973,11 +1980,9 @@ const toggleGeneralInfo = () => {
                       :for="`todolist-todo-${evaluation.evaluationId}`"
                       class="todo-title text-[14px] font-normal leading-[25px] text-theme-gray dark:text-subtitle-dark capitalize"
                     >
-  
                       <span
                         :class="{
                           'line-through':
-                           
                             evaluation.evaluationStatus === 'approve',
                         }"
                         >{{ evaluation.evaluationTaskComment }}</span
@@ -2070,6 +2075,7 @@ const toggleGeneralInfo = () => {
                   class="px-[25px] font-medium last:text-end capitalize text-[14px] text-dark dark:text-title-dark border-none group-hover:bg-transparent rounded-e-[4px]"
                 >
                   <div class="flex justify-center items-center gap-x-2">
+                    <!-- Approve Evaluation (Setujui) -->
                     <button
                       @click="
                         updateEvaluationStatus(
@@ -2077,10 +2083,13 @@ const toggleGeneralInfo = () => {
                           'approve'
                         )
                       "
-                      class="py-1 px-2 text-sm font-medium text-white bg-yellow-500 rounded-lg"
+                      class="py-1 px-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
+                      title="Setujui Evaluasi"
                     >
-                      <i class="ui uil-eye text-sm"></i>
+                      <i class="uil uil-check-circle text-[14px]"></i>
                     </button>
+
+                    <!-- Reject Evaluation (Tolak) -->
                     <button
                       @click="
                         updateEvaluationStatus(
@@ -2088,15 +2097,19 @@ const toggleGeneralInfo = () => {
                           'rejected'
                         )
                       "
-                      class="py-1 px-2 text-sm font-medium text-white bg-blue-500 rounded-lg"
+                      class="py-1 px-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
+                      title="Tolak Evaluasi"
                     >
-                      <i class="ui uil-edit text-sm"></i>
+                      <i class="uil uil-times-circle text-[14px]"></i>
                     </button>
+
+                    <!-- Delete Evaluation (Hapus) -->
                     <button
                       @click="deleteEvaluationId(evaluation.evaluationId)"
-                      class="px-2 py-1 text-sm font-medium text-white bg-red-500 rounded-lg"
+                      class="px-2 py-1 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition"
+                      title="Hapus Evaluasi"
                     >
-                      <i class="ui uil-trash text-sm"></i>
+                      <i class="uil uil-trash-alt text-[14px]"></i>
                     </button>
                   </div>
                 </td>
