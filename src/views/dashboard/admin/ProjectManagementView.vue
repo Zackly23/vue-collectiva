@@ -856,7 +856,7 @@ const toggleGeneralInfo = () => {
                 <button
                   @click="evaluationListUpdate(project.projectId)"
                   class="py-1 px-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600 transition"
-                  title="Edit Evaluasi"
+                  title="Evaluasi"
                 >
                   <i class="uil uil-eye text-[16px]"></i>
                 </button>
