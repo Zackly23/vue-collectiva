@@ -1,15 +1,49 @@
 <script setup>
 import { ref, onMounted, onUnmounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
 import api from "@/api";
+import Echo from "laravel-echo";
+import { useAuthStore } from "@/store/auth";
+import { useToast } from "vue-toast-notification";
 
+const authStore = useAuthStore();
 const router = useRouter();
-const userProfile = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user"))
-  : null;
+const toastNotification = useToast();
+const isAnimating = ref(false);
+const notifications = ref();
+const notificationsCount = ref(0);
+const userProfile = ref(
+  JSON.parse(localStorage.getItem("user"))
+    ? JSON.parse(localStorage.getItem("user"))
+    : null
+);
 //Elipsis Right Menu
 const isElipsisRightMenu = ref(false);
+
+const notificationPrivate = window.Echo.channel(
+  `notify.${userProfile.value.user_id}`
+);
+// const deleteChatChaneel = window.Echo.channel("chat-delete-channel");
+
+notificationPrivate.listen(".notify-event", async function (data) {
+  const notification = data.notification;
+  const targetId = data.target_id;
+
+  console.log('userprofile : ', userProfile.value);
+  if (targetId == userProfile.value.user_id) {
+    console.log("notification : ", notification);
+    await getNotifications();
+    triggerAnimation();
+  }
+});
+
+// Fungsi untuk memicu animasi
+const triggerAnimation = () => {
+  isAnimating.value = true;
+  setTimeout(() => {
+    isAnimating.value = false; // Animasi berhenti setelah 3 detik
+  }, 3000);
+};
 
 //Elipsisi Right Menu Event
 const elipsisRightMenu = () => {
@@ -40,8 +74,6 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
-
-
 // Attach and detach event sig
 onMounted(() => {
   document.addEventListener("click", closeDropdownOnClickOutside);
@@ -67,18 +99,27 @@ const handleOutsideClick = (event) => {
   }
 };
 
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
+
 const signOut = async () => {
   try {
     console.log("token : ", localStorage.getItem("access_token"));
-    const response = await api.post(
-      "logout",
-      {},
-    );
+    const response = await api.post("/logout", {});
 
     if (response.status === 200) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
+     
+      authStore.logout();
+      openNotificatication("Anda Berhasil Sign Out");
+      userProfile.value = null;
       router.push("/");
     }
   } catch (error) {
@@ -86,8 +127,57 @@ const signOut = async () => {
   }
 };
 
+const getNotifications = async () => {
+  try {
+    const response = await api.get(
+      `/user/${userProfile.value.user_id}/notification`
+    );
+
+    console.log("response notifikasi : ", response.data);
+    if (response.status == 200) {
+      const notificationList = response.data.notifications.map(
+        (notification) => ({
+          notificationId: notification.notification_id,
+          notificationTitle: notification.notification_title,
+          notificationSection: notification.notification_section,
+          notificationText: notification.notification_text,
+          notificationUrl: notification.notification_url,
+          isClicked: notification.checked,
+          notificationIcon: notification.notification_icon,
+          notificationTime: notification.formatted_date,
+        })
+      );
+
+      notifications.value = notificationList;
+      notificationsCount.value = response.data.notification_count;
+
+      console.log("notification lsit : ", notifications.value);
+    }
+  } catch (error) {
+    console.error("error noti : ", error);
+  }
+};
+
+const updateNotificationClicked = async (notification) => {
+  console.log("notififcatio id ", notification);
+  try {
+    const response = await api.put(
+      `/user/${userProfile.value.user_id}/notification/${notification.notificationId}`
+    );
+
+    if (response.status == 201) {
+      console.log("response : ", response.data);
+      getNotifications();
+      router.push(notification.notificationUrl);
+    }
+  } catch (error) {
+    console.error("error update : ", error);
+  }
+};
+
 // Attach and detach event listener
 onMounted(() => {
+  getNotifications();
   document.addEventListener("click", handleOutsideClick);
 });
 
@@ -95,68 +185,6 @@ onBeforeUnmount(() => {
   document.removeEventListener("click", handleOutsideClick);
 });
 
-// Notifications example data
-const notifications = ref([
-  {
-    sender: "Ibrahim Riaz",
-    message: "sent you a message",
-    time: "3 hours ago",
-  },
-  {
-    sender: "Shamim Ahmed",
-    message: "sent you a message",
-    time: "2 hours ago",
-  },
-  {
-    sender: "Shamim Ahmed",
-    message: "sent you a message",
-    time: "2 hours ago",
-  },
-  {
-    sender: "Shamim Ahmed",
-    message: "sent you a message",
-    time: "2 hours ago",
-  },
-  {
-    sender: "Shamim Ahmed",
-    message: "sent you a message",
-    time: "2 hours ago",
-  },
-]);
-
-// Dummy messages
-const messages = ref([
-  {
-    sender: "App Developer",
-    time: "2.5 hrs ago",
-    content: "Lorem ipsum dolor amet cosec...",
-    image: "../../assets/images/messages/app-developer.png",
-  },
-  {
-    sender: "Product Manager",
-    time: "2.5 hrs ago",
-    content: "Lorem ipsum dolor amet cosec...",
-    image: "../../assets/images/messages/product.png",
-  },
-  {
-    sender: "UI/UX Designer",
-    time: "6 hrs ago",
-    content: "Lorem ipsum dolor amet cosec...",
-    image: "../../assets/images/messages/ui-ux-design.png",
-  },
-  {
-    sender: "Product Manager",
-    time: "2.5 hrs ago",
-    content: "Lorem ipsum dolor amet cosec...",
-    image: "../../assets/images/messages/product.png",
-  },
-  {
-    sender: "UI/UX Designer",
-    time: "6 hrs ago",
-    content: "Lorem ipsum dolor amet cosec...",
-    image: "../../assets/images/messages/ui-ux-design.png",
-  },
-]);
 
 const emit = defineEmits(["toggle-aside"]);
 
@@ -606,105 +634,6 @@ defineProps({
           }"
         >
           <li>
-            <!-- Message Button  -->
-            <div class="relative">
-              <button
-                id="message"
-                data-dropdown-button="message"
-                @click="toggleDropdown('message')"
-                aria-expanded="isDropdownOpen('message')"
-                type="button"
-                class="flex items-center text-[22px] text-[#a0a0a0] dark:text-subtitle-dark relative min-h-[40px] group"
-              >
-                <i class="uil uil-envelope"></i>
-                <span
-                  class="absolute flex w-1.5 h-1.5 translate-x-2/4 -translate-y-2/4 origin-[100%_0%] end-[3px] top-[8px] group-[[data-te-dropdown-show]]:hidden"
-                  v-if="!isDropdownOpen('message')"
-                >
-                  <span
-                    class="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-success/20"
-                  ></span>
-                  <span
-                    class="relative inline-flex w-1.5 h-1.5 rounded-full bg-success"
-                  ></span>
-                </span>
-              </button>
-
-              <!-- Dropdown menu -->
-              <div
-                v-if="isDropdownOpen('message')"
-                aria-labelledby="message"
-                class="dropdown-message absolute right-0 z-[1000] ltr:float-left rtl:float-right m-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark [&[data-te-dropdown-show]]:block"
-              >
-                <div
-                  class="shadow-[0_2px_8px_rgba(0,0,0,.15)] dark:shadow-[0_5px_30px_rgba(1,4,19,.60)] rounded-4 px-[15px] py-[12px] md:min-w-[380px] sm:w-[300px] max-sm:w-[230px]"
-                >
-                  <h1
-                    class="flex items-center justify-center text-sm rounded-md bg-section dark:bg-box-dark-up h-[50px] p-[10px] text-dark dark:text-title-dark font-semibold"
-                  >
-                    <span class="title-text">
-                      Messages
-                      <span
-                        class="inline-flex items-center justify-center w-5 h-5 text-xs text-white rounded-full ms-[8px] bg-success dark:text-title-dark"
-                      >
-                        3
-                      </span>
-                    </span>
-                  </h1>
-
-                  <!-- Message list -->
-                  <ul
-                    class="p-0 max-h-[250px] relative overflow-x-hidden overflow-y-auto scrollbar"
-                  >
-                    <li
-                      class="w-full"
-                      v-for="(message, index) in messages"
-                      :key="index"
-                    >
-                      <div
-                        class="group relative block w-full px-3 sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark transition-[0.3s] hover:text-primary hover:bg-white dark:hover:bg-white/[.06] hover:shadow-custom dark:shadow-none dark:hover:shadow-[0_5px_30px_rgba(1,4,19,.20)] dark:rounded-4"
-                      >
-                        <figure
-                          class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px] max-sm:flex-wrap"
-                        >
-                          <div
-                            class="text-light w-[40px] min-w-[40px] h-[40px] rounded-full relative"
-                          >
-                            <img
-                              class="object-cover w-[40px] h-[40px] bg-light-extra rounded-full"
-                              :src="message.image"
-                              alt="Message sender"
-                            />
-                          </div>
-                          <figcaption class="w-full -mt-1 text-start">
-                            <h1
-                              class="flex items-center justify-between mb-0.5 text-sm text-current font-semibold"
-                            >
-                              {{ message.sender }}
-                              <span class="text-xs font-normal text-text-light">
-                                {{ message.time }}
-                              </span>
-                            </h1>
-                            <div
-                              class="flex items-center gap-[30px] text-start"
-                            >
-                              <span
-                                class="ps-0 min-w-[216px] text-body dark:text-subtitle-dark"
-                              >
-                                {{ message.content }}
-                              </span>
-                            </div>
-                          </figcaption>
-                        </figure>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <!-- End Message Button  -->
-          </li>
-          <li>
             <!-- Notification Button  -->
             <div class="relative" ref="dropdown">
               <!-- Tombol untuk Toggle Dropdown -->
@@ -714,7 +643,11 @@ defineProps({
                 @click="toggleDropdown('notification')"
                 class="flex items-center hs-dropdown-toggle text-[23px] text-[#a0a0a0] dark:text-subtitle-dark relative min-h-[40px] group"
               >
-                <i class="uil uil-bell"></i>
+                <!-- Icon Bell dengan Animasi -->
+                <i
+                  class="uil uil-bell transition-transform duration-300"
+                  :class="{ 'animate-shake': isAnimating }"
+                ></i>
                 <span
                   class="absolute flex w-1.5 h-1.5 translate-x-2/4 -translate-y-2/4 origin-[100%_0%] end-[3px] top-[8px]"
                   v-if="!isDropdownOpen('notification')"
@@ -723,7 +656,10 @@ defineProps({
                     class="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-warning/20"
                   ></span>
                   <span
-                    class="relative inline-flex w-1.5 h-1.5 rounded-full bg-warning"
+                    class="relative inline-flex w-1.5 h-1.5 rounded-full"
+                    :class="{
+                      'bg-warning': notificationsCount > 0,
+                    }"
                   ></span>
                 </span>
               </button>
@@ -743,7 +679,7 @@ defineProps({
                       >Notifications
                       <span
                         class="inline-flex items-center justify-center w-5 h-5 text-xs text-white rounded-full bg-warning ms-3 dark:text-title-dark"
-                        >3</span
+                        >{{ notificationsCount }}</span
                       ></span
                     >
                   </h1>
@@ -752,12 +688,19 @@ defineProps({
                   >
                     <li
                       v-for="(notification, index) in notifications"
-                      :key="index"
+                      :key="notification.notificationId"
                     >
                       <button
-                        class="group relative block w-full px-3 sm:py-3.5 max-sm:py-1.5 text-body dark:text-subtitle-dark hover:bg-white dark:hover:bg-box-dark-up"
+                        @click="updateNotificationClicked(notification)"
+                        class="group relative block w-full px-3 sm:py-3 max-sm:py-1.5 text-body dark:text-subtitle-dark hover:bg-white dark:hover:bg-box-dark-up"
                       >
-                        <div class="flex items-start gap-x-[15px]">
+                        <div
+                          class="rounded-lg p-2 flex items-start gap-x-[15px]"
+                          :class="{
+                            'bg-blue-100': !notification.isClicked,
+                            'bg-white': notification.isClicked,
+                          }"
+                        >
                           <div
                             class="flex items-center justify-center rounded-full w-[30px] h-[30px] bg-warning/10 text-warning"
                           >
@@ -767,18 +710,20 @@ defineProps({
                           </div>
                           <div class="text-start">
                             <h1
-                              class="text-sm text-[#5a5f7d] dark:text-title-dark"
+                              class="text-[#5a5f7d] dark:text-title-dark flex justify-between items-center mb-2"
                             >
-                              <span class="text-primary">{{
-                                notification.sender
+                              <span class="text-[13px] text-primary">{{
+                                notification.notificationTitle
                               }}</span>
-                              sent you a message
+                              <p
+                                class="text-xs text-body dark:text-subtitle-dark"
+                              >
+                                {{ notification.notificationTime }}
+                              </p>
                             </h1>
-                            <p
-                              class="text-xs text-body dark:text-subtitle-dark"
-                            >
-                              {{ notification.time }}
-                            </p>
+                            <h1 class="text-xs">
+                              {{ notification.notificationText }}
+                            </h1>
                           </div>
                         </div>
                       </button>
@@ -790,7 +735,8 @@ defineProps({
           </li>
           <li>
             <div class="relative" data-te-dropdown-ref>
-              <button
+              <router-link
+                to="/dashboard/profile/setting"
                 type="button"
                 id="settings"
                 data-te-dropdown-toggle-ref
@@ -798,7 +744,7 @@ defineProps({
                 class="flex items-center text-[22px] text-[#a0a0a0] dark:text-subtitle-dark min-h-[40px]"
               >
                 <i class="uil uil-setting"></i>
-              </button>
+              </router-link>
               <div
                 class="absolute z-[1000] ltr:float-left rtl:float-right m-0 hidden min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block"
                 aria-labelledby="settings"
@@ -1007,11 +953,11 @@ defineProps({
                 data-te-dropdown-toggle-ref
                 aria-expanded="false"
                 type="button"
-                class="flex items-center"
+                class="flex items-center rounded-full border-1"
               >
                 <img
-                  class="min-w-[20px] min-h-[20px]"
-                  src="../../assets/images/flags/english.png"
+                  class="max-w-[25px] max-h-[25px]"
+                  src="../../assets/images/flags/ina-flag.png"
                   alt="flags"
                 />
               </button>
@@ -1083,7 +1029,7 @@ defineProps({
               >
                 <img
                   class="min-w-[32px] w-8 h-8 rounded-full xl:me-2"
-                  src="../../assets/images/avatars/thumbs.png"
+                  :src="userProfile?.profile_picture"
                   alt="user photo"
                 />
                 <span class="hidden xl:block">{{
@@ -1112,19 +1058,22 @@ defineProps({
                   >
                     <img
                       class="w-8 h-8 rounded-full bg-regular"
-                      src="../../assets/images/avatars/thumbs.png"
+                      :src="userProfile?.profile_picture"
                       alt="user"
                     />
                     <figcaption>
                       <div
                         class="text-dark dark:text-title-dark mb-0.5 text-sm"
                       >
-                        {{ userProfile.full_name }}
+                        {{ userProfile?.full_name }}
                       </div>
                       <div
-                        class="mb-0 text-xs text-body dark:text-subtitle-dark"
+                        class="mb-0 text-xs"
+                        :class="
+                          userProfile?.badge_color
+                        "
                       >
-                        Software Engineer
+                        {{ userProfile?.badge }}
                       </div>
                     </figcaption>
                   </figure>
@@ -1157,7 +1106,7 @@ defineProps({
                         </button>
                       </div>
                     </li>
-      
+
                     <li class="w-full">
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
@@ -1187,8 +1136,8 @@ defineProps({
                     @click="signOut"
                     class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
                   >
-                    <i class="uil uil-sign-out-alt"></i> Sign Out</button
-                  >
+                    <i class="uil uil-sign-out-alt"></i> Sign Out
+                  </button>
                 </div>
               </div>
             </div>
@@ -1200,3 +1149,25 @@ defineProps({
   </header>
   <!-- End: Header -->
 </template>
+
+<style scoped>
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out infinite;
+}
+</style>

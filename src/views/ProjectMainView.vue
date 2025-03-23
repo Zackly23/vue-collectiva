@@ -2,61 +2,42 @@
 import { ref, watch, onMounted, onBeforeMount } from "vue";
 import api from "@/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const emits = defineEmits(["toggle-active-loading", "toggle-loading"]);
 
 const selectedStatus = ref("in_progress");
 const statusActive = ref("in_progress");
+const page = ref(1);
+const currentPage = ref(1);
+const lastPage = ref();
 const searchProjectBar = ref("");
 const selectedCategory = ref("");
 const selectedSort = ref("asc");
 const selectedKodeProvinsi = ref("");
-
-const page = ref(1);
-const currentPage = ref(1);
-const lastPage = ref();
+const selectedKodeKabupaten = ref("");
+const selectedMonth = ref("");
 
 const provinsiList = ref();
+const kabupatenList = ref();
 const projectList = ref();
 const projectCount = ref(0);
 
-const statusList = ref([
-  {
-    key: "in_progress",
-    status: "Proyek Dibuka",
-  },
-  {
-    key: "in_review",
-    status: "Segera Dibuka",
-  },
-  {
-    key: "completed",
-    status: "Proyek Selesai",
-  },
-]);
-
-const changeStatus = (status) => {
-  selectedStatus.value = status === "in_progress" ? "in_progress" : status;
-  statusActive.value = status;
-  console.log(selectedStatus.value);
-};
+const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const bulan = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
 
 const formattedDate = (date) => {
-  const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-  const bulan = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agu",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
-  ];
 
   const d = new Date(date);
   const tahun = d.getFullYear();
@@ -66,7 +47,7 @@ const formattedDate = (date) => {
   const jam = String(d.getHours()).padStart(2, "0"); // Jam dalam format 24 jam
   const menit = String(d.getMinutes()).padStart(2, "0"); // Menit
 
-  return `${namaHari}, ${tanggal}-${namaBulan}-${tahun}`;
+  return `${tanggal} ${namaBulan} ${tahun}`;
 };
 
 const getPublicProjectList = async () => {
@@ -74,18 +55,22 @@ const getPublicProjectList = async () => {
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
   console.log("search : ", searchProjectBar.value);
+    console.log("page : ", page.value);
+    console.log("bulan : ", selectedMonth.value);
 
   try {
     const response = await api.get(`/project/public/list`, {
       params: {
-        kode_provinsi: "11.00",
+        kode_provinsi: selectedKodeProvinsi.value,
+        kode_kabupaten: selectedKodeKabupaten.value,
         limit: 3,
         status: selectedStatus.value,
         category: selectedCategory.value,
         sort: selectedSort.value,
         search: searchProjectBar.value,
-        shuffle: true,
         page: page.value,
+        shuffle: false,
+        bulan: selectedMonth.value,
       },
     });
 
@@ -112,7 +97,6 @@ const getPublicProjectList = async () => {
       }));
 
       lastPage.value = response.data.pagination.last_page;
-
       projectList.value = projectsListData;
       projectCount.value = response.data.pagination.total;
 
@@ -133,6 +117,23 @@ const getProvinsi = async () => {
     }));
 
     provinsiList.value = provinsiLists;
+  } catch (error) {
+    console.error(
+      error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+  }
+};
+
+const getKabupaten = async (kodeProvinsi) => {
+  try {
+    const responses = await api.get(`/provinsi/${kodeProvinsi}/kabupaten/list`);
+    console.log(responses.data);
+    const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
+      kodeKabupaten: kabupaten.kode_kabupaten,
+      namaKabupaten: kabupaten.nama_kabupaten,
+    }));
+
+    kabupatenList.value = kabupatenLists;
   } catch (error) {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
@@ -161,39 +162,7 @@ onBeforeMount(() => {
 </script>
 
 <template>
-  <!-- Stats Section -->
   <div class="max-w-7xl mx-auto p-6">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Proyek Aktif</h3>
-        <p class="text-2xl font-bold">24</p>
-        <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 12% dari bulan lalu</span>
-        </div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Dana Terkumpul</h3>
-        <p class="text-2xl font-bold">Rp 6.4M</p>
-        <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 8% dari bulan lalu</span>
-        </div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Volunteer Terlibat</h3>
-        <p class="text-2xl font-bold">2032</p>
-        <div class="flex items-center mt-2 text-gray-600">
-          <span class="text-xs">Sama dengan bulan lalu</span>
-        </div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Donatur</h3>
-        <p class="text-2xl font-bold">1,240</p>
-        <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 15% dari bulan lalu</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Search and Filter Bar -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <div class="flex flex-wrap gap-4">
@@ -214,11 +183,12 @@ onBeforeMount(() => {
           <option value="volunteer">Volunteer</option>
         </select>
         <select
+          @change="getKabupaten(selectedKodeProvinsi)"
           v-model="selectedKodeProvinsi"
           id="province"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
         >
-          <option value="">Select Province</option>
+          <option value="">Pilih Provinsi</option>
           <option
             v-for="provinsi in provinsiList"
             :key="provinsi.kodeProvinsi"
@@ -227,7 +197,34 @@ onBeforeMount(() => {
             {{ provinsi.namaProvinsi }}
           </option>
         </select>
-
+        <select
+          v-model="selectedKodeKabupaten"
+          :disabled="!selectedKodeProvinsi"
+          id="province"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          <option value="">Pilih Kabupaten</option>
+          <option
+            v-for="kabupaten in kabupatenList"
+            :key="kabupaten.kodeKabupaten"
+            :value="kabupaten.kodeKabupaten"
+          >
+            {{ kabupaten.namaKabupaten }}
+          </option>
+        </select>
+        <select
+          v-model="selectedMonth"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          <option value="">Pilih Bulan</option>
+          <option
+            v-for="(month, index) in bulan"
+            :key="index"
+            :value="index + 1"
+          >
+            {{ month }}
+          </option>
+        </select>
         <button
           @click="getPublicProjectList"
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -237,37 +234,13 @@ onBeforeMount(() => {
       </div>
     </div>
 
-    <!-- Main Content Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">Pilihan Proyek</h1>
+        <h1 class="text-2xl font-bold text-gray-800">Filter Proyek</h1>
         <p class="text-gray-500">
-          Menampilkan 3 dari {{ projectCount }} proyek
+          Menampilkan 12 dari {{ projectCount }} proyek
         </p>
       </div>
-    </div>
-
-    <!-- Filter Pills -->
-    <div class="flex flex-wrap gap-2 mb-6">
-      <button
-        v-for="status in statusList"
-        :key="status.key"
-        :class="{
-          'bg-green-200 text-green-700': statusActive === status.key,
-        }"
-        class="px-4 py-2 bg-green-50 rounded-full hover:bg-green-200"
-        @click="changeStatus(status.key)"
-      >
-        {{ status.status }}
-      </button>
-
-      <div class="flex-1"></div>
-      <router-link
-        to="/project/list"
-        class="text-green-600 hover:text-green-800"
-      >
-        Lihat Semua Proyek
-      </router-link>
     </div>
 
     <!-- Project Cards (with hover effects) -->
@@ -280,7 +253,9 @@ onBeforeMount(() => {
           <div
             class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full"
           >
-            ROI 16%
+            {{
+              project.projectCategory === "donation" ? "Donasi" : "Volunteer"
+            }}
           </div>
           <img
             :src="project.projectImage"
@@ -347,33 +322,14 @@ onBeforeMount(() => {
           <div class="flex justify-between items-center pt-4 border-t">
             <div class="flex items-center gap-2">
               <span
-                class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
+                class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20"
               >
-                {{ project.projectStatus === "in_progress" ? "Dibuka" : "" }}
-                {{
-                  project.projectStatus === "in_review" ? "Segera Dibuka" : ""
-                }}
-                {{ project.projectStatus === "completed" ? "Selesai" : "" }}
+                Deadline {{ project.projectEndDate }}
               </span>
             </div>
-            <div
-              v-if="project.projectStatus !== 'in_review'"
-              class="flex items-center gap-2"
-            >
-              <svg
-                class="w-5 h-5 text-green-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                ></path>
-              </svg>
-              <span class="text-gray-700"
+            <div class="flex items-center gap-2">
+              <i class="ui uil-crosshair text-lg text-green-700"></i>
+              <span class="text-green-700 font-semibold"
                 >{{ project.projectCategory === "donation" ? "Rp" : "" }}
                 {{ project.projectTargetAmount }}
                 {{
@@ -388,51 +344,97 @@ onBeforeMount(() => {
       <!-- Additional cards with same structure... -->
     </div>
 
+    <!-- Page Number  -->
+
     <!-- Enhanced Pagination -->
-    <div
-      class="mt-8 flex items-center justify-between bg-white px-4 py-3 sm:px-6 rounded-lg shadow"
-    >
-      <div class="flex flex-1 items-center justify-end">
-        <div class="flex gap-3">
-          <button
-            @click="
-              () => {
-                currentPage--;
-                page--;
-              }
-            "
-            :disabled="currentPage === 1"
-            class="inline-flex items-center justify-center p-3 rounded-lg border border-gray-200 text-gray-400 hover:text-green-600 hover:border-green-600 transition-all"
-          >
-            <span class="sr-only">Previous</span>
-            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-          <button
-            @click="
-              () => {
-                currentPage++;
-                page++;
-              }
-            "
-            :disabled="currentPage === lastPage"
-            class="inline-flex items-center justify-center p-3 rounded-lg border border-gray-200 text-gray-400 hover:text-green-600 hover:border-green-600 transition-all"
-          >
-            <span class="sr-only">Next</span>
-            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
+    <div class="flex justify-end w-full mt-6">
+      <div class="flex gap-x-2">
+        <!-- Tombol First -->
+        <button
+          @click="
+            () => {
+              currentPage = 1;
+              page = 1;
+            }
+          "
+          :disabled="currentPage === 1"
+          class="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          First
+        </button>
+
+        <!-- Tombol Previous -->
+        <button
+          @click="
+            () => {
+              currentPage--;
+              page--;
+            }
+          "
+          :disabled="currentPage === 1"
+          class="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+
+        <!-- Numbering -->
+        <span
+          v-for="num in lastPage"
+          :key="num"
+          @click="
+            () => {
+              currentPage = num;
+              page = num;
+            }
+          "
+          class="px-3 py-2 rounded cursor-pointer"
+          :class="{
+            'bg-blue-500 text-white': num === currentPage,
+            'bg-gray-200': num !== currentPage,
+          }"
+        >
+          {{ num }}
+        </span>
+
+        <!-- Tombol Next -->
+        <button
+          @click="
+            () => {
+              currentPage++;
+              page++;
+            }
+          "
+          :disabled="currentPage === lastPage"
+          class="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+
+        <!-- Tombol Last -->
+        <button
+          @click="
+            () => {
+              currentPage = lastPage;
+              page = lastPage;
+            }
+          "
+          :disabled="currentPage === lastPage"
+          class="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Last
+        </button>
       </div>
     </div>
   </div>

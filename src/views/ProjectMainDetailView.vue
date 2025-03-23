@@ -1,19 +1,32 @@
 <script setup>
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
-import { ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { ref, onMounted, onBeforeMount } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useToast } from "vue-toast-notification";
 import api from "@/api";
+import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
-
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
+const messageText = ref("");
+const isMessagePopUpOpen = ref(false);
+const isSocialMediaPopupOpen = ref(false);
+const toastNotification = useToast();
 const user = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user"))
   : null;
 const route = useRoute();
+const router = useRouter();
 const projectId = route.params.projectId ? route.params.projectId : null;
 console.log("projectId : ", projectId);
 
+const isReportCaseModalOpen = ref(false);
+const isReportConfirmationModalOpen = ref(false);
+const reportData = ref();
+
 const initialMap = ref(null);
+const isDetailDropdown = ref(false);
 const isCriteriaModalOpen = ref(false);
 const commentText = ref("");
 const isRoleModalOpen = ref(false);
@@ -23,6 +36,152 @@ const projectDetail = ref();
 const lampiranList = ref();
 const projectList = ref();
 const commentList = ref();
+
+const sosmedList = ref([
+  { name: "instagram", label: "instagram", color: "text-white bg-[#E4405F]" }, // Instagram (pink kemerahan)
+  { name: "facebook", label: "facebook-f", color: "text-white bg-[#1877F2]" }, // Facebook (biru)
+  { name: "twitter", label: "twitter", color: "text-white bg-[#1DA1F2]" }, // Twitter/X (biru muda)
+  { name: "linkedin", label: "linkedin", color: "text-white bg-[#0A66C2]" }, // LinkedIn (biru tua)
+]);
+
+const openReportModal = () => {
+  isReportCaseModalOpen.value = true;
+  isDetailDropdown.value = false;
+  isSocialMediaPopupOpen.value = false;
+  isMessagePopUpOpen.value = false;
+};
+const closeReportModal = () => {
+  isReportCaseModalOpen.value = false;
+};
+
+const closeConfirmationReportModal = () => {
+  isReportConfirmationModalOpen.value = false;
+};
+
+const toggleMessagePopUp = () => {
+  isMessagePopUpOpen.value = !isMessagePopUpOpen.value;
+  isSocialMediaPopupOpen.value = false;
+  isReportCaseModalOpen.value = false;
+};
+
+const toggleSocialMediaPopUp = () => {
+  isSocialMediaPopupOpen.value = !isSocialMediaPopupOpen.value;
+  isMessagePopUpOpen.value = false;
+  isReportCaseModalOpen.value = false;
+};
+
+const toggleDetailDropdown = () => {
+  isDetailDropdown.value = !isDetailDropdown.value;
+
+  if (!isDetailDropdown.value) {
+    isSocialMediaPopupOpen.value = false;
+    isMessagePopUpOpen.value = false;
+  }
+};
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
+
+const shareSocialMedia = async (platform) => {
+  try {
+    const response = await api.get(
+      `/project/${projectId}/spreader/${user.user_id}/share/${platform}`
+    );
+    console.log('social media : ', response.data)
+    if (response.status == 200) {
+      console.log("Share to ", platform);
+      openNotificatication("Berhasil membagikan proyek ke " + platform);
+      isSocialMediaPopupOpen.value = false;
+      // Open url from response (share_url)
+      window.open(response.data.share_url, "_blank");
+    }
+  } catch (error) {
+    console.error("error membagikan project ", error);
+  }
+};
+
+const sendMessage = async () => {
+  console.log("Send data to private chat");
+
+  try {
+    console.log(
+      "userid : ",
+      user.user_id,
+      "dan sender : ",
+      projectDetail.value.projectCreatorId
+    );
+    const response = await api.post(
+      `/user/${user.user_id}/chat/private/${projectDetail.value.projectCreatorId}`, // Pastikan userID valid
+      {
+        sender_id: user.user_id, // ID pengirim
+        private_chat_text: messageText.value, // Konsisten dengan key di server
+      },
+      {
+        headers: {
+          "Content-Type": "multipart/form-data", // Perbaikan pada huruf kecil
+        },
+      }
+    );
+
+    if (response.status == 200) {
+      console.log(response.data); // Log respons dari server
+      toggleMessagePopUp();
+      messageText.value = "";
+    }
+  } catch (error) {
+    console.error("Error sending data:", error.response?.data || error.message);
+  }
+};
+
+const reportUser = async (data) => {
+  reportData.value = data;
+
+  console.log("data : ", data);
+  console.log("formDsata : ", reportData.value);
+
+  isReportConfirmationModalOpen.value = true;
+};
+
+// Submit report
+const handleSubmitReport = async () => {
+  try {
+    console.log("formsata : ", reportData.value);
+    const formData = new FormData();
+
+    formData.append("reported_case", reportData.value.selectedCase);
+    formData.append("reported_comment", reportData.value.clarityReport);
+    formData.append("reported_segment", "project");
+    if (reportData.value.reportAttachment) {
+      formData.append("reported_image", reportData.value.reportAttachment);
+    }
+    formData.append("project_id", projectId);
+    const response = await api.post(
+      `/user/${projectDetail.value.projectCreatorId}/report`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("user telah direport");
+    console.log("response report : ", response.data);
+    if (response.status == 201) {
+      openNotificatication("Laporan Report Telah Berhasil Dikirim");
+      isReportConfirmationModalOpen.value = false;
+      isReportCaseModalOpen.value = false;
+    }
+  } catch (error) {
+    console.error("error report : ", error);
+  }
+};
 
 //Open Modal
 const openGeneralModal = (value) => {
@@ -88,17 +247,16 @@ const initialMapLayer = () => {
     .openPopup();
 };
 
+const gotoProjectId = (idProject) => {
+  window.location.href = `/project/${idProject}`;
+};
+
 //API
 const getProjectDetail = async () => {
   try {
-    const responses = await api.get(
-     `/test-public-project-id/${projectId}`
-    );
+    const responses = await api.get(`/project/${projectId}/public/detail`);
 
-    console.log(
-      "project: ",
-      JSON.parse(responses.data.project_details[0].project_criteria)
-    );
+    console.log("project: ", responses.data);
     console.log(JSON.parse(responses.data.project_details[0].project_criteria));
     const projectdetailList = responses.data.project_details.map((project) => ({
       projectId: project.project_id,
@@ -124,6 +282,7 @@ const getProjectDetail = async () => {
         ? JSON.parse(project.project_criteria).map((criteria) => ({
             key: criteria.key,
             value: criteria.value,
+            role: criteria.role,
           }))
         : [{ key: "", value: "" }],
       projectRole: project.project_role
@@ -132,6 +291,7 @@ const getProjectDetail = async () => {
             value: role.value,
           }))
         : [{ key: "", value: "" }],
+      projectCreatorId: project.project_creator_id,
       projectCreatorName: project.project_creator_name,
       projectCreatorAvatar: project.user_avatar,
       projectKodeDesa: project.project_kode_desa,
@@ -140,6 +300,9 @@ const getProjectDetail = async () => {
       projectCategory: project.project_category,
       userOrganizationName: project.user_organization_name,
       userBadge: project.user_badge,
+      userBadgeColor: project.user_badge_color,
+      userParticipation: project.user_participation,
+      userJabatan: project.user_jabatan,
     }));
 
     projectDetail.value = projectdetailList[0];
@@ -155,27 +318,24 @@ const getProjectDetail = async () => {
 
 const getPublicProjectList = async () => {
   try {
-    const response = await api.get(
-      '/test-public-projects',
-      {
-        params: {
-          status: "in progress",
-          category: "",
-          sort: "asc",
-          search: "",
-          kode_provinsi: "",
-          limit: 3,
-          random: Math.random(), // ✅ Tambahkan parameter random agar cache dihindari
-
-        },
-      }
-    );
+    const response = await api.get("/project/public/list", {
+      params: {
+        status: "in_progress",
+        category: "",
+        sort: "asc",
+        search: "",
+        kode_provinsi: "",
+        limit: 3,
+        shuffle: true,
+        random: Math.random(), // ✅ Tambahkan parameter random agar cache dihindari
+      },
+    });
 
     console.log("project  : ", response.data);
 
     if (response.status === 200) {
       const projectsListData = response.data.projects.map((item) => ({
-        projectId: item.project_title,
+        projectId: item.project_id,
         projectTitle: item.project_title,
         projectDescription: item.project_description,
         projectImage: item.project_image,
@@ -194,15 +354,14 @@ const getPublicProjectList = async () => {
 //Get Comment
 const getComments = async () => {
   try {
-    const responses = await api.get(
-      `/test-comment-project-id/${projectId}`
-    );
+    const responses = await api.get(`/project/${projectId}/comment`);
     console.log("comments : ", responses.data.comments);
     const commentLists = responses.data.comments.map((comment) => ({
       commentId: comment.project_comment_id,
       userName: comment.user_name,
       userAvatar: comment.user_avatar,
       userBadge: comment.user_badge,
+      userBadgeColor: comment.user_badge_color,
       comment: comment.comment,
       sendDate: comment.send_date,
       sendTime: comment.send_time,
@@ -224,22 +383,16 @@ const storeComment = async () => {
     // 🔹 Cek apakah user login (cek token di localStorage)
     const token = localStorage.getItem("access_token");
 
-
     // 🔹 Kirim request
-    const response = await api.post(
-      `/test-comment-project-id/${projectId}`,
-      {
-        comment: commentText.value,
-      },
-    
-    );
-      
+    const response = await api.post(`/project/${projectId}/comment`, {
+      comment: commentText.value,
+    });
+
     if (response.status === 201) {
       console.log("Komentar berhasil dikirim:", response.data);
       getComments();
       commentText.value = "";
     }
-    
   } catch (error) {
     console.error("Gagal mengirim komentar:", error.response?.data || error);
   }
@@ -248,9 +401,7 @@ const storeComment = async () => {
 // get Evaluation
 const getTimeline = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-timeline-id/${projectId}`
-    );
+    const responses = await api.get(`/project/${projectId}/timeline`);
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
       timelineId: timeline.project_timeline_id,
@@ -279,29 +430,46 @@ const getTimeline = async () => {
 
 const getLampiran = async () => {
   try {
-    const responses = await api.get(
-      `/test-project-lampiran-id/${projectId}`
-    );
+    const responses = await api.get(`/project/${projectId}/lampiran/list`);
     console.log("lampiran : ", responses.data);
     const lampiranLists = responses.data.project_lampiran.map((lampiran) => ({
       lampiranId: lampiran.project_lampiran_id,
       lampiranName: lampiran.project_lampiran_name,
       lampiranUrl: lampiran.project_lampiran_url,
+      lampiranSection: lampiran.project_lampiran_section,
     }));
 
-    lampiranList.value = lampiranLists;
+    lampiranList.value = lampiranLists.filter(
+      (item) => item.lampiranSection == "lampiran"
+    );
+
     console.log("lampiran : ", lampiranList.value);
   } catch (error) {
     console.error(error.response.data);
   }
 };
 
-onMounted(() => {
-  getProjectDetail();
-  getLampiran();
-  getTimeline();
-  getComments();
-  getPublicProjectList();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+      getProjectDetail(),
+      getLampiran(),
+      getTimeline(),
+      getComments(),
+      getPublicProjectList(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data selesai
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+});
+
+onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
 });
 </script>
 
@@ -381,7 +549,8 @@ onMounted(() => {
               <span
                 v-for="projectTag in projectDetail?.projectTags"
                 class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"
-                >X {{ projectTag.tagName }}</span
+              >
+                {{ projectTag.tagName }}</span
               >
             </div>
           </section>
@@ -408,16 +577,16 @@ onMounted(() => {
                   class="flex items-center justify-between bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition"
                 >
                   <div class="flex items-center gap-3">
-                    <span class="text-blue-600 text-lg">📄</span>
+                    <i class="ui uil-file text-md"></i>
                     <span class="text-gray-700 text-sm font-medium">{{
                       file.lampiranName
                     }}</span>
                   </div>
                   <button
-                    class="text-blue-500 hover:text-blue-700 transition"
+                    class="ml-4 flex justify-center items-center"
                     @click="previewFile(file)"
                   >
-                    ⬇
+                    <i class="ui uil-eye text-md text-center"></i>
                   </button>
                 </div>
               </div>
@@ -430,10 +599,18 @@ onMounted(() => {
             <div class="mb-6">
               <h4 class="text-sm text-gray-500 mb-2">Timeline Proyek</h4>
               <button
-                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition flex justify-center items-center space-x-1"
                 @click="openGeneralModal('timeline')"
               >
-                📅 Lihat Timeline
+                <i class="ui uil-calendar-alt m-0 hidden xl:block"></i>
+                <i
+                  class="ui uil-calendar-alt m-0 hidden md:block xl:hidden"
+                ></i>
+                <i class="ui uil-calendar-alt m-0 block md:hidden"></i>
+
+                <span class="m-0 hidden xl:block">Lihat Timeline</span>
+                <span class="m-0 hidden md:block xl:hidden">Timeline</span>
+                <span class="m-0 block md:hidden">Timeline</span>
               </button>
               <p class="text-xs text-gray-500 mt-1">
                 Jadwal proyek dari awal hingga akhir.
@@ -445,20 +622,30 @@ onMounted(() => {
               <h4 class="text-sm text-gray-500 mb-2">Kriteria dan Role</h4>
               <div class="flex gap-2">
                 <button
-                  class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                  class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition flex justify-center items-center space-x-1"
                   @click="openGeneralModal('kriteria')"
                 >
-                  <span class="m-0 hidden xl:block">📌 Lihat Kriteria</span>
-                  <span class="m-0 hidden md:block xl:hidden">📌 Kriteria</span>
-                  <span class="m-0 block md:hidden">📌 Kriteria</span>
+                  <i class="ui uil-clipboard-alt m-0 hidden xl:block"></i>
+                  <i
+                    class="ui uil-clipboard-alt m-0 hidden md:block xl:hidden"
+                  ></i>
+                  <i class="ui uil-clipboard-alt m-0 block md:hidden"></i>
+
+                  <span class="m-0 hidden xl:block">Lihat Kriteria</span>
+                  <span class="m-0 hidden md:block xl:hidden">Kriteria</span>
+                  <span class="m-0 block md:hidden">Kriteria</span>
                 </button>
                 <button
-                  class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                  class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition flex justify-center items-center space-x-1"
                   @click="openGeneralModal('role')"
                 >
-                  <span class="m-0 hidden xl:block">👥 Lihat Role</span>
-                  <span class="m-0 hidden md:block xl:hidden">👥 Role</span>
-                  <span class="m-0 block md:hidden">👥 Role</span>
+                  <i class="ui uil-users-alt m-0 hidden xl:block"></i>
+                  <i class="ui uil-users-alt m-0 hidden md:block xl:hidden"></i>
+                  <i class="ui uil-users-alt m-0 block md:hidden"></i>
+
+                  <span class="m-0 hidden xl:block">Lihat Role</span>
+                  <span class="m-0 hidden md:block xl:hidden">Role</span>
+                  <span class="m-0 block md:hidden">Role</span>
                 </button>
               </div>
               <p class="text-xs text-gray-500 mt-1">
@@ -469,7 +656,7 @@ onMounted(() => {
 
           <!-- Lokasi  -->
           <div
-            class="col-start-1 col-span-2 md:col-start-2 md:col-span-1 bg-white border rounded-lg shadow-md p-6 h-[400px] md:h-full"
+            class="col-start-1 col-span-2 md:col-start-2 md:col-span-1 bg-white border rounded-lg shadow-md p-6 h-[400px] md:h-full min-h-[350px]"
           >
             <h3 class="text-xl font-bold text-gray-800 mb-4">Lokasi Proyek</h3>
             <div
@@ -484,27 +671,135 @@ onMounted(() => {
             </section>
           </div>
         </div>
-        <div class="bg-white border rounded-lg p-6 mb-6">
-          <div class="flex items-center space-x-4">
-            <img
-              :src="projectDetail?.projectCreatorAvatar"
-              alt="Profil"
-              class="w-12 h-12 rounded-full"
-            />
+        <div class="bg-white border rounded-lg p-4 pl-6 mb-6">
+          <div class="flex justify-between items-center space-x-4">
             <div>
-              <h3 class="font-semibold">
-                {{ projectDetail?.projectCreatorName }}
-              </h3>
-              <span
-                class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded"
-                >{{ projectDetail?.userBadge }}</span
+              <div class="flex justify-center items-center space-x-2">
+                <img
+                  :src="projectDetail?.projectCreatorAvatar"
+                  alt="Profil"
+                  class="w-12 h-12 rounded-full"
+                />
+                <div>
+                  <h3 class="font-semibold">
+                    {{ projectDetail?.projectCreatorName }}
+                  </h3>
+                  <span
+                    class="inline-block text-xs px-2 py-1 rounded"
+                    :class="projectDetail?.userBadgeColor"
+                    >{{ projectDetail?.userBadge }}</span
+                  >
+                  <p
+                    v-if="projectDetail?.userOrganizationName"
+                    class="text-sm text-gray-600 mt-1"
+                  >
+                    {{ projectDetail?.userJabatan }} -
+                    {{ projectDetail?.userOrganizationName }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="relative" data-te-dropdown-ref>
+              <button
+                data-dropdown-button="header"
+                @click="toggleDetailDropdown"
+                class="text-[18px] absolute bottom-[10px] right-0 text-light dark:text-subtitle-dark"
+                type="button"
+                id="inboxEllipsis"
+                data-te-dropdown-toggle-ref
+                aria-expanded="false"
               >
-              <p
-                v-if="projectDetail?.userOrganizationName !== 'tidak ada'"
-                class="text-sm text-gray-600 mt-1"
+                <i class="uil uil-ellipsis-v"></i>
+              </button>
+              <ul
+                :class="{ hidden: !isDetailDropdown }"
+                class="absolute z-[1000] ltr:float-left rtl:float-right m-0 right-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block"
+                aria-labelledby="inboxEllipsis"
+                data-te-dropdown-menu-ref
               >
-                Organisasi: {{ projectDetail?.userOrganizationName }}
-              </p>
+                <li>
+                  <button
+                    @click="toggleSocialMediaPopUp"
+                    class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up gap-[6px]"
+                    data-te-dropdown-item-ref
+                  >
+                    <i class="uil uil-users-alt"></i> Share
+                  </button>
+                </li>
+
+                <li v-access="{ permission: ['report-user-chat'] }">
+                  <button
+                    @click="openReportModal"
+                    class="block text-left w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
+                    href="#"
+                    data-te-dropdown-item-ref
+                  >
+                    <i class="uil uil-ban"></i> Report
+                  </button>
+                </li>
+                <li
+                  v-access="{
+                    role: ['admin', 'active', 'verified', 'reported'],
+                  }"
+                  class="relative"
+                >
+                  <button
+                    @click="toggleMessagePopUp"
+                    class="block text-left w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
+                    href="#"
+                    data-te-dropdown-item-ref
+                  >
+                    <i class="uil uil-chat"></i> Chat
+                  </button>
+                </li>
+              </ul>
+              <!-- Share Social Media  -->
+              <div
+                v-if="isSocialMediaPopupOpen"
+                class="absolute top-0 right-24 w-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg flex items-center p-2 gap-2 z-[999]"
+              >
+                <!-- Input Chat -->
+                <div class="w-full flex justify-between items-center gap-x-6">
+                  <button
+                    @click="shareSocialMedia(sosmed.name)"
+                    v-for="sosmed in sosmedList"
+                    :key="sosmed.name"
+                    :title="sosmed.name"
+                  >
+                    <i
+                      :class="[
+                        'ui',
+                        `uil-${sosmed.label}`,
+                        'text-[24px]',
+                        ` ${sosmed.color}`,
+                        'px-1 rounded-lg',
+                      ]"
+                    ></i>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-if="isMessagePopUpOpen"
+                class="absolute top-[63px] right-24 min-w-[320px] w-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg flex items-center p-2 gap-2 z-[999]"
+              >
+                <!-- Input Chat -->
+                <input
+                  v-model="messageText"
+                  type="text"
+                  placeholder="Type a message..."
+                  class="flex-1 h-[30px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-dark dark:text-white outline-none focus:ring-2 focus:ring-blue-400"
+                />
+
+                <!-- Tombol Kirim -->
+                <button
+                  @click="sendMessage"
+                  type="button"
+                  class="bg-blue-500 hover:bg-blue-600 transition-all duration-200 h-[30px] w-[30px] rounded-full flex items-center justify-center shadow-md"
+                >
+                  <i class="uil uil-message text-[20px] text-white"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -535,7 +830,8 @@ onMounted(() => {
                       comment.userName
                     }}</span>
                     <span
-                      class="inline-block bg-green-100 text-green-800 text-xs ml-2 px-2 py-1 rounded mt-1"
+                      class="inline-block text-xs ml-2 px-2 py-1 rounded mt-1"
+                      :class="comment.userBadgeColor"
                       >{{ comment.userBadge }}</span
                     >
                   </div>
@@ -551,9 +847,13 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          <div 
-          
-          class="mt-8">
+          <div
+            v-access="{
+              role: ['admin', 'active', 'verified', 'reported'],
+              permission: ['send-donation'],
+            }"
+            class="mt-8"
+          >
             <div class="flex items-start space-x-4">
               <img
                 :src="user.profile_picture"
@@ -583,7 +883,7 @@ onMounted(() => {
       <!--Donasi-->
 
       <div class="col-start-1 col-span-12 md:col-span-3 sticky top">
-        <div class="bg-white border rounded-lg p-6 top-4 shadow-md">
+        <div class="bg-white border rounded-lg p-6 pb-4 top-4 shadow-md">
           <h2 class="font-bold text-xl text-gray-800 mb-4">Dukung Kami</h2>
           <div class="space-y-4">
             <!-- Progress Bar -->
@@ -597,42 +897,66 @@ onMounted(() => {
             </div>
 
             <!-- Donasi Info -->
-            <div class="grid grid-cols-2 gap-2 text-center">
-              <div class="bg-gray-100 p-3 rounded-lg">
-                <p class="text-sm font-semibold text-gray-700">{{ projectDetail?.projectCategory === 'donation' ? 'Terkumpul' : 'Partisipan' }}</p>
-                <p class="text-lg font-bold text-green-600">
+            <div class="grid grid-cols-1 gap-2 text-center">
+              <div class="bg-gray-100 p-1 rounded-lg">
+                <p class="text-sm font-semibold text-gray-700">
+                  {{
+                    projectDetail?.projectCategory === "donation"
+                      ? "Terkumpul"
+                      : "Partisipan"
+                  }}
+                </p>
+                <p class="text-lg md:text-[16px] font-bold text-green-600">
+                  {{
+                    projectDetail?.projectCategory === "donation" ? "Rp " : ""
+                  }}
                   {{ projectDetail?.projectProgressAmount }}
+                  {{
+                    projectDetail?.projectCategory === "volunteer"
+                      ? "Orang "
+                      : ""
+                  }}
                 </p>
               </div>
-              <div class="bg-gray-100 p-3 rounded-lg">
+              <div class="bg-gray-100 p-1 rounded-lg">
                 <p class="text-sm font-semibold text-gray-700">Target</p>
-                <p class="text-lg font-bold text-gray-700">
+                <p class="text-lg md:text-[16px] font-bold text-gray-700">
+                  {{
+                    projectDetail?.projectCategory === "donation" ? "Rp " : ""
+                  }}
                   {{ projectDetail?.projectTargetAmount }}
+                  {{
+                    projectDetail?.projectCategory === "volunteer"
+                      ? "Orang "
+                      : ""
+                  }}
                 </p>
               </div>
-              <div v-if="projectDetail?.projectCategory === 'donation'" class="bg-gray-100 p-3 rounded-lg">
+              <!-- <div
+                v-if="projectDetail?.projectCategory === 'donation'"
+                class="bg-gray-100 p-1 rounded-lg"
+              >
                 <p class="text-sm font-semibold text-gray-700">Donatur</p>
                 <p class="text-lg font-bold text-gray-700">
                   {{ projectDetail?.projectDonaturAmount }}
                 </p>
-              </div>
-              <div v-else class="bg-gray-100 p-3 rounded-lg">
-                <p class="text-sm font-semibold text-gray-700">Terverifikasi</p>
-                <p class="text-lg font-bold text-gray-700">
-                  {{ projectDetail?.projectDonaturAmount }}
-                </p>
-              </div>
-              <div class="bg-gray-100 p-3 rounded-lg">
+              </div> -->
+
+              <div class="bg-gray-100 p-1 rounded-lg">
                 <p class="text-sm font-semibold text-gray-700">Hari Tersisa</p>
-                <p class="text-lg font-bold text-gray-700">
-                  {{ projectDetail?.projectDiffDay }}
+                <p class="text-[16px] font-bold text-gray-700">
+                  {{ projectDetail?.projectDiffDay }} Hari
                 </p>
               </div>
             </div>
 
             <!-- Donasi Button -->
             <router-link
-            v-if="projectDetail?.projectCategory === 'donation'"
+              v-if="
+                projectDetail?.projectCategory === 'donation' &&
+                projectDetail.projectProgressPercentage < 100 &&
+                projectDetail.projectStatus !== 'completed'
+              "
               :to="`/project/${projectId}/donation`"
               class="flex justify-center items-center w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
             >
@@ -640,7 +964,10 @@ onMounted(() => {
             </router-link>
 
             <router-link
-            v-else
+              v-if="
+                projectDetail?.projectCategory === 'volunteer' &&
+                !projectDetail?.userParticipation
+              "
               :to="`/project/${projectId}/volunteer`"
               class="flex justify-center items-center w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
             >
@@ -654,7 +981,7 @@ onMounted(() => {
         </div>
 
         <!-- Sidebar Proyek Lainnya -->
-        <div class="col-span-3 mt-12 top-64">
+        <div class="col-span-3 mt-8 top-64">
           <div class="bg-white border rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
               Proyek Lainnya
@@ -677,11 +1004,12 @@ onMounted(() => {
                   <p class="text-sm text-gray-600">
                     {{ p.projectDescription }}
                   </p>
-                  <a
-                    href="#"
+                  <button
+                    @click="gotoProjectId(p.projectId)"
                     class="text-green-600 text-sm mt-2 inline-block font-medium"
-                    >Lihat Detail</a
                   >
+                    Lihat Detail
+                  </button>
                 </div>
               </div>
             </div>
@@ -715,7 +1043,8 @@ onMounted(() => {
                     comment.userName
                   }}</span>
                   <span
-                    class="inline-block bg-green-100 text-green-800 text-xs ml-2 px-2 py-1 rounded mt-1"
+                    class="inline-block text-xs ml-2 px-2 py-1 rounded mt-1"
+                    :class="comment.userBadgeColor"
                     >{{ comment.userBadge }}</span
                   >
                 </div>
@@ -730,7 +1059,13 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div class="mt-8">
+        <div
+          v-access="{
+            role: ['admin', 'active', 'verified', 'reported'],
+            permission: ['send-donation'],
+          }"
+          class="mt-8"
+        >
           <div class="flex items-start space-x-4">
             <img
               src="C:\Users\hp\Pictures\Filtering\david.jpg"
@@ -766,7 +1101,9 @@ onMounted(() => {
       role="dialog"
       aria-modal="true"
     >
-      <div class="relative w-full max-w-3xl bg-white rounded-lg shadow-lg">
+      <div
+        class="relative w-full max-w-xl md:max-w-3xl bg-white rounded-lg shadow-lg"
+      >
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b">
           <h5 class="text-lg font-semibold text-gray-800">
@@ -787,7 +1124,7 @@ onMounted(() => {
             <!-- Klik pada header untuk menambah baris -->
             <thead>
               <tr class="bg-gray-100">
-              <th
+                <th
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
                   Kriteria
@@ -796,6 +1133,11 @@ onMounted(() => {
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
                   Nilai
+                </th>
+                <th
+                  class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
+                >
+                  Role
                 </th>
               </tr>
             </thead>
@@ -818,6 +1160,13 @@ onMounted(() => {
                     {{ criteria.value }}
                   </span>
                 </td>
+                <td class="border px-4 py-2">
+                  <span
+                    class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
+                  >
+                    {{ criteria.role }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -835,7 +1184,9 @@ onMounted(() => {
       role="dialog"
       aria-modal="true"
     >
-      <div class="relative w-full max-w-3xl bg-white rounded-lg shadow-lg">
+      <div
+        class="relative w-full max-w-xl md:max-w-3xl bg-white rounded-lg shadow-lg"
+      >
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b">
           <h5 class="text-lg font-semibold text-gray-800">Kebutuhan Role</h5>
@@ -900,7 +1251,9 @@ onMounted(() => {
       role="dialog"
       aria-modal="true"
     >
-      <div class="relative w-full max-w-3xl bg-white rounded-lg shadow-lg">
+      <div
+        class="relative w-full max-w-xl md:max-w-3xl bg-white rounded-lg shadow-lg"
+      >
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b">
           <h5 class="text-lg font-semibold text-gray-800">
@@ -986,4 +1339,22 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- report Case Modal -->
+  <ReportCaseModalComponent
+    :is-modal-open="isReportCaseModalOpen"
+    @close-report-modal="closeReportModal"
+    @submit-report="reportUser"
+  />
+  <!-- End: Main Content -->
+
+  <!-- Approve Project  -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isReportConfirmationModalOpen"
+    :description="'    Apakah Anda yakin ingin Menlaporkan hal ini? Pastikan Seluruh data sudah sesuai dan apa adanya.'"
+    @close-confirmation-modal="closeConfirmationReportModal"
+    @action-modal="handleSubmitReport"
+    :action="'Report'"
+    :title="'Konfirmasi Report Case'"
+  />
 </template>

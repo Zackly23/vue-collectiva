@@ -20,6 +20,7 @@
     "datatables.net-vue3": "^3.0.4",
     "laravel-echo": "^1.18.0",
     "leaflet": "^1.9.4",
+    "pinia": "^3.0.1",
     "pusher-js": "^8.4.0-rc2",
     "read-excel-file": "^5.8.6",
     "v-calendar": "^3.1.2",

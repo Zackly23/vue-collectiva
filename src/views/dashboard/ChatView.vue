@@ -3,11 +3,19 @@ import { ref, onMounted, onUnmounted, nextTick, onBeforeUnmount } from "vue";
 import Echo from "laravel-echo";
 import EmojiPicker from "vue3-emoji-picker";
 import api from "@/api";
+import { useToast } from "vue-toast-notification";
+import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
 import "vue3-emoji-picker/css";
 
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
+const toastNotification = useToast();
 // State
 const activeTab = ref("private-chat");
+const isReportCaseModalOpen = ref(false);
+const reportData = ref();
+const isReportConfirmationModalOpen = ref(false);
 const isSidebarCollapse = ref(false);
 const isMdScreen = ref(false);
 const isChatBodyDropdown = ref(false);
@@ -22,7 +30,9 @@ const selectedFile = ref(null);
 // Reactive state for image preview
 const imagePreview = ref(null);
 
-const userID =  JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null;
+const userID = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null;
 
 const messages = ref();
 
@@ -35,24 +45,48 @@ const storeChatChannel = window.Echo.channel("chat-channel");
 const deleteChatChaneel = window.Echo.channel("chat-delete-channel");
 
 storeChatChannel.listen(".chat-event", function (data) {
-  console.log("from channel:", data);
+  // console.log("from channel:", data);
+  // console.log('chatsa : ', chats.value)
+  // console.log(
+  //   "sender_id : ",
+  //   data.chats.sender_id,
+  //   " active id : ",
+  //   activeChatId.value
+  // );
 
   const chat = {
     id: data.chats.user_id, // Sesuaikan dengan field yang relevan
     sender: data.chats.sender_name, // Sesuaikan dengan field yang relevan
-    avatar: chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
+    avatar: data.chats.avatar, // Tambahkan field ini jika ada data avatar (tidak tersedia di data contoh)
     message: data.chats.chat_text,
     image_path: data.chats.image_path ? data.chats.image_path : null,
     date: data.chats.chat_send_time,
     isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
+    senderId: data.chats.sender_id,
   };
 
+  console.log('chat new : ', chat);
+
   // Tambahkan chat baru ke chats
-  chats.value.push(chat);
+  if (!data.chats.group_chat_id) {
+    console.log("tidak true");
+    if (data.chats.group_chat_id == activeChatId.value) {
+      console.log("ini juga tidak true");
+      chats.value.push(chat);
+      scrollToBottom();
+    }
+  }
 
-  scrollToBottom();
+  if (
+    data.chats.sender_id == activeChatId.value ||
+    data.chats.sender_id == userID
+  ) {
+    console.log("true min");
+    chats.value.push(chat);
+    scrollToBottom();
+  }
 
-  console.log(chats.value);
+  console.log("chats akhir : ", chats.value);
 });
 
 deleteChatChaneel.listen(".chat-delete-event", function (data) {
@@ -78,9 +112,95 @@ const scrollToBottom = async () => {
   }
 };
 
+const closeConfirmationReportModal = () => {
+  isReportConfirmationModalOpen.value = false;
+};
+
 // State untuk melacak dropdown yang aktif
 const activeEmojiDropdown = ref(null); // Untuk dropdown emoji
 const activeEditorDropdown = ref(null); // Untuk dropdown editor
+
+const closeReportModal = () => {
+  isReportCaseModalOpen.value = false;
+};
+
+const caseTypes = ref([
+  "Functionality Issue",
+  "Visual/Aesthetic Issue",
+  "Performance Issue",
+  "Security Issue",
+  "Data/Content Issue",
+  "Crash/Error Issue",
+  "Localization/Internationalization Issue",
+  "Usability/UX Issue",
+  "Other",
+]);
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
+
+const reportUserGroup = (senderId) => {
+  activeChatId.value = senderId;
+
+  console.log("user : ", activeChatId.value);
+
+  isReportCaseModalOpen.value = true;
+};
+
+const reportUser = async (data) => {
+  reportData.value = data;
+
+  console.log("data : ", data);
+  console.log("formDsata : ", reportData.value);
+
+  isReportConfirmationModalOpen.value = true;
+};
+
+// Submit report
+const handleSubmitReport = async () => {
+  try {
+    console.log("formsata : ", reportData.value);
+    const formData = new FormData();
+    const userReported = activeChatId.value;
+
+    formData.append("reported_case", reportData.value.selectedCase);
+    formData.append("reported_comment", reportData.value.clarityReport);
+
+    if (activeTab.value == "private-chat") {
+      formData.append("reported_segment", "private_chat");
+    } else {
+      formData.append("reported_segment", "group_chat");
+    }
+    if (reportData.value.reportAttachment) {
+      formData.append("reported_image", reportData.value.reportAttachment);
+    }
+    const response = await api.post(
+      `/user/${activeChatId.value}/report`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("user telah direport");
+    console.log("response report : ", response.data);
+    if (response.status == 201) {
+      openNotificatication("Laporan Report Telah Berhasil Dikirim");
+      isReportConfirmationModalOpen.value = false;
+      isReportCaseModalOpen.value = false;
+    }
+  } catch (error) {
+    console.error("error report : ", error);
+  }
+};
 
 // Toggle dropdown emoji
 function toggleEmoji(chatId) {
@@ -172,7 +292,7 @@ const clearPreview = () => {
 //Leave Group Chat
 const leaveGroupChat = async () => {
   const response = await api.delete(
-    `/test-delete-user-group/${userID}/${activeChatId.value}`
+    `/user/${userID}/chat/${activeChatId.value}/leavr`
   );
 
   console.log(response.data.message);
@@ -184,7 +304,7 @@ const deleteMessage = async (key) => {
   if (activeTab.value == "private-chat") {
     try {
       const response = await api.delete(
-        `/test-delete-private/${userID}/${key}`
+        `/user/${userID}/chat/private/message/${key}`
       );
 
       console.log(response.data.message);
@@ -198,7 +318,7 @@ const deleteMessage = async (key) => {
     console.log("delete group chat by id");
     try {
       const response = await api.delete(
-        `/test-delete-group/${userID}/${key}`
+        `/user/${userID}/chat/groupchat/message/${key}`
       );
 
       console.log(response.data.message);
@@ -214,10 +334,8 @@ const deleteMessage = async (key) => {
 //GetMessages and replace
 const getChatMessage = async (messageType, key) => {
   if (messageType == "private-chat") {
-    const response = await api.get(
-      `/test-private-id/${userID}/${key}`
-    );
-    console.log('get private chat : ', response.data);
+    const response = await api.get(`/user/${userID}/chat/sender/${key}`);
+    console.log("get private chat : ", response.data);
     const newChat = response.data.chats.map((chat) => ({
       id: chat.chat_id,
       sender: chat.sender_name,
@@ -226,15 +344,16 @@ const getChatMessage = async (messageType, key) => {
       image_path: chat.image_path,
       date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
+      senderId: chat.sender_id,
     }));
 
     chats.value = newChat;
     chatNameHeader.value = response.data.chat_name;
     chatAvatarHeader.value = response.data.chat_avatar;
   } else if (messageType == "group-chat") {
-    console.log("key : ", key);
+    console.log("key group : ", key);
     const response = await api.get(
-      `/test-group-id/${key}`
+      `/user/${userID}/chat/groupchat/${key}/chat`
     );
     console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
@@ -245,20 +364,22 @@ const getChatMessage = async (messageType, key) => {
       image_path: chat.image_path,
       date: chat.chat_send_time,
       isSender: chat.sender_id == userID ? true : false,
+      senderId: chat.sender_id,
     }));
 
     chats.value = newChat;
     chatNameHeader.value = response.data.chat_name;
+    chatAvatarHeader.value = response.data.chat_avatar;
   }
 
   activeChatId.value = key;
+
+  console.log("Active chat id : ", activeChatId.value);
 };
 
 //Initial BodyChatContent
 const initialBodyChat = async () => {
-  const response = await api.get(
-    `/testbodychat/${userID}/private-chat`
-  );
+  const response = await api.get(`/user/${userID}/chat/private-chat/initial`);
 
   console.log("initial : ", response.data);
 
@@ -267,7 +388,7 @@ const initialBodyChat = async () => {
     sender: chat.sender_name,
     avatar: chat.avatar,
     message: chat.chat_text,
-    image_path:  chat.image_path,
+    image_path: chat.image_path,
     date: chat.chat_send_time,
     isSender: chat.sender_id == userID ? true : false,
   }));
@@ -286,9 +407,7 @@ const switchTab = async (tab) => {
   console.log("bodyContent key : ", bodyChatContentType.value.key);
 
   try {
-    const response = await api.get(
-      `/testbodychat/${userID}/${tab}`
-    );
+    const response = await api.get(`/user/${userID}/chat/${tab}/initial`);
 
     console.log("switch tab: ", response.data);
 
@@ -303,12 +422,14 @@ const switchTab = async (tab) => {
         image_path: chat.image_path,
         date: chat.chat_send_time,
         isSender: chat.sender_id == userID ? true : false,
+        senderId: chat.sender_id,
       }));
 
       console.log("body cont ", bodyContent);
       chats.value = bodyContent;
       activeChatId.value = response.data.chat_id;
       chatNameHeader.value = response.data.chat_name;
+      chatAvatarHeader.value = response.data.chat_avatar;
     }
   } catch (error) {
     console.error("Error sending data:", error.response?.data || error.message);
@@ -349,26 +470,26 @@ const formattedDate = (date) => {
 };
 
 const groupMessageList = async () => {
-  const response = await api.get(
-    `/test/${userID}`
-  );
-  console.log("group: ", response.data);
-  const groupChatList = response.data.group_chats.map((gcl) => ({
-    groupChatId: gcl.group_chat_id,
-    groupName: gcl.group_chat_name,
-    date: formattedDate(gcl.latest_time_chat),
-    message: gcl.latest_chat,
-    avatar: gcl.avatar,
-  }));
+  try {
+    const response = await api.get(`/user/${userID}/chat/groupchat/list`);
+    console.log("group: ", response.data);
+    const groupChatList = response.data.group_chats.map((gcl) => ({
+      groupChatId: gcl.group_chat_id,
+      groupName: gcl.group_chat_name,
+      date: formattedDate(gcl.latest_time_chat),
+      message: gcl.latest_chat,
+      avatar: gcl.avatar,
+    }));
 
-  groupMessages.value = groupChatList;
-  console.log("list: ", groupMessages.value);
+    groupMessages.value = groupChatList;
+    console.log("list: ", groupMessages.value);
+  } catch (error) {
+    console.error("error group chat : ", error);
+  }
 };
 
 const privateMessageList = async () => {
-  const response = await api.get(
-    `/test-private/${userID}`
-  );
+  const response = await api.get(`/user/${userID}/chat/private/list`);
 
   console.log("priv: ", response.data);
   const privateChatList = response.data.private_chat.map((pcl) => ({
@@ -395,7 +516,7 @@ const sendMessage = async () => {
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
       const response = await api.post(
-        `/test-send-group/${activeChatId.value}`, // Pastikan userID valid
+        `/user/${userID}/chat/groupchat/${activeChatId.value}`, // Pastikan userID valid
         {
           sender_id: userID, // ID pengirim
           group_chat_text: messageText.value, // Konsisten dengan key di server
@@ -428,7 +549,7 @@ const sendMessage = async () => {
     try {
       console.log("userid : ", userID, "dan sender : ", activeChatId.value);
       const response = await api.post(
-        `/test-send-private/${activeChatId.value}`, // Pastikan userID valid
+        `/user/${userID}/chat/private/${activeChatId.value}`, // Pastikan userID valid
         {
           sender_id: userID, // ID pengirim
           private_chat_text: messageText.value, // Konsisten dengan key di server
@@ -470,14 +591,22 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
+const fetchData = async () => {
+  try {
+    await Promise.all([
+      initialBodyChat(),
+      groupMessageList(),
+      privateMessageList(),
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
 // Set up event listener untuk resize
-onMounted(() => {
-  setTimeout(() => {
-    initialBodyChat();
-    groupMessageList();
-    privateMessageList();
-    isLoading.value = true;
-  }, 200);
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data selesai
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
 
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
@@ -485,6 +614,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
+
   document.removeEventListener("click", closeDropdownOnClickOutside);
 });
 
@@ -666,6 +797,7 @@ onUnmounted(() => {
                   <figure
                     class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px]"
                   >
+           
                     <div
                       class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
                     >
@@ -674,6 +806,7 @@ onUnmounted(() => {
                         :src="message.avatar"
                         alt="Avatar"
                       />
+                  
                     </div>
                     <figcaption
                       @click="getChatMessage('private-chat', message.senderId)"
@@ -766,7 +899,6 @@ onUnmounted(() => {
                       :src="chatAvatarHeader"
                       alt="User avatar"
                       loading="lazy"
-                      
                     />
 
                     <!-- User Name -->
@@ -797,14 +929,15 @@ onUnmounted(() => {
                       data-te-dropdown-menu-ref
                     >
                       <li v-if="activeTab == 'group-chat'">
-                        <a
+                        <button
+                          v-access="{ permission: ['leave-group-chat'] }"
                           @click="leaveGroupChat"
                           class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up gap-[6px]"
                           href="#"
                           data-te-dropdown-item-ref
                         >
                           <i class="uil uil-users-alt"></i> Leave group chat
-                        </a>
+                        </button>
                       </li>
                       <!-- <li v-else-if="activeTab == 'private-chat'">
                         <a
@@ -825,13 +958,15 @@ onUnmounted(() => {
                         </a>
                       </li>
                       <li>
-                        <a
-                          class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
+                        <button
+                          v-action="{ permission: ['report-user-chat'] }"
+                          @click="() => (isReportCaseModalOpen = true)"
+                          class="block text-left w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
                           href="#"
                           data-te-dropdown-item-ref
                         >
                           <i class="uil uil-ban"></i> Report
-                        </a>
+                        </button>
                       </li>
                     </ul>
                   </div>
@@ -1008,7 +1143,7 @@ onUnmounted(() => {
                         <ul
                           v-if="activeEditorDropdown === chat.id"
                           :class="{
-                            'absolute z-[1000] flex m-0 min-w-max list-none bg-white dark:bg-box-dark-up py-2 shadow-md rounded-md gap-1': true,
+                            'absolute z-[1000] block  m-0 min-w-max list-none bg-white dark:bg-box-dark-up py-2 shadow-md rounded-md gap-1': true,
                             'right-0': chat.isSender,
                           }"
                         >
@@ -1020,13 +1155,23 @@ onUnmounted(() => {
                               >Copy</a
                             >
                           </li>
-                          <li>
+                          <!-- <li>
                             <a
                               @click="copyToClipboard(chat.message)"
-                              href="#"
                               class="block px-2 py-1 text-sm"
                               >Copy Link</a
                             >
+                          </li> -->
+                          <li>
+                            <button
+                              v-if="!chat.isSender"
+                              v-action="{ permission: ['report-user-chat'] }"
+                              @click="reportUserGroup(chat.senderId)"
+                              href="#"
+                              class="block  py-1 text-sm text-right"
+                            >
+                              Report
+                            </button>
                           </li>
                           <!-- <li>
               <a href="#" class="block px-4 py-2 text-sm">Edit</a>
@@ -1037,13 +1182,17 @@ onUnmounted(() => {
               >
             </li> -->
                           <li>
-                            <a
+                            <button
+                              v-action="{
+                                role: ['admin', 'active', 'verified'],
+                                
+                              }"
                               v-if="chat.isSender"
                               @click="deleteMessage(chat.id)"
-                              href="#"
-                              class="block px-2 py-1 text-sm"
-                              >Remove</a
+                              class="block  py-1 text-sm text-right"
                             >
+                              Remove
+                            </button>
                           </li>
                         </ul>
                       </div>
@@ -1061,7 +1210,7 @@ onUnmounted(() => {
                 >
                   <i
                     @click="showEmojiPicker"
-                    class="uil uil-smile text-[20px] z-99998 text-[#8C90A4] dark:text-subtitle-dark cursor-pointer"
+                    class="uil uil-smile text-[20px] z-998 text-[#8C90A4] dark:text-subtitle-dark cursor-pointer"
                     aria-hidden="true"
                   >
                   </i>
@@ -1146,6 +1295,10 @@ onUnmounted(() => {
 
                   <!-- Button for send message -->
                   <button
+                    v-action="{
+                      role: ['admin', 'active', 'verified', 'reported'],
+                      // permission: ['send-group-chat', 'send-private-chat'],
+                    }"
                     @click="sendMessage"
                     type="button"
                     class="flex items-center justify-center bg-primary w-[50px] h-[50px] rounded-full text-white shadow-md"
@@ -1170,7 +1323,24 @@ onUnmounted(() => {
       </div>
     </div>
   </main>
+
+  <!-- report Case Modal -->
+  <ReportCaseModalComponent
+    :is-modal-open="isReportCaseModalOpen"
+    @close-report-modal="closeReportModal"
+    @submit-report="reportUser"
+  />
   <!-- End: Main Content -->
+
+  <!-- Approve Project  -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isReportConfirmationModalOpen"
+    :description="'    Apakah Anda yakin ingin Menlaporkan hal ini? Pastikan Seluruh data sudah sesuai dan apa adanya.'"
+    @close-confirmation-modal="closeConfirmationReportModal"
+    @action-modal="handleSubmitReport"
+    :action="'Report'"
+    :title="'Konfirmasi Report Case'"
+  />
 </template>
 
 <style scoped>

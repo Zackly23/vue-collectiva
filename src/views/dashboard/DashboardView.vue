@@ -252,7 +252,7 @@ const topDonatur = ref([]);
 const getTopDonatur = async () => {
   try {
     const response = await api.get(
-      `/test-dashboard/top-donatur/${userId}`,
+      `/dashboard/user/${userId}/donatur`,
 
       {
         params: {
@@ -285,7 +285,7 @@ const getTopDonatur = async () => {
 const getBestProjectPerformance = async () => {
   try {
     const response = await api.get(
-      `/test-dashboard/best-project-performance/${userId}`
+      `/dashboard/user/${userId}/project/performance`
     );
 
     const projectBestPerformaceData = response.data.projects.map((item) => ({
@@ -308,7 +308,7 @@ const getBestProjectPerformance = async () => {
 
 const getProjectCardStatistic = async () => {
   try {
-    const response = await api.get(`/test-dashboard/statistic/${userId}`);
+    const response = await api.get(`/dashboard/user/${userId}/statistic`);
 
     // const projectCardStastistic = response.data.project_statistics.map((statistic) => {
 
@@ -324,7 +324,7 @@ const getProjectCardStatistic = async () => {
 const getPieChart = async () => {
   try {
     const response = await api.get(
-      `/test-dashboard/piechart-project/${userId}`
+      `/dashboard/user/${userId}/socialmedia/statistic`
     );
     console.log("aa : ", response.data.project_social_media.length);
     if (response.data.project_social_media.length > 0) {
@@ -359,7 +359,7 @@ const getPieChart = async () => {
 const getLineChart = async () => {
   try {
     const response = await api.get(
-      `/test-dashboard/linechart-project/${userId}`
+      `/dashboard/user/${userId}/donation/statistic`
     );
 
     monthLineChart.value = response.data.donation_amount_monthly.map(
@@ -629,12 +629,11 @@ onBeforeMount(() => {
                     class="flex flex-col items-center"
                   >
                     <div
-                      :class="[
-                        'flex items-center justify-center w-16 h-16 mb-2 rounded-lg text-2xl',
-                        socialMedia.social_media_color,
-                      ]"
+                      class="flex items-center justify-center w-16 h-16 mb-2 rounded-lg text-2xl"
+                      :style="{ color: socialMedia.social_media_color }"
+                      
                     >
-                      <i :class="socialMedia.social_media_icon"></i>
+                      <i :class="[socialMedia.social_media_icon, 'text-[40px]']"></i>
                     </div>
                     <div class="text-center">
                       <div
@@ -645,7 +644,7 @@ onBeforeMount(() => {
                       <div
                         class="text-sm text-light dark:text-subtitle-dark font-medium"
                       >
-                        {{ socialMedia.social_media_statistic }}
+                        {{ socialMedia.social_media_statistic }} share
                       </div>
                     </div>
                   </li>

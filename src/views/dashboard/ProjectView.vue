@@ -2,11 +2,13 @@
 import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
-import api from '@/api';
+import api from "@/api";
 
-import 'vue-toast-notification/dist/theme-sugar.css';
+import "vue-toast-notification/dist/theme-sugar.css";
 
-const userID = JSON.parse(localStorage.getItem('user')) ? JSON.parse(localStorage.getItem('user')).user_id : null; // Ambil data JSON dari localStorage
+const userID = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null; // Ambil data JSON dari localStorage
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const router = useRouter();
 const toastNotification = useToast();
@@ -19,33 +21,30 @@ const selectedCategory = ref("");
 const selectedSort = ref("asc");
 const statusList = [
   "all",
-  "in progress",
-  "in review",
+  "in_progress",
+  "in_review",
   "completed",
-  "in active",
+  "inactive",
 ];
 const dropdownEditorId = ref();
 
 const getProjectsList = async () => {
-  console.log('user id : ', userID);
+  console.log("user id : ", userID);
   console.log("sort : ", selectedSort.value);
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
   console.log("search : ", searchProjectBar.value);
 
   try {
-    const response = await api.get(
-      `/test-projects`,
-      {
-        params: {
-          user_id: userID,
-          status: selectedStatus.value,
-          category: selectedCategory.value,
-          sort: selectedSort.value,
-          search: searchProjectBar.value
-        },
-      }
-    );
+    const response = await api.get(`/project/list`, {
+      params: {
+        user_id: userID,
+        status: selectedStatus.value,
+        category: selectedCategory.value,
+        sort: selectedSort.value,
+        search: searchProjectBar.value,
+      },
+    });
 
     console.log(response.data.projects);
 
@@ -133,19 +132,17 @@ const createProject = () => {
 
 const openNotificatication = (message) => {
   toastNotification.open({
-    type: 'success',
+    type: "success",
     message: message,
-    position: 'top-right',
+    position: "top-right",
     duration: 3000,
   });
-}
+};
 
 const deleteProjectId = async (projectId) => {
   try {
-    const response = await api.delete(
-      `/test-project-delete/${projectId}`
-    );
-    console.log('delete : ',response.data);
+    const response = await api.delete(`/project/${projectId}/delete`);
+    console.log("delete : ", response.data);
     if (response.status == 200) {
       openNotificatication(`Project ${projectId} Berhasil Dihapus`);
     }
@@ -158,8 +155,10 @@ const deleteProjectId = async (projectId) => {
 };
 
 // Pantau perubahan pada status dan kategori
-watch([selectedStatus, selectedCategory, selectedSort, searchProjectBar], getProjectsList);
-
+watch(
+  [selectedStatus, selectedCategory, selectedSort, searchProjectBar],
+  getProjectsList
+);
 
 onMounted(async () => {
   try {
@@ -171,7 +170,6 @@ onMounted(async () => {
 
   document.addEventListener("click", closeDropdownOnClickOutside);
 });
-
 
 onBeforeMount(() => {
   emits("toggle-active-loading");
@@ -254,8 +252,9 @@ onBeforeMount(() => {
         >
           <i class="uil uil-plus"></i>
           <span class="m-0 block md:hidden">Project</span>
-              <span class="m-0 hidden md:block xl:hidden">Project</span>
-              <span class="m-0 hidden xl:block">Buat Project</span>        </button>
+          <span class="m-0 hidden md:block xl:hidden">Project</span>
+          <span class="m-0 hidden xl:block">Buat Project</span>
+        </button>
       </div>
 
       <div
@@ -280,7 +279,7 @@ onBeforeMount(() => {
                 class="sm:px-[15px] px-[10px] sm:py-[10px] py-[5px] text-[14px] leading-[1.78] font-normal text-light-extra dark:text-subtitle-dark capitalize block after:content-[''] after:absolute after:w-[1px] after:h-[20px] after:bg-regular after:dark:bg-box-dark-up after:top-2/4 after:right-0 after:-translate-x-2/4 after:-translate-y-2/4 [&.mixitup-control-active]:text-primary mixitup-control-active"
                 data-filter="all"
               >
-                {{ status.replace("-", " ") }}
+                {{ status.replace("_", " ") }}
               </button>
             </li>
           </ul>
@@ -354,7 +353,7 @@ onBeforeMount(() => {
               <div class="flex items-start justify-between">
                 <h3 class="flex flex-wrap items-center text-base">
                   <router-link
-                  :to="{path: `/dashboard/project/${project.projectId}`}"
+                    :to="{ path: `/dashboard/project/${project.projectId}` }"
                     class="m-0.5 me-[11px] text-dark dark:text-title-dark hover:text-primary text-15 font-medium capitalize"
                     href="project-details.html"
                   >

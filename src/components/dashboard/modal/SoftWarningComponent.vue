@@ -13,7 +13,7 @@ const emits = defineEmits(["close-confirmation-modal", "action-modal"]);
   <div>
     <div
       v-if="isConfirmationModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      class="fixed inset-0 z-[10001] flex items-center justify-center bg-black bg-opacity-50"
       role="dialog"
       aria-modal="true"
     >

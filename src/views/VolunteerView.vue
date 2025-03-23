@@ -1,10 +1,13 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { start } from "@popperjs/core";
+import { ref, onMounted, onBeforeMount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
+import { useToast } from "vue-toast-notification";
 
+
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const token = localStorage.getItem("access_token");
+const toastNotification = useToast();
 const router = useRouter();
 const route = useRoute();
 const projectId = route.params.projectId;
@@ -47,32 +50,14 @@ const userProfile = ref({
   email: "",
 });
 
-const eWalletPaymentMethod = ref([
-  {
-    eWalletName: "QRIS",
-    description: "Didukung oleh sebagian besar aplikasi emoney dan bank",
-    icon: "",
-    alt: "QRIS Logo",
-  },
-  {
-    eWalletName: "OVO Ewallet",
-    description: "OVO Ewallet",
-    icon: "",
-    alt: "OVO Logo",
-  },
-  {
-    eWalletName: "LinkAja Ewallet",
-    description: "LinkAja Ewallet",
-    icon: "",
-    alt: "LinkAja Logo",
-  },
-  {
-    eWalletName: "DANA Ewallet",
-    description: "DANA Ewallet",
-    icon: "",
-    alt: "DANA Logo",
-  },
-]);
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
 
 const isTabChecked = (tab) => {
   return tabCheked.value === tab;
@@ -100,7 +85,7 @@ const checkedRole = (role) => {
 
 const getUserProfile = async () => {
   try {
-    const response = await api.get("/test-profile");
+    const response = await api.get(`/user/${userId}/profile`);
 
     console.log("user : ", response.data.user);
     const data = response.data.user;
@@ -161,9 +146,10 @@ const storeVolunteerInvolvment = async () => {
     formData.append("involvement_end_time", involvementDetail.value.endTime);
     formData.append("role", roleChecked.value.key);
 
-    const response = await api.post(`test-volunteer/${projectId}`, formData);
+    const response = await api.post(`/project/${projectId}/volunteer/store`, formData);
 
     console.log("volunteer bergabung : ", response.data);
+    openNotificatication(`Anda Berhasil Bergabung dalam Volunteer ${projectDetail.projectTitle}`)
     router.push({
       path: `/project/${projectId}`,
     });
@@ -174,7 +160,7 @@ const storeVolunteerInvolvment = async () => {
 
 const getProjectDetail = async () => {
   try {
-    const responses = await api.get(`/test-project-id/${userId}/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/public/detail`);
     console.log(
       "project: ",
       JSON.parse(responses.data.project_details[0].project_criteria)
@@ -211,9 +197,25 @@ const getProjectDetail = async () => {
   }
 };
 
-onMounted(() => {
-  getUserProfile();
-  getProjectDetail();
+const fetchData = async () => {
+  try {
+    await Promise.all([
+    getUserProfile(),
+    getProjectDetail()
+    ]);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
+
+onMounted(async () => {
+  await fetchData(); // Tunggu semua data selesai
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
+});
+
+onBeforeMount(() => {
+  emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
 });
 </script>
 

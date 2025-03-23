@@ -3,13 +3,16 @@ import api from "@/api";
 import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
-
 import "vue-toast-notification/dist/theme-sugar.css";
+import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
 const userID = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
   : null; // Ambil data JSON dari localStorage
-
+const isReportCaseModalOpen = ref(false);
+const isReportConfirmationModalOpen = ref(false);
+const reportData = ref();
 const router = useRouter();
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 
@@ -20,8 +23,65 @@ const selectedStatus = ref("");
 const searchProjectBar = ref("");
 const selectedCategory = ref("");
 const selectedSort = ref("asc");
-const statusList = ["all", "in progress", "completed"];
+const statusList = ["all", "in_progress", "completed"];
 const dropdownEditorId = ref();
+
+const openReportModal = () => {
+  isReportCaseModalOpen.value = true;
+  isDetailDropdown.value = false;
+  dropdownEditorId.value = false;
+};
+const closeReportModal = () => {
+  isReportCaseModalOpen.value = false;
+};
+
+const closeConfirmationReportModal = () => {
+  isReportConfirmationModalOpen.value = false;
+};
+
+const reportUser = async (data) => {
+  reportData.value = data;
+
+  console.log("data : ", data);
+  console.log("formDsata : ", reportData.value);
+
+  isReportConfirmationModalOpen.value = true;
+};
+
+// Submit report
+const handleSubmitReport = async () => {
+  try {
+    console.log("formsata : ", reportData.value);
+    const formData = new FormData();
+
+    formData.append("reported_case", reportData.value.selectedCase);
+    formData.append("reported_comment", reportData.value.clarityReport);
+    formData.append("reported_segment", "project");
+    if (reportData.value.reportAttachment) {
+      formData.append("reported_image", reportData.value.reportAttachment);
+    }
+    formData.append("project_id", projectId);
+    const response = await api.post(
+      `/user/${projectDetail.value.projectCreatorId}/report`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("user telah direport");
+    console.log("response report : ", response.data);
+    if (response.status == 201) {
+      openNotificatication("Laporan Report Telah Berhasil Dikirim");
+      isReportConfirmationModalOpen.value = false;
+      isReportCaseModalOpen.value = false;
+    }
+  } catch (error) {
+    console.error("error report : ", error);
+  }
+};
 
 const getContributionList = async () => {
   console.log("user id : ", userID);
@@ -31,18 +91,15 @@ const getContributionList = async () => {
   console.log("search : ", searchProjectBar.value);
 
   try {
-    const response = await api.get(
-      `/test-contribution`,
-      {
-        params: {
-          //   user_id: userID,
-          status: selectedStatus.value,
-          category: selectedCategory.value,
-          sort: selectedSort.value,
-          search: searchProjectBar.value,
-        },
-      }
-    );
+    const response = await api.get(`/user/${userID}/contribution/list`, {
+      params: {
+        //   user_id: userID,
+        status: selectedStatus.value,
+        category: selectedCategory.value,
+        sort: selectedSort.value,
+        search: searchProjectBar.value,
+      },
+    });
 
     console.log(response.data.projects);
 
@@ -65,6 +122,7 @@ const getContributionList = async () => {
       projectContributionVolunteerRole: project.volunteer_role,
       projectContributionVolunteerDate: formattedDate(project.involvement_date),
       projectContributionVolunteerHour: project.volunteer_hours,
+      projectLPJ: project.project_file_lpj,
     }));
 
     projectContribution.value = projectsContributionList;
@@ -130,18 +188,15 @@ const closeDropdownOnClickOutside = (event) => {
   }
 };
 
-
-
-
 // Pantau perubahan pada status dan kategori
 watch(
   [selectedStatus, selectedCategory, selectedSort, searchProjectBar],
   getContributionList
 );
 
-onMounted( async() => {
+onMounted(async () => {
   try {
-    await   getContributionList();
+    await getContributionList();
   } catch (error) {
     console.error("Gagal mengambil data:", error);
   }
@@ -226,7 +281,7 @@ onBeforeMount(() => {
           >
         </div>
         <router-link
-          to="/"
+          to="/project/list"
           type="button"
           class="flex items-center px-[20px] text-sm text-white rounded-md font-semibold bg-primary border-primary h-10 gap-[6px] transition-[0.3s]"
         >
@@ -259,7 +314,7 @@ onBeforeMount(() => {
                 class="sm:px-[15px] px-[10px] sm:py-[10px] py-[5px] text-[14px] leading-[1.78] font-normal text-light-extra dark:text-subtitle-dark capitalize block after:content-[''] after:absolute after:w-[1px] after:h-[20px] after:bg-regular after:dark:bg-box-dark-up after:top-2/4 after:right-0 after:-translate-x-2/4 after:-translate-y-2/4 [&.mixitup-control-active]:text-primary mixitup-control-active"
                 data-filter="all"
               >
-                {{ status.replace("-", " ") }}
+                {{ status.replace("_", " ") }}
               </button>
             </li>
           </ul>
@@ -333,9 +388,8 @@ onBeforeMount(() => {
               <div class="flex items-start justify-between">
                 <h3 class="flex flex-wrap items-center text-base">
                   <router-link
-                    :to="{ path: `/dashboard/project/${project.projectId}` }"
+                    :to="{ path: `/project/${project.projectId}` }"
                     class="m-0.5 me-[11px] text-dark dark:text-title-dark hover:text-primary text-15 font-medium capitalize"
-                    href="project-details.html"
                   >
                     {{ project.projectTitle }}
                   </router-link>
@@ -360,21 +414,23 @@ onBeforeMount(() => {
                   <ul
                     :class="{
                       'absolute z-[1000] ltr:float-left  rtl:float-right m-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block': true,
-                      hidden: dropdownEditorId !== project.projectId,
+                      hidden:
+                        dropdownEditorId !== project.projectId ||
+                        isReportCaseModalOpen,
                     }"
                     data-dropdown-content="project"
                   >
                     <li>
                       <router-link
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                        :to="`project/${project.projectId}`"
+                        :to="`/project/${project.projectId}`"
                         data-te-dropdown-item-ref
                         >View</router-link
                       >
                     </li>
-                    <li>
+                    <li v-if="project?.projectLPJ">
                       <a
-                        :href="`https://your-api.com/documents/${project.projectId}`"
+                        :href="project.projectLPJ"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
@@ -385,12 +441,13 @@ onBeforeMount(() => {
                       </a>
                     </li>
                     <li>
-                        <router-link
-                        class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                        :to="`project/${project.projectId}`"
+                      <button
+                        @click="openReportModal"
+                        class="text-left block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
                         data-te-dropdown-item-ref
-                        >View</router-link
                       >
+                        Report
+                      </button>
                     </li>
                   </ul>
                 </div>
@@ -544,5 +601,24 @@ onBeforeMount(() => {
       </div>
     </div>
   </main>
+
   <!-- End: Main Content -->
+
+  <!-- report Case Modal -->
+  <ReportCaseModalComponent
+    :is-modal-open="isReportCaseModalOpen"
+    @close-report-modal="closeReportModal"
+    @submit-report="reportUser"
+  />
+  <!-- End: Main Content -->
+
+  <!-- Approve Project  -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isReportConfirmationModalOpen"
+    :description="'    Apakah Anda yakin ingin Menlaporkan hal ini? Pastikan Seluruh data sudah sesuai dan apa adanya.'"
+    @close-confirmation-modal="closeConfirmationReportModal"
+    @action-modal="handleSubmitReport"
+    :action="'Report'"
+    :title="'Konfirmasi Report Case'"
+  />
 </template>

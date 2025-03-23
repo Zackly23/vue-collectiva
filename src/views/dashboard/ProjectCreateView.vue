@@ -12,6 +12,9 @@ const props = defineProps({
 
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 
+const userId = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null;
 const toastNotification = useToast();
 const token = localStorage.getItem("access_token");
 const route = useRoute();
@@ -58,6 +61,8 @@ const projectData = ref({
   projectTargetVolunteer: "",
   projectCriteria: [{ key: "", value: "", role: "" }],
   projectRole: [{ key: "", value: "" }],
+  projectGroupChatName: "",
+  projectGroupAvatar: null
 });
 const creatorInformation = ref({
   creatorName: "",
@@ -167,6 +172,13 @@ const groupTimelineData = (data) => {
 
     return acc;
   }, []);
+};
+
+const handleGroupAvatar = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  projectData.value.projectGroupAvatar = file;
 };
 
 //
@@ -383,7 +395,7 @@ const createNewTimeline = () => {
 //API
 const getUserProfile = async () => {
   try {
-    const responses = await api.get("/test-profile");
+    const responses = await api.get(`/user/${userId}/profile`);
     console.log("user : ", responses.data.user);
     const user = responses.data.user;
     userProfile.value = user;
@@ -401,7 +413,7 @@ const getUserProfile = async () => {
 //getProvince
 const getProvinsi = async () => {
   try {
-    const responses = await api.get("/test-location-provinsi");
+    const responses = await api.get("/provinsi/list");
 
     const provinsiLists = responses.data.provinsi.map((province) => ({
       kodeProvinsi: province.kode_provinsi,
@@ -419,7 +431,7 @@ const getProvinsi = async () => {
 //Get Kecamatan
 const getKabupaten = async (kodeProvinsi) => {
   try {
-    const responses = await api.get(`/test-location-kabupaten/${kodeProvinsi}`);
+    const responses = await api.get(`/provinsi/${kodeProvinsi}/kabupaten/list`);
     console.log(responses.data);
     const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
       kodeKabupaten: kabupaten.kode_kabupaten,
@@ -439,7 +451,7 @@ const getKecamatan = async (kodeKabupaten) => {
   try {
     console.log(kodeKabupaten);
     const responses = await api.get(
-      `/test-location-kecamatan/${kodeKabupaten}`
+      `/kabupaten/${kodeKabupaten}/kecamatan/list`
     );
     console.log(responses.data);
 
@@ -459,7 +471,7 @@ const getKecamatan = async (kodeKabupaten) => {
 //Get Desa
 const getDesa = async (kodeKecamatan) => {
   try {
-    const responses = await api.get(`/test-location-desa/${kodeKecamatan}`);
+    const responses = await api.get(`/kecamatan/${kodeKecamatan}/desa/list`);
     console.log(responses.data);
 
     const desaLists = responses.data.desa.map((desa) => ({
@@ -490,6 +502,8 @@ const storeNewProject = async () => {
   formData.append("project_start_date", projectData.value.projectStartDate);
   formData.append("project_end_date", projectData.value.projectEndDate);
   formData.append("project_category", projectData.value.projectCategory);
+  formData.append("project_group_chat", projectData.value.projectGroupChatName);
+  formData.append("project_group_avatar", projectData.value.projectGroupAvatar);
 
   if (projectData.value.projectTags.length !== 0) {
     projectData.value.projectTags.forEach((tag, index) => {
@@ -549,7 +563,7 @@ const storeNewProject = async () => {
   formData.append("longitude", locationForm.value.longitude);
 
   try {
-    const response = await api.post("/test-project-create", formData, {
+    const response = await api.post("/project/create/detail", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -695,10 +709,10 @@ const storeProjectInformation = async (projectId) => {
   try {
     // Kirim data ke dua endpoint sekaligus
     const [response1, response2] = await Promise.all([
-      api.post(`/test-project-creator/${projectId}`, formDataCreator, {
+      api.post(`/project/${projectId}/creator/detail`, formDataCreator, {
         headers: { "Content-Type": "multipart/form-data" },
       }),
-      api.post(`/test-project-beneficial/${projectId}`, formDataBeneficial, {
+      api.post(`/project/${projectId}/beneficiary/detail`, formDataBeneficial, {
         headers: { "Content-Type": "multipart/form-data" },
       }),
     ]);
@@ -729,7 +743,7 @@ const storeProjectTimeline = async (projectId) => {
 
   try {
     const response = await api.post(
-      `/test-project-timeline/${projectId}`,
+      `/project/${projectId}/timeline`,
       timelineStoreList
     );
 
@@ -751,11 +765,13 @@ const storeProjectLampiran = async (projectId) => {
     // Misalnya, lampiran.lampiranFile sudah merupakan objek File
     formData.append(`project_lampiran[${index}][file]`, lampiran.lampiranFile);
     formData.append(`project_lampiran[${index}][tag]`, "dokumen pendukung");
+    formData.append(`project_lampiran[${index}][section]`, "lampiran");
+
   });
 
   try {
     const response = await api.post(
-      `/test-project-lampiran/${projectId}/`,
+      `/project/${projectId}/lampiran`,
       formData,
       {
         headers: {
@@ -777,7 +793,7 @@ const storeProjectLampiran = async (projectId) => {
 
 const getProjectTag = async () => {
   try {
-    const responses = await api.get("/test-project-tag");
+    const responses = await api.get("/general/project/tag/list");
 
     const tagLists = responses.data.project_tags.map((tag) => ({
       tagId: tag.tag_id,
@@ -796,7 +812,7 @@ const getProjectTag = async () => {
 
 const getIconList = async () => {
   try {
-    const responses = await api.get("/test-icon");
+    const responses = await api.get("/general/project/icon/list");
 
     const iconLists = responses.data.icons.map((icon) => ({
       iconId: icon.icon_id,
@@ -1461,6 +1477,35 @@ onBeforeMount(() => {
             </div>
           </div>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
+        <div>
+            <label
+              for="group_chat_name"
+              class="block text-gray-700 dark:text-gray-300 font-medium"
+              >Group Name</label
+            >
+            <input
+              id="group_chat_name"
+              v-model="projectData.projectGroupChatName"
+              placeholder="Masukkan Nama Group Chat kamu"
+              type="text"
+              class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <!-- Unggah Avatar Group Chat -->
+          <div >
+              <label class="block text-gray-700 dark:text-gray-300 font-medium"
+                >Unggah Group Avatar</label
+              >
+              <input
+                type="file"
+                class="w-full px-4 py-2 border rounded-md"
+                @change="handleGroupAvatar"
+              />
+            </div>
+          </div>
 
         <div class="mt-3">
           <label

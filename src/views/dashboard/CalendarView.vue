@@ -1,9 +1,15 @@
 <script setup>
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, onBeforeMount, nextTick } from "vue";
 import api from "@/api";
+import { useToast } from "vue-toast-notification";
 
+const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
+const toastNotification = useToast();
+const userId = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user")).user_id
+  : null; // Ambil data JSON dari localStorage
 const eventAgendaList = ref([]);
 const pickerDate = ref();
 const eventTime = ref(null);
@@ -11,6 +17,36 @@ const eventDescription = ref(null);
 const eventCategory = ref(null);
 const mainDate = ref();
 const flow = ref(["year", "month", "calendar"]);
+
+const categoryColors = ref({
+  // Kategori Umum
+  meeting: "blue",
+  workshop: "green",
+  deadline: "red",
+  presentation: "purple",
+  networking: "orange",
+  brainstorming: "yellow",
+  conference: "teal",
+  personal: "pink",
+
+  // Kategori Proyek Donasi & Volunteer
+  fundraising: "yellow", // Penggalangan Dana
+  volunteer: "green", // Kegiatan Sukarela
+  charity: "indigo", // Kegiatan Amal
+  campaign: "purple", // Kampanye Kesadaran
+  site_visit: "blue", // Kunjungan Lapangan
+  reporting: "red", // Pelaporan Proyek
+  other: "gray", // Kategori lainnya
+});
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
 
 const attributesEventAgendaList = computed(() => [
   ...eventAgendaList.value.map((agenda) => ({
@@ -24,8 +60,8 @@ const attributesEventAgendaList = computed(() => [
       },
     },
     popover: {
-      label: `${agenda.description} - ${agenda.dates.start}`,
-      visibility: "click",
+      label: `${agenda.category} : ${agenda.description} - ${agenda.time} WIB`,
+      visibility: "hover",
     },
   })),
 ]);
@@ -138,14 +174,21 @@ const modifyDotsLayout = () => {
 // Fungsi untuk mengambil data dari API
 const fetchAgendas = async () => {
   try {
-    const response = await api.get("/agendas");
+    const response = await api.get(`user/${userId}/agenda/list`);
     // Mapping data dari API ke struktur `eventAgendaList`
-    eventAgendaList.value = response.data.map((agenda) => ({
-      description: agenda.description,
+
+    console.log("agenda : ", response.data.agendas);
+    eventAgendaList.value = response.data.agendas.map((agenda) => ({
+      agendaId: agenda.agenda_id,
+      description: agenda.deskripsi,
       isComplete: agenda.is_completed,
-      dates: { start: agenda.date, end: agenda.date },
-      color: agenda.color,
+      dates: { start: agenda.tanggal_agenda, end: agenda.tanggal_agenda },
+      color: getCategoryColor(agenda.category),
+      time: agenda.waktu_agenda,
+      category: agenda.category,
     }));
+
+    console.log("ag : ", eventAgendaList.value);
   } catch (error) {
     console.error("Gagal mengambil data agenda:", error);
   }
@@ -155,7 +198,7 @@ const fetchAgendas = async () => {
 const saveNewAgenda = async () => {
   try {
     // Validasi input
-    createNewEvent();
+    // createNewEvent();
     // if (!pickerDate.value || !eventTime.value || !eventDescription.value || !eventCategory.value) {
     //   console.error("Harap lengkapi semua bidang!");
     //   return;
@@ -163,32 +206,25 @@ const saveNewAgenda = async () => {
 
     // Data yang akan dikirim ke API
     const newAgenda = {
-      date: pickerDate.value, // Format tanggal (YYYY-MM-DD)
+      tanggal_agenda: pickerDate.value, // Format tanggal (YYYY-MM-DD)
       description: eventDescription.value,
       is_completed: false, // Default tidak selesai
-      color: getCategoryColor(eventCategory.value), // Dapatkan warna berdasarkan kategori
+      category: eventCategory.value,
+      waktu_agenda: eventTime.value,
     };
 
+    console.log("new agenda : ", newAgenda);
     // Kirim data ke API
-    const response = await api.post(
-      "/agenda",
-      newAgenda
-    );
+    const response = await api.post(`user/${userId}/agenda`, newAgenda);
 
-    // Jika berhasil, tambahkan agenda ke `eventAgendaList`
-    // eventAgendaList.value.push({
-    //   description: response.data.description,
-    //   isComplete: response.data.is_completed,
-    //   dates: { start: response.data.date, end: response.data.date },
-    //   color: response.data.color,
-    // });
-
-    // Reset input setelah berhasil
-    // pickerDate.value = null;
-    // eventTime.value = null;
-    // eventDescription.value = null;
-    // eventCategory.value = null;
-
+    pickerDate.value = null;
+    eventTime.value = null;
+    eventDescription.value = null;
+    eventCategory.value = null;
+    if (response.status === 201 || response.status == 200) {
+      openNotificatication("Agenda Berhasil Disimpan");
+      await fetchAgendas();
+    }
     console.log("Agenda berhasil disimpan:", response.data);
   } catch (error) {
     console.error("Gagal menyimpan agenda:", error);
@@ -197,18 +233,7 @@ const saveNewAgenda = async () => {
 
 // Fungsi untuk mendapatkan warna berdasarkan kategori
 const getCategoryColor = (category) => {
-  const categoryColors = {
-    meeting: "blue",
-    workshop: "green",
-    deadline: "red",
-    other: "gray",
-  };
-  return categoryColors[category] || "gray";
-};
-
-const refreshPage = () => {
-  // Refresh halaman
-  window.location.reload();
+  return categoryColors.value[category] || "gray";
 };
 
 onMounted(() => {
@@ -217,6 +242,24 @@ onMounted(() => {
     modifyDotsLayout();
     todayisTheDay();
   }, 1000);
+});
+
+onMounted(async () => {
+  try {
+    await fetchAgendas();
+  } catch (error) {
+    console.error("Gagal mengambil data:", error);
+  }
+  emits("toggle-loading"); // Matikan loading setelah fetching selesai
+
+  setTimeout(() => {
+    modifyDotsLayout();
+    todayisTheDay();
+  }, 1000);
+});
+
+onBeforeMount(() => {
+  emits("toggle-active-loading");
 });
 </script>
 
@@ -284,34 +327,37 @@ onMounted(() => {
       </div>
       <!-- Responsive Toggler -->
       <div
-        class="flex items-center justify-center 4xl:hidden ssm:mb-[30px] mb-[15px]"
+        class="flex items-center justify-end 4xl:hidden ssm:mb-[30px] mb-[15px]"
       >
         <!-- Tombol Refresh -->
-        <button
-          @click="dotsModifier"
-          class="px-4 py-2 bg-blue-500 text-white rounded-md"
-        >
-          Refresh
+        <button @click="dotsModifier" class="px-2 py-1 rounded-md bg-white">
+          <i class="ui uil-spinner-alt text-xl text-black"></i>
         </button>
       </div>
       <div class="w-full mx-auto">
         <div class="flex mx-[-15px]">
-          <div class="flex gap-4 4xl:w-[75%] w-full px-[15px] mb-[30px]">
+          <div
+            class="grid grid-cols-12 gap-4 4xl:w-[75%] w-full px-[15px] mb-[30px]"
+          >
             <!-- Full calendar -->
             <div
               id="full-calendar"
-              class="w-[75%] h-auto relative bg-white main-calendar dark:bg-box-dark rounded-10 p-[25px] overflow-x-auto scrollbar"
+              class="col-start-1 col-span-12 md:col-span-9 h-auto relative bg-white main-calendar dark:bg-box-dark rounded-10 p-[25px] overflow-x-auto scrollbar"
             >
               <VCalendar
                 :attributes="attributesEventAgendaList"
                 expanded
+                locale="id"
                 v-model="mainDate"
+                :masks="{ weekdays: 'WWWW' }"
+
+                :flow="flow"
               />
             </div>
 
             <!-- Create Event  -->
             <div
-              class="w-[25%] relative main-calendar dark:bg-box-dark rounded-10 overflow-x-auto scrollbar"
+              class="md:col-start-10 md:col-span-3 col-start-1 col-span-12 relative main-calendar dark:bg-box-dark rounded-10 overflow-x-auto scrollbar"
             >
               <!-- Header untuk konteks -->
               <div
@@ -321,18 +367,20 @@ onMounted(() => {
               </div>
 
               <!-- Kontainer utama -->
-              <div class="bg-white p-[25px] rounded-b-10 grid gap-[15px]">
+              <div
+                class="bg-white p-[25px] rounded-b-10 grid-col gap-[15px] justify-center space-y-2"
+              >
                 <!-- Pemilihan Tanggal -->
                 <div>
                   <span class="mb-[4px] text-gray-700 block font-medium"
                     >Pilih Tanggal</span
                   >
-                  <VueDatePicker
+                  <input
                     v-model="pickerDate"
-                    :flow="flow"
+                    type="date"
                     placeholder="Pilih Tanggal Agenda"
-                    class="w-full rounded-[8px] border border-gray-300"
-                  ></VueDatePicker>
+                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700"
+                  />
                 </div>
 
                 <!-- Input Waktu Agenda -->
@@ -354,13 +402,15 @@ onMounted(() => {
                   >
                   <select
                     v-model="eventCategory"
-                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700"
+                    class="w-full rounded-[8px] border border-gray-300 px-[10px] py-[8px] text-gray-700 text-center"
                   >
                     <option value="" disabled>Pilih Kategori</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="other">Lainnya</option>
+                    <option
+                      v-for="category in Object.keys(categoryColors)"
+                      :value="category"
+                    >
+                      {{ category.replace("_", " ") }}
+                    </option>
                   </select>
                 </div>
 
@@ -414,7 +464,8 @@ onMounted(() => {
                   data-te-ripple-color="light"
                 >
                   <i class="uil uil-plus"></i>
-                  Create New Event
+                  <span class="hidden md:inline">Tambah Agenda</span>
+                  <span class="md:hidden"> Agenda </span>
                 </button>
               </div>
             </div>

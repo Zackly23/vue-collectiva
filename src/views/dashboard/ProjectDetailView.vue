@@ -8,6 +8,7 @@ import { useToast } from "vue-toast-notification";
 import "vue-toast-notification/dist/theme-sugar.css";
 import HardWarningComponent from "@/components/dashboard/modal/HardWarningComponent.vue";
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
+import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -17,7 +18,10 @@ const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 //Toast Notification
 const toastNotification = useToast();
 
+const isReportCaseModalOpen = ref(false);
 const isConfirmationModalOpen = ref(false);
+const isConfirmationApproveVolunteerModalOpen = ref(false);
+const isConfirmationRejectVolunteerModalOpen = ref(false);
 const isConfirmationInactiveModalOpen = ref(false);
 const dropdownComponentTag = ref(false);
 const selectedComponentTag = ref("");
@@ -82,6 +86,9 @@ const projectTagList = ref();
 const selectedTags = ref([]);
 const timelineList = ref();
 const lampiranList = ref();
+const supportDocumentLists = ref();
+const selectedDocumentTag = ref("");
+const sectionDocumentTag = ref();
 const timelineDetailList = ref([]);
 const timelineDetailData = ref();
 const evaluationList = ref();
@@ -311,7 +318,7 @@ const storeEvaluation = async () => {
     console.log("evaluasi : ", evaluasi);
     console.log("simpan evaluasi");
     const response = await api.post(
-      `/test-project-evaluation-id/${projectId}`,
+      `/project/${projectId}/evaluation`,
       evaluasi
     );
 
@@ -345,7 +352,7 @@ const storeTimeline = async () => {
       ];
 
       const response = await api.post(
-        `/test-project-timeline/${projectId}`,
+        `/project/${projectId}/timeline`,
         newData
       );
 
@@ -375,7 +382,7 @@ const storeTimelineDetail = async () => {
       formData.append("time", activityData.value.time);
 
       const response = await api.post(
-        `/test-project-timeline-detail/${selectedTimeline.value.timelineIdStore}`,
+        `/project/${projectId}/timeline/${selectedTimeline.value.timelineIdStore}/detail`,
         formData
       );
 
@@ -400,9 +407,12 @@ const updateStatusVolunteer = async (status) => {
 
   try {
     const volunteerId = volunteerCriteriaChecked.value.volunteerId;
-    const response = await api.put(`/test-volunteer/${volunteerId}/status`, {
-      status: status,
-    });
+    const response = await api.put(
+      `/project/${projectId}/volunteer/${volunteerId}/detail/status`,
+      {
+        status: status,
+      }
+    );
 
     console.log("message : ", response.data);
     if (response.status === 200) {
@@ -444,7 +454,7 @@ const updateTimeline = async () => {
       formData.append("_method", "PUT");
 
       const response = await api.post(
-        `/test-project-timeline-update-id/${projectId}`,
+        `/project/${projectId}/timeline`,
         formData
       );
 
@@ -537,7 +547,7 @@ const updateLocation = async () => {
 
   try {
     const response = await api.post(
-      `/test-project-update-location-id/${projectId}`, // Perbaiki URL
+      `/project/${projectId}/location`, // Perbaiki URL
       formData
     );
 
@@ -610,7 +620,7 @@ const saveChangeEvaluation = async () => {
     console.log("evaluationData : ", evaluationData);
 
     const response = await api.put(
-      `/test-project-evaluation-id/${projectId}`,
+      `/project/${projectId}/user/${userId}/evaluation`,
       evaluationData // Kirim langsung sebagai JSON
     );
 
@@ -700,7 +710,7 @@ const updateProjectDetail = async () => {
 
   try {
     const response = await api.post(
-      `/test-project-update-id/${projectId}`, // Perbaiki URL
+      `/project/${projectId}/detail`, // Perbaiki URL
       formData,
       {
         headers: {
@@ -760,10 +770,7 @@ const addFile = () => {
   console.log("tambah file");
   // Trigger input file
   const fileInput = document.getElementById("file-upload");
-
-  fileInput.onchange = null;
-
-  fileInput.click();
+  console.log("fileinput");
 
   fileInput.onchange = async (event) => {
     const newFile = event.target.files[0];
@@ -776,12 +783,20 @@ const addFile = () => {
 
     // Buat FormData
     const formData = new FormData();
+
+    if (!selectedDocumentTag.value) {
+      selectedDocumentTag.value = "dokumen pendukung";
+      sectionDocumentTag.value = "lampiran";
+    } else {
+      sectionDocumentTag.value = "laporan akhir";
+    }
     formData.append("project_lampiran[0][file]", newFile); // Pastikan nama field sesuai di Laravel
-    formData.append("project_lampiran[0][tag]", "pendukung"); // Pastikan nama field sesuai di Laravel
+    formData.append("project_lampiran[0][tag]", selectedDocumentTag.value); // Pastikan nama field sesuai di Laravel
+    formData.append("project_lampiran[0][section]", sectionDocumentTag.value); // Pastikan nama field sesuai di Laravel
 
     try {
       const response = await api.post(
-        `/test-project-lampiran/${projectId}/`,
+        `/project/${projectId}/lampiran`,
         formData,
         {
           headers: {
@@ -794,6 +809,8 @@ const addFile = () => {
       if (response.status == 201) {
         console.log("respon lampiran : ", response.data);
         openNotificatication("Lampiran Berhasil Ditambahkan");
+        selectedDocumentTag.value = "";
+        sectionDocumentTag.value = null;
         getLampiran();
         console.log("lampiranList updated: ", lampiranList.value);
       }
@@ -833,7 +850,7 @@ const updateFile = async (lampiranId) => {
 
     try {
       const response = await api.post(
-        `/test-project-update-lampiran/${projectId}/${lampiranId}`,
+        `/project/${projectId}/lampiran/${lampiranId}`,
         formData,
         {
           headers: {
@@ -871,8 +888,8 @@ const openNotificatication = (message) => {
 const updateStatusProject = async () => {
   console.log("ubah status");
   try {
-    const response = await api.put(`/test-project-status-id/${projectId}`, {
-      status: 'in active'
+    const response = await api.put(`/project/${projectId}/status`, {
+      status: "inactive",
     });
 
     if (response.status == 200) {
@@ -891,7 +908,7 @@ const updateStatusProject = async () => {
 //Hapus Project
 const deleteProjectId = async () => {
   try {
-    const response = await api.delete(`/test-project-delete/${projectId}`);
+    const response = await api.delete(`/project/${projectId}/delete`);
     console.log(response.data);
     if (response.status == 200) {
       openNotificatication(`Project ${projectId} Berhasil Dihapus`);
@@ -912,7 +929,7 @@ const createProject = () => {
 const deleteFile = async (lampiranId) => {
   try {
     const responses = await api.delete(
-      `/test-project-lampiran/${projectId}/${lampiranId}`
+      `/project/${projectId}/lampiran/${lampiranId}`
     );
     console.log("lampiran : ", responses.data);
 
@@ -957,16 +974,41 @@ const initialMapLayer = () => {
     .openPopup();
 };
 
+// Fungsi untuk mendapatkan ikon berdasarkan jenis file
+const getFileIcon = (type) => {
+  if (type.includes("pdf")) {
+    return "uil uil-document-info";
+  } else if (type.includes("word") || type.includes("doc")) {
+    return "uil uil-file-info-alt";
+  } else if (
+    type.includes("excel") ||
+    type.includes("spreadsheet") ||
+    type.includes("xls")
+  ) {
+    return "uil uil-file-edit-alt ";
+  } else if (type.includes("image")) {
+    return "uil uil-image ";
+  } else if (type.includes("zip") || type.includes("rar")) {
+    return "uil uil-archive ";
+  } else if (type.includes("text") || type.includes("plain")) {
+    return "uil uil-file-alt ";
+  } else {
+    return "uil uil-file";
+  }
+};
+
 //API
 
 const getProjectDetail = async () => {
   try {
-    const responses = await api.get(`/test-project-id/${userId}/${projectId}`);
-    console.log(
-      "project: ",
-      JSON.parse(responses.data.project_details[0].project_criteria)
-    );
-    console.log(JSON.parse(responses.data.project_details[0].project_criteria));
+    const responses = await api.get(`/project/${projectId}/detail`);
+    // console.log(
+    //   "project: ",
+    //   JSON.parse(responses.data.project_details)
+    // );
+
+    console.log("project detail : ", responses.data);
+    // console.log(JSON.parse(responses.data.project_details[0].project_criteria));
     const projectdetailList = responses.data.project_details.map((project) => ({
       projectId: project.project_id,
       projectTitle: project.project_title,
@@ -1008,6 +1050,7 @@ const getProjectDetail = async () => {
       projectPointLatitude: project.project_latitude,
       projectPointlongitude: project.project_longitude,
       projectCategory: project.project_category,
+      withdrawalStatus: project.withdrawal_status,
     }));
 
     projectDetail.value = projectdetailList[0];
@@ -1051,7 +1094,7 @@ const getProjectDetail = async () => {
 
 const getDonatur = async () => {
   try {
-    const responses = await api.get(`/test-donation/donatur/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/donatur/list`);
     console.log("donatur : ", responses.data);
     const donaturLists = responses.data.donaturs.map((donatur) => ({
       donaturId: donatur.project_donatur_id,
@@ -1073,7 +1116,7 @@ const getDonatur = async () => {
 
 const getVolunteer = async () => {
   try {
-    const responses = await api.get(`/test-volunteer/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/volunteer/list`);
     console.log("volunteer : ", responses.data);
     const volunteerLists = responses.data.volunteers.map((volunteer) => ({
       volunteerId: volunteer.project_volunteer_id,
@@ -1103,14 +1146,15 @@ const getVolunteer = async () => {
     volunteerList.value = volunteerLists;
     console.log("volunteerList : ", volunteerList.value);
   } catch (error) {
-    console.error(error.response.data);
+    console.log("error ", error.status);
+    console.log("Data tidak ditemukan");
   }
 };
 
 // get Evaluation
 const getTimeline = async () => {
   try {
-    const responses = await api.get(`/test-project-timeline-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/timeline`);
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
       timelineId: timeline.project_timeline_id,
@@ -1140,7 +1184,7 @@ const getTimeline = async () => {
 //get Evaluation
 const getEvaluationList = async () => {
   try {
-    const responses = await api.get(`/test-project-evaluation-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/evaluation/list`);
 
     console.log("evaluation response : ", responses.data.project_evaluation);
 
@@ -1168,7 +1212,7 @@ const getEvaluationList = async () => {
 //getProvince
 const getProvinsi = async () => {
   try {
-    const responses = await api.get("/test-location-provinsi");
+    const responses = await api.get("/provinsi/list");
 
     const provinsiLists = responses.data.provinsi.map((province) => ({
       kodeProvinsi: province.kode_provinsi,
@@ -1186,7 +1230,7 @@ const getProvinsi = async () => {
 //Get Kecamatan
 const getKabupaten = async (kodeProvinsi) => {
   try {
-    const responses = await api.get(`/test-location-kabupaten/${kodeProvinsi}`);
+    const responses = await api.get(`/provinsi/${kodeProvinsi}/kabupaten/list`);
     console.log(responses.data);
     const kabupatenLists = responses.data.kabupaten.map((kabupaten) => ({
       kodeKabupaten: kabupaten.kode_kabupaten,
@@ -1206,7 +1250,7 @@ const getKecamatan = async (kodeKabupaten) => {
   try {
     console.log(kodeKabupaten);
     const responses = await api.get(
-      `/test-location-kecamatan/${kodeKabupaten}`
+      `/kabupaten/${kodeKabupaten}/kecamatan/list`
     );
     console.log(responses.data);
 
@@ -1226,7 +1270,7 @@ const getKecamatan = async (kodeKabupaten) => {
 //Get Desa
 const getDesa = async (kodeKecamatan) => {
   try {
-    const responses = await api.get(`/test-location-desa/${kodeKecamatan}`);
+    const responses = await api.get(`/kecamatan/${kodeKecamatan}/desa/list`);
     console.log(responses.data);
 
     const desaLists = responses.data.desa.map((desa) => ({
@@ -1244,15 +1288,26 @@ const getDesa = async (kodeKecamatan) => {
 
 const getLampiran = async () => {
   try {
-    const responses = await api.get(`/test-project-lampiran-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/lampiran/list`);
     console.log("lampiran : ", responses.data);
     const lampiranLists = responses.data.project_lampiran.map((lampiran) => ({
       lampiranId: lampiran.project_lampiran_id,
       lampiranName: lampiran.project_lampiran_name,
       lampiranUrl: lampiran.project_lampiran_url,
+      lampiranTag: lampiran.project_lampiran_tag,
+      lampiranSection: lampiran.project_lampiran_section,
+      lampiranType: lampiran.project_lampiran_type,
+      lampiranUploader: lampiran.project_uploader_admin,
     }));
 
-    lampiranList.value = lampiranLists;
+    console.log("response lam : ", lampiranLists);
+    lampiranList.value = lampiranLists.filter(
+      (item) => item.lampiranSection == "lampiran"
+    );
+    supportDocumentLists.value = lampiranLists.filter(
+      (item) => item.lampiranSection == "laporan akhir"
+    );
+
     console.log("lampiran : ", lampiranList.value);
   } catch (error) {
     console.error(error.response.data);
@@ -1261,7 +1316,7 @@ const getLampiran = async () => {
 
 const getProjectTagsList = async () => {
   try {
-    const responses = await api.get("/test-project-tag");
+    const responses = await api.get("/general/project/tag/list");
 
     const tagLists = responses.data.project_tags.map((tag) => ({
       tagId: tag.tag_id,
@@ -1280,7 +1335,7 @@ const getProjectTagsList = async () => {
 
 const getIconList = async () => {
   try {
-    const responses = await api.get("/test-icon");
+    const responses = await api.get("/general/project/icon/list");
 
     const iconLists = responses.data.icons.map((icon) => ({
       iconId: icon.icon_id,
@@ -1346,6 +1401,7 @@ onBeforeMount(() => {
             class="flex items-center max-xs:flex-wrap max-xs:justify-center gap-x-[10px] gap-y-[5px]"
           >
             <button
+              v-action="{ permission: ['create-project'] }"
               type="button"
               @click="createProject"
               class="flex items-center px-[15px] text-sm text-white rounded-[5px] font-semibold bg-primary border-1 border-primary h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap hover:bg-primary-hbr"
@@ -1356,7 +1412,11 @@ onBeforeMount(() => {
               <span class="m-0 hidden xl:block">Buat Project</span>
             </button>
             <button
-              v-if="projectDetail?.projectStatus !== 'in active'"
+              v-access="{
+                role: ['admin'],
+                permission: ['update-in-active-project'],
+              }"
+              v-if="projectDetail?.projectStatus !== 'inactive'"
               @click="openConfirmationInactiveModal"
               class="inline-flex items-center justify-center w-full px-[15px] h-[35px] gap-[7px] border-1 rounded-[5px] cursor-pointer whitespace-nowrap border-normal bg-white text-body dark:text-title-dark dark:bg-box-dark-up dark:border-box-dark-up"
             >
@@ -1364,7 +1424,7 @@ onBeforeMount(() => {
               <span class="text-sm"> Mark As In-Active </span>
             </button>
 
-            <div v-if="projectDetail?.projectStatus === 'in active'">
+            <div v-if="projectDetail?.projectStatus === 'inactive'">
               <label
                 for="react-option"
                 class="border-gray-200 bg-gray-500 text-white inline-flex items-center justify-center w-full px-[15px] h-[35px] gap-[7px] border-1 rounded-[5px] peer-checked:border-success peer-checked:bg-success peer-checked:text-white dark:text-title-dark dark:bg-box-dark-up dark:border-box-dark-up whitespace-nowrap hover:bg-white hover:text-black"
@@ -1379,6 +1439,7 @@ onBeforeMount(() => {
         </div>
         <div class="flex items-center gap-x-[6px] gap-y-[3px]">
           <button
+            v-action="{ permission: ['edit-project-detail'] }"
             @click="toggleEditMode"
             type="button"
             class="flex items-center px-[15px] text-[12px] text-dark dark:text-title-dark rounded-[6px] font-semibold bg-white dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"
@@ -1390,14 +1451,69 @@ onBeforeMount(() => {
 
             <span class="m-0">{{ editMode ? "Save" : "Edit" }}</span>
           </button>
+          <router-link
+            v-access="{
+              role: ['admin', 'verified'],
+              permission: ['withdrawal-donation'],
+            }"
+            v-if="
+              !projectDetail?.withdrawalStatus &&
+              projectDetail?.projectCategory == 'donation' &&
+              projectDetail?.projectStatus == 'completed'
+            "
+            :to="{
+              path: `/project/${projectId}/donation/withdrawal`,
+            }"
+            class="flex items-center px-[15px] text-[14px] text-white rounded-[6px] bg-green-600 dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"
+          >
+            <i class="uil uil-dollar-alt text-[14px]"></i>
+
+            <span class="m-0">Penarikan Dana</span>
+          </router-link>
+
           <button
+            v-if="projectDetail?.withdrawalStatus"
+            disabled
+            class="flex items-center px-[15px] text-[14px] text-white rounded-[6px] bg-green-600 dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"
+          >
+            <i
+              v-if="projectDetail?.withdrawalStatus == 'diproses'"
+              class="uil uil-spin text-[14px]"
+            ></i>
+            <i
+              v-if="projectDetail?.withdrawalStatus == 'selesai'"
+              class="uil uil-check-circle text-[14px]"
+            ></i>
+            <i
+              v-if="projectDetail?.withdrawalStatus == 'diajukan'"
+              class="uil uil-check-circle text-[14px]"
+            ></i>
+            <span
+              v-if="projectDetail?.withdrawalStatus == 'diproses'"
+              class="m-0"
+              >Proses Penarikan</span
+            >
+            <span
+              v-if="projectDetail?.withdrawalStatus == 'selesai'"
+              class="m-0"
+              >Penarikan Selesai</span
+            >
+            <span
+              v-if="projectDetail?.withdrawalStatus == 'diajukan'"
+              class="m-0"
+              >Penarikan Diajukan</span
+            >
+          </button>
+
+          <button
+            v-access="{ permission: ['delete-project'] }"
             type="button"
-            class="flex items-center px-[15px] text-[12px] text-danger rounded-[6px] font-semibold bg-white dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"
+            class="flex items-center px-[15px] text-[14px] text-white rounded-[6px] bg-red-600 dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"
             data-te-ripple-init
             data-te-ripple-color="light"
             @click="openConfirmationModal"
           >
-            <i class="uil uil-edit-alt text-[14px]"></i>
+            <i class="uil uil-trash-alt text-[14px]"></i>
             <span class="m-0">Delete Project</span>
           </button>
         </div>
@@ -1599,7 +1715,7 @@ onBeforeMount(() => {
                   @click="openGeneralModal('kriteria')"
                   class="flex w-[80%] justify-center items-center px-4 text-sm font-semibold text-white bg-blue-600 border border-blue-600 rounded-md h-[40px] gap-2 capitalize transition-all hover:bg-blue-500 active:scale-95"
                 >
-                  <i class="uil uil-check-circle text-lg"></i>
+                  <i class="uil uil-clipboard-alt text-lg"></i>
                   Kriteria Volunteer
                 </button>
 
@@ -1733,9 +1849,8 @@ onBeforeMount(() => {
                       <i class="ui uil-file"></i>
 
                       <a
-                        href="#"
                         class="text-sm font-medium text-dark dark:text-title-dark hover:underline"
-                        download="file2.pdf"
+                        download
                       >
                         {{ lampiran.lampiranName }}
                       </a>
@@ -2069,7 +2184,7 @@ onBeforeMount(() => {
                     ' relative py-5 text-sm font-medium after:absolute after:start-0 after:bottom-0 after:w-full after:h-[1px] dark:text-subtitle-dark  cursor-pointer duration-300 ease-in-out capitalize': true,
                     'border-b-2 border-primary text-primary':
                       checkTabInformation('document'),
-                    ' text-body': !checkTabInformation('evaludocumentation'),
+                    ' text-body': !checkTabInformation('document'),
                   }"
                 >
                   Supporting Documents
@@ -2081,6 +2196,7 @@ onBeforeMount(() => {
                 role="presentation"
               >
                 <button
+                  v-action="{ permission: ['edit-evaluation-detail'] }"
                   type="submit"
                   @click="saveChangeEvaluation"
                   class="flex items-center text-left rounded bg-primary/10 py-[12px] px-[18px] text-[12px] font-semibold capitalize leading-normal text-primary transition duration-150 ease-in-out hover:bg-primary hover:text-white focus:outline-none focus:ring-0 gap-[8px]"
@@ -2123,7 +2239,7 @@ onBeforeMount(() => {
                       <th
                         class="px-[25px] py-[8px] text-center text-sm font-medium text-dark dark:text-title-dark"
                       >
-                        Action
+                        Evaluator
                       </th>
                     </tr>
                   </thead>
@@ -2151,7 +2267,9 @@ onBeforeMount(() => {
                             />
                             <span
                               :class="{
-                                'line-through': evaluation.evaluationChecked || evaluation.evaluationStatus === 'approve',
+                                'line-through':
+                                  evaluation.evaluationChecked ||
+                                  evaluation.evaluationStatus === 'approved',
                               }"
                               >{{ evaluation.evaluationTaskComment }}</span
                             >
@@ -2167,16 +2285,14 @@ onBeforeMount(() => {
                             class="px-3 py-1 text-sm font-medium rounded-lg"
                             :class="{
                               'bg-green-100 text-green-700':
-                                evaluation.evaluationStatus === 'approve',
+                                evaluation.evaluationStatus === 'approved',
                               'bg-red-100 text-red-700':
                                 evaluation.evaluationStatus === 'rejected',
                               'bg-blue-100 text-blue-700':
-                                evaluation.evaluationStatus === 'review',
-                              'bg-gray-100 text-gray-700':
-                                evaluation.evaluationStatus === 'draft',
+                                evaluation.evaluationStatus === 'in_review',
                             }"
                           >
-                            {{ evaluation.evaluationStatus }}
+                            {{ evaluation.evaluationStatus.replace("_", " ") }}
                           </span>
                         </div>
                       </td>
@@ -2243,30 +2359,22 @@ onBeforeMount(() => {
                         class="px-[25px] font-medium last:text-end capitalize text-[14px] text-dark dark:text-title-dark border-none group-hover:bg-transparent rounded-e-[4px]"
                       >
                         <div
-                          class="text-light dark:text-subtitle-dark text-[19px] flex items-center justify-end p-0 m-0 gap-[20px]"
+                          class="text-light dark:text-subtitle-dark text-[19px] flex items-center justify-center p-0 m-0 gap-[20px]"
                         >
-                          <ul class="flex items-center justify-end gap-[15px]">
-                            <li>
+                          <div class="flex items-center justify-center gap-x-2">
+                        
+                              <img
+                                class="w-[30px] min-w-[30px] h-[30px] rounded-full object-cover"
+                                :src="evaluation.evaluationEvaluatorAvatar"
+                                title="admin"
+                              />
                               <span
-                                class="block text-xs leading-none capitalize whitespace-nowrap text-light-extra dark:text-subtitle-dark"
+                                class="text-xs leading-none capitalize whitespace-nowrap text-light-extra dark:text-subtitle-dark"
                               >
                                 {{ evaluation.evaluationTime }}
                               </span>
-                            </li>
-                            <li>
-                              <a
-                                href="#"
-                                class="w-[30px] min-w-[30px] h-[30px] rounded-full object-cover"
-                                data-te-toggle="tooltip"
-                                data-te-placement="top"
-                                title="Rony"
-                              >
-                                <img
-                                  class="rounded-full"
-                                  src="../../assets/images/sellers/1.png"
-                                />
-                              </a>
-                            </li>
+                          
+                
                             <!-- <li>
                               <a
                                 href="#"
@@ -2320,7 +2428,7 @@ onBeforeMount(() => {
                                 </ul>
                               </div>
                             </li> -->
-                          </ul>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2502,25 +2610,37 @@ onBeforeMount(() => {
                               'bg-green-100 text-green-700':
                                 volunteer.volunteerStatus === 'approved',
                               'bg-red-100 text-red-700':
-                                volunteer.volunteerStatus === 'decline',
+                                volunteer.volunteerStatus === 'declined',
                               'bg-blue-100 text-blue-700':
-                                volunteer.volunteerStatus === 'need review',
+                                volunteer.volunteerStatus === 'need_review',
                               'bg-gray-100 text-gray-700':
-                                volunteer.volunteerStatus === 'complete',
+                                volunteer.volunteerStatus === 'completed',
                             }"
                           >
-                            {{ volunteer.volunteerStatus }}</span
+                            {{
+                              volunteer.volunteerStatus.replace("_", " ")
+                            }}</span
                           >
                         </div>
                       </td>
                       <td class="px-6 py-3">
-                        <div
-                          @click="openModalVolunteer(volunteer.volunteerId)"
-                          class="flex justify-center items-center cursor-pointer"
-                        >
-                          <i
-                            class="flex justify-center items-center ui uil-eye bg-blue-300 w-6 h-6 rounded-lg hover:bg-white hover:text-blue-300 hover:border-blue-300 hover:border-2"
-                          ></i>
+                        <div class="flex justify-center items-center space-x-2" >
+                          <button
+                            v-action="{ permission: ['approve-volunteer'] }"
+                            @click="openModalVolunteer(volunteer.volunteerId)"
+                            class="py-1 px-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+                            title="Lihat Detail"
+                          >
+                            <i class="uil uil-eye text-[15px]"></i>
+                          </button>
+                          <button
+                            v-action="{ permission: ['approve-volunteer'] }"
+                            @click="() => isConfirmationRejectVolunteerModalOpen = true"
+                            class="py-1 px-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
+                            title="Reject Volunteer"
+                          >
+                            <i class="uil uil-ban text-[15px]"></i>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -2528,11 +2648,145 @@ onBeforeMount(() => {
                 </table>
               </div>
             </div>
+
+            <!-- List Volunteer  -->
+            <div
+              v-if="tabInformation === 'document'"
+              class="opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block pb-[25px] pt-[10px]"
+              id="tabs-list"
+              role="tabpanel"
+              aria-labelledby="tabs-list-tab"
+              data-te-tab-active
+            >
+              <div class="relative overflow-x-auto max-h-[360px]">
+                <div class="p-4">
+                  <div
+                    v-for="lampiran in supportDocumentLists"
+                    :key="lampiran.lampiranId"
+                    class="mb-4 border rounded-lg transition-all border-gray-200 hover:border-gray-300 bg-blue-50"
+                  >
+                    <div class="p-4 flex items-center justify-between">
+                      <div class="flex items-center gap-x-3">
+                        <!-- Icon sesuai jenis file -->
+                        <div
+                          class="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100"
+                        >
+                          <i
+                            :class="getFileIcon(lampiran.lampiranType)"
+                            class="text-lg text-gray-600"
+                          ></i>
+                        </div>
+
+                        <!-- Nama file & tipe -->
+                        <div class="flex flex-col space-y-1">
+                          <span class="font-medium text-gray-900 ml-2">
+                            {{ lampiran.lampiranName }}
+                          </span>
+                          <div
+                            class="text-sm text-gray-500 flex items-center gap-x-2"
+                          >
+                            <span></span>
+
+                            <!-- Tag Dokumen -->
+                            <span
+                              class="px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded-md"
+                            >
+                              {{ lampiran.lampiranTag }}
+                            </span>
+
+                            <!-- Badge "New" jika file baru -->
+                            <span
+                              v-if="true"
+                              class="text-red-500 text-xs font-semibold"
+                            >
+                              New
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Tombol Aksi -->
+                      <div
+                        v-if="lampiran.lampiranUploader"
+                        class="flex items-center gap-x-2 text-lg"
+                      >
+                        <button
+                          @click="previewFile(lampiran)"
+                          title="Lihat Dokumen"
+                          class="text-blue-600 hover:text-blue-800"
+                        >
+                          <i class="ui uil-eye"></i>
+                        </button>
+                        <button
+                          @click="updateFile(lampiran.lampiranId)"
+                          title="Update Dokumen"
+                          class="text-yellow-500 hover:text-yellow-700"
+                        >
+                          <i class="ui uil-edit-alt"></i>
+                        </button>
+                        <button
+                          @click="deleteFile(lampiran.lampiranId)"
+                          title="Delete Dokumen"
+                          class="text-red-500 hover:text-red-700"
+                        >
+                          <i class="ui uil-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tombol Tambah File (w-10 dan berada di tengah) -->
+                  <div
+                    v-if="projectDetail?.projectStatus === 'completed'"
+                    v-action="{
+                      role: ['admin', 'verified'],
+                      permission: ['upload-supporting-document'],
+                    }"
+                    class="flex justify-center items-center gap-x-3"
+                  >
+                    <!-- Dropdown Select -->
+                    <select
+                      v-model="selectedDocumentTag"
+                      name="laporan_akhir"
+                      id="laporan_akhir"
+                      class="h-10 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
+                    >
+                      <option selected value="">Pilih Jenis Dokumen</option>
+                      <option value="laporan akkhir">Laporan Akhir</option>
+                      <option value="lpj">LPJ</option>
+                      <option value="dokumentasi">Dokumentasi Kegiatan</option>
+                    </select>
+
+                    <!-- Input File -->
+                    <div>
+                      <label
+                        for="file-upload"
+                        class="h-10 w-10 flex cursor-pointer items-center justify-center border border-dashed border-blue-400 rounded-md text-blue-500 hover:bg-blue-100 transition-all"
+                      >
+                        <i class="uil uil-plus"></i>
+                        <input
+                          v-action="{
+                            permission: ['upload-supporting-document'],
+                          }"
+                          id="file-upload"
+                          type="file"
+                          class="hidden"
+                          @click="addFile"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="w-full bg-white mt-10 p-6 shadow-md rounded-lg">
+      <div
+        v-access="{ role: ['admin'] }"
+        class="w-full bg-white mt-10 p-6 shadow-md rounded-lg"
+      >
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Textarea -->
           <div class="md:col-span-2">
@@ -2799,7 +3053,7 @@ onBeforeMount(() => {
               id="address"
               v-model="locationForm.address"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
-              rows="1"
+              rows="2"
             ></textarea>
           </div>
 
@@ -3671,7 +3925,7 @@ onBeforeMount(() => {
             </label>
             <table class="min-w-full bg-white border rounded-md mt-1">
               <!-- Klik pada header untuk menambah baris -->
-              <thead @click="addCriteria" class="cursor-pointer">
+              <thead >
                 <tr class="bg-gray-100">
                   <th
                     class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
@@ -3740,21 +3994,40 @@ onBeforeMount(() => {
         <!-- Modal Footer -->
         <div class="flex justify-end pt-3 border-t">
           <button
-            @click="updateStatusVolunteer('approved')"
+            @click="() => isConfirmationApproveVolunteerModalOpen = true"
             class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
           >
             Approve
           </button>
           <button
-            @click="updateStatusVolunteer('decline')"
+            @click="() => isVolunteerModalOpen = false"
             class="px-4 py-2 ml-3 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
           >
-            Decline
+            Close
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isConfirmationApproveVolunteerModalOpen"
+    :description="'    Apakah Anda yakin ingin Menerima Volunteer ini? Pastikan Seluruh Data sudah sesuai.'"
+    @close-confirmation-modal="() => isConfirmationApproveVolunteerModalOpen = false"
+    @action-modal="updateStatusVolunteer('approved')"
+    :action="'Approve Volunteer'"
+    :title="'Konfirmasi Volunteer'"
+  />
+
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isConfirmationRejectVolunteerModalOpen"
+    :description="'    Apakah Anda yakin ingin Menolak Volunteer ini? Pastikan Seluruh Data sudah sesuai.'"
+    @close-confirmation-modal="() => isConfirmationRejectVolunteerModalOpen = false"
+    @action-modal="updateStatusVolunteer('decline')"
+    :action="'Reject Volunteer'"
+    :title="'Konfirmasi Volunteer'"
+  />
+  
 </template>
 
 <style scoped>
