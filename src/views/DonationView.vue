@@ -72,40 +72,10 @@ const checkedEwallet = (ewallet) => {
   //   checkTotalAmountPayment();
 };
 
-//API
-const checkTotalAmountPayment = async () => {
-  console.log({
-    sub_total: amountPayment.value,
-    channel: channelPayment.value,
-  });
-  try {
-    const response = await api.post(
-      "test-profile",
-      {
-        sub_total: amountPayment,
-        channel: channelPayment,
-      },
-      { headers }
-    );
-
-    console.log("pay : ", response.data.payment);
-    if (response.status === 200) {
-      const payment = response.data.payment;
-      (totalPayment.value.subTotalPayment = payment.sub_total),
-        (totalPayment.value.feePercentage = payment.fee_percentage),
-        (totalPayment.value.fee = payment.fee),
-        (totalPayment.value.totalPayment = payment.total);
-    }
-
-    console.log("payment  : ", totalPayment.value);
-  } catch (error) {
-    console.error("error Fetch User : ", error);
-  }
-};
 
 const getProjectDetail = async () => {
   try {
-    const responses = await api.get(`/test-project-id/${userId}/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/public/detail`);
 
     const projectdetailList = responses.data.project_details.map((project) => ({
       projectId: project.project_id,
@@ -123,7 +93,7 @@ const getProjectDetail = async () => {
 
 const getUserProfile = async () => {
   try {
-    const response = await api.get("/test-profile", {});
+    const response = await api.get(`/user/${userId}/profile`);
 
     console.log("user : ", response.data.user);
     const data = response.data.user;
@@ -142,7 +112,7 @@ const getUserProfile = async () => {
 
 const startPaymentTransaction = async () => {
   try {
-    const response = await api.post(`/test-donation/${projectId}/snap`, {
+    const response = await api.post(`/project/${projectId}/donation/snap`, {
       donation_amount: amountPayment.value,
     });
 
@@ -192,7 +162,7 @@ const showSnapModal = () => {
         console.log("callback data : ", callBackData);
 
         const response = await api.post(
-          `/test-donation/${orderId.value}/snap/callback`,
+          `/project/${projectId}/donation/${orderId.value}/snap/callback`,
           callBackData // Kirim langsung objek ini, bukan dalam objek lain
         );
 

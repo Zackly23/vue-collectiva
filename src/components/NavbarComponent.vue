@@ -2,25 +2,41 @@
 import { onMounted, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/api";
+import { useAuthStore } from "@/store/auth";
+import { useToast } from "vue-toast-notification";
 
+const authStore = useAuthStore();
+const toastNotification = useToast();
 const router = useRouter();
 const isLogin = ref(false);
 const activeDropdown = ref(null);
-const user = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user"))
-  : null;
+const user = ref(
+  JSON.parse(localStorage.getItem("user"))
+    ? JSON.parse(localStorage.getItem("user"))
+    : null
+);
+
+const openNotificatication = (message) => {
+  toastNotification.open({
+    type: "success",
+    message: message,
+    position: "top-right",
+    duration: 3000,
+  });
+};
 
 const signOut = async () => {
   try {
-    const response = await api.post(
-      "/logout",
-      {},
-    );
+    const response = await api.post("/logout", {});
 
     if (response.status === 200) {
       localStorage.removeItem("access_token");
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem("user");
+      localStorage.removeItem("refresh_token");
+      authStore.logout();
+      openNotificatication("Anda Berhasil Sign Out");
+
+      user.value = null;
+      isLogin.value = false;
       router.push("/");
     }
   } catch (error) {
@@ -48,8 +64,7 @@ const closeDropdownOnClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", closeDropdownOnClickOutside);
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (user) {
+  if (user.value) {
     isLogin.value = true;
   }
 });
@@ -65,7 +80,9 @@ onBeforeUnmount(() => {
       <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <div class="flex-shrink-0 flex items-center">
-          <span class="text-2xl font-bold text-green-600">SHCUnion</span>
+          <router-link to="/" class="cursor-pointer">
+            <span class="text-2xl font-bold text-green-600">SHCUnion</span>
+          </router-link>
         </div>
 
         <!-- Navigation Links -->
@@ -75,10 +92,10 @@ onBeforeUnmount(() => {
             class="text-gray-700 hover:text-green-600 font-medium transition-colors"
             >Beranda</router-link
           >
-          <a
-            href="#"
+          <router-link
+            to="/project/list"
             class="text-gray-700 hover:text-green-600 font-medium transition-colors"
-            >Proyek</a
+            >Proyek</router-link
           >
           <a
             href="#"
@@ -97,16 +114,21 @@ onBeforeUnmount(() => {
           <router-link
             v-if="!isLogin"
             to="/login"
-            class="text-gray-700 hover:text-green-600 font-medium transition-colors"
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow-md font-semibold transition-all hover:shadow-lg"
             >Masuk</router-link
           >
-          <router-link
+          <!-- <router-link
             to="/dashboard/project"
             class="bg-green-600 text-white px-3 py-3 rounded-lg hover:bg-green-700 shadow-md font-semibold transition-all hover:shadow-lg"
             >Mulai Proyek</router-link
-          >
+          > -->
 
-          <div v-if="user" class="relative" data-te-dropdown-ref>
+          <div
+            v-if="user"
+            class="flex justify-center items-center gap-x-3 relative"
+            data-te-dropdown-ref
+          >
+            <span class="text-gray-700 font-medium">{{ user.full_name }}</span>
             <button
               data-dropdown-button="profile"
               @click="toggleDropdown('profile')"
@@ -118,7 +140,7 @@ onBeforeUnmount(() => {
             >
               <img
                 class="min-w-[32px] w-8 h-8 rounded-full xl:me-2"
-                src="../assets/images/avatars/thumbs.png"
+                :src="user?.profile_picture"
                 alt="user photo"
               />
               <i
@@ -130,7 +152,7 @@ onBeforeUnmount(() => {
             <div
               data-dropdown-content-="profile"
               :class="{
-                'absolute z-[1000]v right-[0px] ltr:float-left rtl:float-right m-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block': true,
+                'absolute z-[1000]v top-0 right-[0px] ltr:float-left rtl:float-right m-0 min-w-max list-none overflow-hidden rounded-lg border-none bg-white bg-clip-padding text-left text-base shadow-lg dark:shadow-boxLargeDark dark:bg-box-dark-down [&[data-te-dropdown-show]]:block': true,
                 hidden: !isDropdownOpen('profile'),
               }"
               aria-labelledby="author-dropdown"
@@ -144,14 +166,14 @@ onBeforeUnmount(() => {
                 >
                   <img
                     class="w-8 h-8 rounded-full bg-regular"
-                    src="../assets/images/avatars/thumbs.png"
+                    :src="user?.profile_picture"
                     alt="user"
                   />
                   <figcaption>
                     <div class="text-dark dark:text-title-dark mb-0.5 text-sm">
                       {{ user.full_name }}
                     </div>
-                    <div class="mb-0 text-xs text-body dark:text-subtitle-dark">
+                    <div class="mb-0 text-xs" :class="user?.badge_color">
                       {{ user.badge }}
                     </div>
                   </figcaption>
@@ -169,6 +191,20 @@ onBeforeUnmount(() => {
                       >
                         <i class="text-[16px] uil uil-user"></i>
                         Profile
+                      </router-link>
+                    </div>
+                  </li>
+                  <li class="w-full">
+                    <!-- Dropdown Setting -->
+                    <div
+                      class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
+                    >
+                      <router-link
+                        :to="`/dashboard/${user.user_id}`"
+                        class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
+                      >
+                        <i class="text-[16px] uil uil-setting"></i>
+                        Dashboard
                       </router-link>
                     </div>
                   </li>
@@ -214,13 +250,12 @@ onBeforeUnmount(() => {
                 <button
                   @click="signOut"
                   class="flex items-center justify-center text-sm font-medium bg-normalBG dark:bg-box-dark-up h-[50px] text-light hover:text-primary dark:hover:text-subtitle-dark dark:text-title-dark rounded-b-6 gap-[6px] w-full"
-                  >
-                  <i class="uil uil-sign-out-alt"></i> Sign Out</button
                 >
+                  <i class="uil uil-sign-out-alt"></i> Sign Out
+                </button>
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

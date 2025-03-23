@@ -4,12 +4,19 @@ import { ref, onMounted, onBeforeMount, watch } from "vue";
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
 import { useToast } from "vue-toast-notification";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
+import HardWarningComponent from "@/components/dashboard/modal/HardWarningComponent.vue";
 
 const toastNotification = useToast();
-
+const isApprovalProjectModalOpen = ref(false);
+const isWithdrawalDetailOpen = ref(false);
+const isProcessWithdrawalConfirmationModal = ref(false);
+const isDoneWithdrawalConfirmationModal = ref(false);
+const isDeleteProjectModalOpen = ref(false);
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const projectList = ref();
 const project_id = ref("");
+const withdrawal_id = ref("");
 const projectStatistics = ref();
 const evaluationList = ref();
 
@@ -93,6 +100,26 @@ const projectData = ref({
   projectRole: [{ key: "", value: "" }],
 });
 
+const withdrawal = ref({
+  withdrawalId: "",
+
+  projectId: "",
+  projectTitle: "",
+  projectTargetAmount: null,
+  projectCategory: "",
+  projectStatus: "",
+
+  jumlahPenarikan: null,
+  senderId: "",
+  senderName: "",
+  email: "",
+  channelBank: "",
+  noRekening: "",
+  scanRekening: null,
+  buktiTransfer: null,
+  status: "",
+});
+
 const creatorInformation = ref({
   creatorName: "",
   creatorEmail: "",
@@ -103,6 +130,7 @@ const creatorInformation = ref({
   creatorWebsite: "",
   creatorID: "",
   creatorFile: "", //url
+  creatorFileName: "",
 });
 const beneficialInformation = ref({
   beneficiaryType: "",
@@ -119,11 +147,13 @@ const beneficialInformation = ref({
   beneficiaryRelation: "",
   beneficiaryRelationOther: "",
   beneficiaryFile: "", //url
+  beneficiaryFileName: "",
 });
 const lampiranList = ref();
 const timelineList = ref();
 
 const imagePreview = ref("");
+const buktiTransfer = ref("");
 const coloumActive = ref({
   title: {
     state: false,
@@ -173,7 +203,7 @@ const closeEvaluationModal = () => {
 };
 
 const previewFile = (lampiran) => {
-  window.open(lampiran.lampiranUrl, "_blank");
+  window.open(lampiran, "_blank");
 };
 
 const getActiveQueries = () => {
@@ -200,6 +230,45 @@ const coloumClick = (coloum) => {
 
   console.log("coloumActive", coloumActive.value);
   console.log("check active : ", isColoumActive(coloum));
+};
+
+const closeConfirmationApprovalModal = () => {
+  isApprovalProjectModalOpen.value = false;
+};
+
+const openConfirmationApprovalModal = () => {
+  isApprovalProjectModalOpen.value = true;
+};
+
+const openConfirmationDeleteProjectModal = (projectId) => {
+  project_id.value = projectId;
+  isDeleteProjectModalOpen.value = true;
+};
+
+const closeConfirmationDeleteProjectModal = () => {
+  isDeleteProjectModalOpen.value = false;
+};
+
+const handleImageUpload = async (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      buktiTransfer.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    withdrawal.value.buktiTransfer = file;
+    // projectData.value.projectFile = file;
+  }
+};
+
+const removeImage = () => {
+  buktiTransfer.value = null;
+  const fileInput = document.getElementById("import-file");
+  if (fileInput) {
+    fileInput.value = ""; // Reset input file agar bisa upload gambar yang sama
+  }
 };
 
 const initialMapLayer = () => {
@@ -238,7 +307,124 @@ const evaluationListUpdate = async (projectId) => {
   await getEvaluationList(projectId);
 };
 
+const openWithdrawalModal = async (projectId) => {
+  project_id.value = projectId;
+  await getWithdrawalDonationDetail(projectId);
+  isWithdrawalDetailOpen.value = true;
+};
+
+const openWithdrawalModalConfirmation = () => {
+  console.log("status open : ", withdrawal.value.status);
+  if (withdrawal.value.status == "diajukan") {
+    isProcessWithdrawalConfirmationModal.value = true;
+    isDoneWithdrawalConfirmationModal.value = false;
+  } else if (withdrawal.value.status == "diproses") {
+    isProcessWithdrawalConfirmationModal.value = false;
+    isDoneWithdrawalConfirmationModal.value = true;
+  }
+};
+
+const closeWithdrawalModalConfirmation = () => {
+  isWithdrawalDetailOpen.value = false;
+};
+
 //API
+const addLaporanAkhir = async () => {
+  const formData = new FormData();
+
+  formData.append("project_lampiran[0][file]", withdrawal.value.buktiTransfer); // Pastikan nama field sesuai di Laravel
+  formData.append("project_lampiran[0][tag]", "bukti transfer"); // Pastikan nama field sesuai di Laravel
+  formData.append("project_lampiran[0][section]", "laporan akhir"); // Pastikan nama field sesuai di Laravel
+
+  try {
+    const response = await api.post(
+      `/project/${project_id.value}/lampiran`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    // **Tambahkan ke lampiranList setelah sukses**
+    if (response.status == 201) {
+      console.log("respon lampiran : ", response.data);
+    }
+  } catch (error) {
+    console.error(
+      "Error:",
+      error.response ? error.response.data : error.message
+    );
+  }
+};
+const updateStatusWithdrawal = async (newStatus) => {
+  try {
+    console.log("status : ", newStatus);
+    const formData = new FormData();
+
+    formData.append("status", newStatus);
+    if (withdrawal.value.buktiTransfer) {
+      formData.append("bukti_transfer", withdrawal.value.buktiTransfer);
+
+      await addLaporanAkhir();
+    }
+
+    formData.append("_method", "PUT");
+    const response = await api.post(
+      `/project/${project_id.value}/donation/withdrawal/${withdrawal_id.value}/status`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    if (response.status == 201) {
+      openNotificatication("Status Penarikan Donasi Berhasil Diubah");
+      getProjectList();
+      isProcessWithdrawalConfirmationModal.value = false;
+      isDoneWithdrawalConfirmationModal.value = false;
+      isWithdrawalDetailOpen.value = false;
+    }
+  } catch (error) {
+    console.error("error update status : ", error);
+  }
+};
+
+const getWithdrawalDonationDetail = async (projectId) => {
+  try {
+    const response = await api.get(`/project/${projectId}/donation/withdrawal`);
+
+    let data = response.data.withdrawal_detail;
+    console.log("data : ", data);
+    withdrawal.value.withdrawalId = data.withdrawal_donation_id;
+
+    withdrawal.value.projectId = data.project_id;
+    withdrawal.value.projectTitle = data.project_title;
+    withdrawal.value.projectCategory = data.project_category;
+    withdrawal.value.projectStatus = data.project_status;
+    withdrawal.value.projectTargetAmount = data.project_target_amount;
+
+    withdrawal.value.jumlahPenarikan = data.jumlah_penarikan;
+    withdrawal.value.senderId = data.user_id;
+    withdrawal.value.senderName = data.nama_penerima;
+    withdrawal.value.email = data.email;
+    withdrawal.value.channelBank = data.channel_bank;
+    withdrawal.value.noRekening = data.nomor_rekening;
+    withdrawal.value.scanRekening = data.scan_rekening;
+    withdrawal.value.status = data.status_penarikan;
+    withdrawal.value.buktiTransfer = data.bukti_transfer;
+
+    withdrawal_id.value = withdrawal.value.withdrawalId;
+
+    console.log("withdrawal : ", withdrawal.value);
+  } catch (error) {
+    console.error("erroe detail : ", error);
+  }
+};
+
 const getProjectDetails = async (projectId) => {
   project_id.value = projectId;
 
@@ -258,9 +444,7 @@ const getProjectDetail = async (projectId) => {
   try {
     isProjectModalOpen.value = true;
 
-    const response = await api.get(
-      `/test-project/manage/project/${projectId}/detail`
-    );
+    const response = await api.get(`/project/${projectId}/manage/detail`);
 
     console.log("response : ", response.data);
     if (response.status == 200) {
@@ -302,6 +486,8 @@ const getProjectDetail = async (projectId) => {
         creatorWebsite: data.project_creator_information.creator_website || "",
         creatorID: data.project_creator_information.creator_identifier || "",
         creatorFile: data.project_creator_information.creator_file_path || "",
+        creatorFileName:
+          data.project_creator_information.creator_file_name || "",
       };
 
       beneficialInformation.value = {
@@ -333,6 +519,8 @@ const getProjectDetail = async (projectId) => {
           data.project_beneficial_information.beneficiary_relation_other || "",
         beneficiaryFile:
           data.project_beneficial_information.beneficiary_file_path || "",
+        beneficiaryFileName:
+          data.project_beneficial_information.beneficiary_file_name || "",
       };
 
       console.log("Mapped Project Data:", projectData.value);
@@ -346,7 +534,7 @@ const getProjectDetail = async (projectId) => {
 
 const getEvaluationList = async (projectId) => {
   try {
-    const responses = await api.get(`/test-project-evaluation-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/evaluation/list`);
 
     console.log("evaluation response : ", responses.data.project_evaluation);
 
@@ -373,7 +561,7 @@ const getEvaluationList = async (projectId) => {
 
 const getTimeline = async (projectId) => {
   try {
-    const responses = await api.get(`/test-project-timeline-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/timeline`);
     console.log("timeline : ", responses.data.project_timeline);
     const timelineLists = responses.data.project_timeline.map((timeline) => ({
       timelineId: timeline.project_timeline_id,
@@ -402,7 +590,7 @@ const getTimeline = async (projectId) => {
 
 const getLampiran = async (projectId) => {
   try {
-    const responses = await api.get(`/test-project-lampiran-id/${projectId}`);
+    const responses = await api.get(`/project/${projectId}/lampiran/list`);
     console.log("lampiran : ", responses.data);
     const lampiranLists = responses.data.project_lampiran.map((lampiran) => ({
       lampiranId: lampiran.project_lampiran_id,
@@ -419,7 +607,7 @@ const getLampiran = async (projectId) => {
 
 const getProjectLocation = async (projectId) => {
   try {
-    const response = await api.get(`/test-project-location-id/${projectId}`);
+    const response = await api.get(`/project/${projectId}/location`);
 
     let location = response.data.project_location;
 
@@ -438,7 +626,7 @@ const getProjectLocation = async (projectId) => {
 
 const getProjectCardStatistic = async () => {
   try {
-    const response = await api.get("/test-project/manage/project/statistic");
+    const response = await api.get("/project/manage/project/statistic");
 
     // const projectCardStastistic = response.data.project_statistics.map((statistic) => {
 
@@ -455,7 +643,7 @@ const getProjectList = async () => {
   try {
     const querySort = getActiveQueries();
     console.log("query sort : ", querySort);
-    const response = await api.get("test-project/manage/project", {
+    const response = await api.get("project/manage/project/list", {
       params: {
         search: searchText.value,
         query_sort: querySort,
@@ -474,6 +662,7 @@ const getProjectList = async () => {
         projectTargetAmount: project.project_target_amount,
         projectProgressPercentage: project.project_progress_percentage,
         projectDateCreated: project.project_date_created,
+        withdrawalStatus: project.withdrawal_status,
       }));
 
       projectList.value = projectsList;
@@ -494,11 +683,28 @@ const openNotificatication = (message) => {
   });
 };
 
-const updateStatusProject = async (newStatus) => {
-  console.log("ubah status");
+const deleteEvaluationId = async (projectEvaluationId) => {
+  try {
+    const response = await api.delete(
+      `/project/${projectEvaluationId}/evaluation`
+    );
+
+    if (response.status == 200) {
+      console.log("response status", response.data);
+    }
+
+    openNotificatication(`Evaluasi ${projectEvaluationId} berhasil Dihapus`);
+
+    await getEvaluationList(project_id.value);
+  } catch (error) {
+    console.error(error.response);
+  }
+};
+
+const updateEvaluationStatus = async (projectEvaluationId, newStatus) => {
   try {
     const response = await api.put(
-      `/test-project-status-id/${project_id.value}`,
+      `/project/${projectEvaluationId}/evaluation/status`,
       {
         status: newStatus,
       }
@@ -509,8 +715,47 @@ const updateStatusProject = async (newStatus) => {
     }
 
     openNotificatication(
-      `Status Project ${project_id.value} berhasil Diupdate`
+      `Status Evaluasi ${projectEvaluationId} berhasil Diupdate`
     );
+
+    await getEvaluationList(project_id.value);
+  } catch (error) {
+    console.error(error.response);
+  }
+};
+
+const deleteProjectId = async () => {
+  try {
+    const response = await api.delete(`/project/${project_id.value}/delete`);
+    console.log(response.data);
+    if (response.status == 200) {
+      openNotificatication(`Project ${project_id.value} Berhasil Dihapus`);
+      await getProjectList();
+      closeConfirmationDeleteProjectModal();
+    }
+  } catch (error) {
+    console.error(error.response);
+  }
+};
+
+const updateStatusProject = async (newStatus) => {
+  console.log("ubah status");
+  try {
+    const response = await api.put(`/project/${project_id.value}/status`, {
+      status: newStatus,
+    });
+
+    if (response.status == 200) {
+      console.log("response status", response.data);
+      openNotificatication(
+        `Status Project ${project_id.value} berhasil Diupdate`
+      );
+
+      await getProjectList();
+
+      closeConfirmationApprovalModal();
+      closeEvaluationModal();
+    }
   } catch (error) {
     console.error(error.response);
   }
@@ -528,7 +773,7 @@ const storeEvaluation = async () => {
     console.log("evaluasi : ", evaluasi);
     console.log("simpan evaluasi");
     const response = await api.post(
-      `/test-project-evaluation-id/${project_id.value}`,
+      `/project/${project_id.value}/evaluation`,
       evaluasi
     );
 
@@ -610,6 +855,21 @@ const isLocationOpen = ref(false);
 // Fungsi Toggle
 const toggleGeneralInfo = () => {
   isGeneralOpen.value = !isGeneralOpen.value;
+};
+
+const rekening = "123413942923232323";
+const copied = ref(false);
+
+const copyRekening = async () => {
+  try {
+    await navigator.clipboard.writeText(rekening);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error("Gagal menyalin nomor rekening:", err);
+  }
 };
 </script>
 
@@ -727,7 +987,7 @@ const toggleGeneralInfo = () => {
               @click="coloumClick('title')"
               class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
             >
-              Judul Proyek
+              Nama Proyek
               <i
                 v-if="isColoumActive('title')"
                 class="ui uil-arrow-up text-md"
@@ -749,7 +1009,7 @@ const toggleGeneralInfo = () => {
               @click="coloumClick('date')"
               class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
             >
-              Tanggal Pembuatan
+              Pengajuan
               <i
                 v-if="isColoumActive('date')"
                 class="ui uil-arrow-up text-md"
@@ -759,19 +1019,20 @@ const toggleGeneralInfo = () => {
             <th
               class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
             >
-              Target Proyek
+              Target
             </th>
             <th
               @click="coloumClick('progress')"
               class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
             >
-              Progress Proyek
+              Progress
               <i
                 v-if="isColoumActive('progress')"
                 class="ui uil-arrow-up text-md"
               ></i>
               <i v-else class="ui uil-arrow-down text-md"></i>
             </th>
+
             <th
               @click="coloumClick('status')"
               class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
@@ -779,6 +1040,17 @@ const toggleGeneralInfo = () => {
               Status Proyek
               <i
                 v-if="isColoumActive('status')"
+                class="ui uil-arrow-up text-md"
+              ></i>
+              <i v-else class="ui uil-arrow-down text-md"></i>
+            </th>
+            <th
+              @click="coloumClick('withdrawal')"
+              class="cursor-pointer px-6 py-3 text-center text-sm font-medium text-dark dark:text-title-dark"
+            >
+              Status Penarikan
+              <i
+                v-if="isColoumActive('withdrawal')"
                 class="ui uil-arrow-up text-md"
               ></i>
               <i v-else class="ui uil-arrow-down text-md"></i>
@@ -794,7 +1066,12 @@ const toggleGeneralInfo = () => {
           <tr v-for="project in projectList" :key="project.projectId">
             <td class="px-6 py-3">
               <div class="pl-6">
-                <span> {{ project.projectTitle }}</span>
+                <router-link
+                  :to="`/dashboard/project/${project.projectId}`"
+                  class="hover:text-blue-400"
+                >
+                  <span> {{ project.projectTitle }}</span>
+                </router-link>
               </div>
             </td>
 
@@ -820,6 +1097,7 @@ const toggleGeneralInfo = () => {
                 {{ project.projectProgressPercentage }} %
               </div>
             </td>
+
             <td class="px-6 py-3">
               <div class="flex justify-center items-center">
                 <span
@@ -828,16 +1106,35 @@ const toggleGeneralInfo = () => {
                     'bg-purple-100 text-purple-700':
                       project.projectStatus === 'proposed',
                     'bg-green-100 text-green-700':
-                      project.projectStatus === 'in progress',
+                      project.projectStatus === 'in_progress',
                     'bg-red-100 text-red-700':
-                      project.projectStatus === 'in review',
+                      project.projectStatus === 'in_review',
                     'bg-blue-100 text-blue-700':
                       project.projectStatus === 'completed',
                     'bg-gray-100 text-gray-700':
-                      project.projectStatus === 'in active',
+                      project.projectStatus === 'inactive',
                   }"
                 >
-                  {{ project.projectStatus }}</span
+                  {{ project.projectStatus.replace("_", " ") }}</span
+                >
+              </div>
+            </td>
+
+            <td class="px-6 py-3">
+              <div class="flex justify-center items-center">
+                <span
+                  class="px-3 py-1 text-sm font-medium rounded-lg"
+                  :class="{
+                    'bg-green-100 text-green-700':
+                      project.withdrawalStatus === 'selesai',
+
+                    'bg-blue-100 text-blue-700':
+                      project.withdrawalStatus === 'diproses',
+                    'bg-gray-100 text-gray-700':
+                      project.withdrawalStatus === 'diajukan',
+                  }"
+                >
+                  {{ project.withdrawalStatus }}</span
                 >
               </div>
             </td>
@@ -861,8 +1158,18 @@ const toggleGeneralInfo = () => {
                   <i class="uil uil-eye text-[16px]"></i>
                 </button>
 
+                <!-- Penarikan Dana  -->
+                <button
+                  @click="openWithdrawalModal(project.projectId)"
+                  class="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
+                  title="Penarikan Donasi"
+                >
+                  <i class="uil uil-dollar-alt text-[16px]"></i>
+                </button>
+
                 <!-- Delete (Hapus) -->
                 <button
+                  @click="openConfirmationDeleteProjectModal(project.projectId)"
                   class="px-2 py-1 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
                   title="Hapus Project"
                 >
@@ -917,12 +1224,12 @@ const toggleGeneralInfo = () => {
     <!-- Modal -->
     <div
       v-if="isProjectModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50"
       role="dialog"
       aria-modal="true"
     >
       <div
-        class="mt-14 relative w-full max-w-3xl p-6 bg-white rounded-lg shadow-lg"
+        class="relative w-full max-w-3xl p-6 pt-4 bg-white rounded-lg shadow-lg"
       >
         <!-- Modal Header -->
         <div class="flex items-center justify-between pb-3 border-b">
@@ -1089,7 +1396,11 @@ const toggleGeneralInfo = () => {
                         class="block text-gray-700 dark:text-gray-300 font-medium"
                         >Unggah Dokumen Proposal (Opsional)</label
                       >
-                      <span>{{ creatorInformation.creatorFile }}</span>
+                      <a
+                        :href="creatorInformation.creatorFile"
+                        class="hover:underline"
+                        >{{ creatorInformation.creatorFileName }}</a
+                      >
                     </div>
                   </div>
                 </div>
@@ -1179,7 +1490,13 @@ const toggleGeneralInfo = () => {
                         class="block text-gray-700 dark:text-gray-300 font-medium"
                         >Dokumen Pendukung (Opsional)</label
                       >
-                      <span>{{ beneficialInformation.beneficiaryFile }}</span>
+                      <span
+                        @click="
+                          previewFile(beneficialInformation.beneficiaryFile)
+                        "
+                        class="hover:underline"
+                        >{{ beneficialInformation.beneficiaryFileName }}</span
+                      >
                     </div>
                   </div>
 
@@ -1808,7 +2125,7 @@ const toggleGeneralInfo = () => {
                       class="flex items-center justify-between p-2 border rounded-md"
                     >
                       <div
-                        @click="previewFile(lampiran)"
+                        @click="previewFile(lampiran.lampiranUrl)"
                         class="flex items-center space-x-3 min-w-0 cursor-pointer hover:text-red-500"
                       >
                         <i class="uil uil-file text-xl text-gray-600"></i>
@@ -1820,7 +2137,7 @@ const toggleGeneralInfo = () => {
                       <div class="flex space-x-3 flex-shrink-0 mr-2">
                         <!-- Preview -->
                         <button
-                          @click="previewFile(lampiran)"
+                          @click="previewFile(lampiran.lampiranUrl)"
                           class="text-blue-500 hover:text-blue-700"
                           title="Preview"
                         >
@@ -1895,7 +2212,7 @@ const toggleGeneralInfo = () => {
         <div class="border-t flex justify-end mt-2">
           <div class="mt-4 pr-6 pt-2">
             <button
-              @click="updateStatusProject('in review')"
+              @click="updateStatusProject('in_review')"
               class="px-4 py-2 -[16px] text-white bg-blue-500 rounded hover:bg-blue-600"
             >
               Review
@@ -1917,13 +2234,11 @@ const toggleGeneralInfo = () => {
     <!-- Modal -->
     <div
       v-if="isEvaluationModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50"
       role="dialog"
       aria-modal="true"
     >
-      <div
-        class="mt-14 relative w-full max-w-5xl p-6 bg-white rounded-lg shadow-lg"
-      >
+      <div class="relative w-full max-w-5xl p-6 bg-white rounded-lg shadow-lg">
         <!-- Modal Header -->
         <div class="flex items-center justify-between pb-3 border-b">
           <h5 class="text-lg font-semibold text-gray-800">Evaluasi</h5>
@@ -1980,10 +2295,19 @@ const toggleGeneralInfo = () => {
                       :for="`todolist-todo-${evaluation.evaluationId}`"
                       class="todo-title text-[14px] font-normal leading-[25px] text-theme-gray dark:text-subtitle-dark capitalize"
                     >
+                      <input
+                        :id="`todolist-todo-${evaluation.evaluationId}`"
+                        type="checkbox"
+                        :true-value="1"
+                        :false-value="0"
+                        v-model="evaluation.evaluationChecked"
+                        class="relative ltr:float-left rtl:float-right me-[10px] mt-[0.15rem] h-[1.125rem] w-[1.125rem] appearance-none rounded-[0.25rem] border-1 border-solid border-normal outline-none before:pointer-events-none before:absolute before:h-[10px] before:w-[0.5px] before:scale-0 before:rounded-full before:bg-transparent before:opacity-0 before:content-[''] checked:border-success checked:bg-success checked:before:opacity-[0.16] checked:after:absolute checked:after:mt-0 checked:after:ms-[5px] checked:after:block checked:after:h-[10px] checked:after:w-[5px] checked:after:rotate-45 checked:after:border-[0.125rem] checked:after:border-l-0 checked:after:border-t-0 checked:after:border-solid checked:after:border-white checked:after:bg-transparent checked:after:content-['']  hover:before:opacity-[0.04] dark:border-white/10 dark:checked:border-success dark:checked:bg-success after:top-[2px] [&:checked~.label]:line-through [&:checked~.label]:text-primary"
+                        :disabled="true"
+                      />
                       <span
                         :class="{
                           'line-through':
-                            evaluation.evaluationStatus === 'approve',
+                            evaluation.evaluationStatus === 'approved',
                         }"
                         >{{ evaluation.evaluationTaskComment }}</span
                       >
@@ -1999,16 +2323,14 @@ const toggleGeneralInfo = () => {
                       class="px-3 py-1 text-sm font-medium rounded-lg"
                       :class="{
                         'bg-green-100 text-green-700':
-                          evaluation.evaluationStatus === 'approve',
+                          evaluation.evaluationStatus === 'approved',
                         'bg-red-100 text-red-700':
                           evaluation.evaluationStatus === 'rejected',
                         'bg-blue-100 text-blue-700':
-                          evaluation.evaluationStatus === 'review',
-                        'bg-gray-100 text-gray-700':
-                          evaluation.evaluationStatus === 'draft',
+                          evaluation.evaluationStatus === 'in_review',
                       }"
                     >
-                      {{ evaluation.evaluationStatus }}
+                      {{ evaluation.evaluationStatus.replace("_", " ") }}
                     </span>
                   </div>
                 </td>
@@ -2080,7 +2402,7 @@ const toggleGeneralInfo = () => {
                       @click="
                         updateEvaluationStatus(
                           evaluation.evaluationId,
-                          'approve'
+                          'approved'
                         )
                       "
                       class="py-1 px-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
@@ -2122,7 +2444,7 @@ const toggleGeneralInfo = () => {
         <div class="border-t flex justify-end mt-2">
           <div class="mt-4 pr-6 pt-2">
             <button
-              @click="updateStatusProject('in progress')"
+              @click="openConfirmationApprovalModal"
               class="px-4 py-2 -[16px] text-white bg-blue-500 rounded hover:bg-blue-600"
             >
               Approve
@@ -2138,6 +2460,314 @@ const toggleGeneralInfo = () => {
       </div>
     </div>
   </div>
+
+  <!-- Report Detail  -->
+  <div>
+    <!-- Modal -->
+    <div
+      v-if="isWithdrawalDetailOpen"
+      class="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="relative w-full max-w-xl md:max-w-3xl p-4 bg-white rounded-lg shadow-lg"
+      >
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-3 border-b">
+          <h5 class="text-lg font-semibold text-gray-800">
+            Informasi Penarikan
+          </h5>
+          <button
+            @click="() => (isWithdrawalDetailOpen = false)"
+            class="text-gray-500 hover:text-red-500"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div
+          class="md:pl-0 pl-4 pt-6 pb-12 pr-6 max-h-[300px] md:max-h-[350px] overflow-x-auto"
+        >
+          <div class="grid grid-cols-12 gap-y-6 sm:gap-x-6 content-center">
+            <div class="col-span-12 xl:col-start-2 xl:col-span-11 space-y-4">
+              <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+                <!-- Informasi Project -->
+                <div class="col-span-2">
+                  <span class="text-lg font-semibold mb-2 block"
+                    >Informasi Project</span
+                  >
+                  <div class="grid grid-cols-2 gap-y-2 gap-x-4">
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Project</label
+                      >
+                      <router-link
+                        :to="`/dashboard/project/${withdrawal.projectId}`"
+                      >
+                        <span class="w-full py-2 block">
+                          {{ withdrawal.projectTitle }}
+                        </span>
+                      </router-link>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Category</label
+                      >
+                      <span class="w-full py-2 block">{{
+                        withdrawal.projectCategory
+                      }}</span>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Status</label
+                      >
+                      <span class="w-full py-2 block">{{
+                        withdrawal.projectStatus
+                      }}</span>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Target Project</label
+                      >
+                      <span class="w-full py-2 block"
+                        >Rp {{ withdrawal.projectTargetAmount }}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Informasi Penerima -->
+                <div class="col-span-2 border-t mt-4 pt-4">
+                  <span class="text-lg font-semibold mb-2 block"
+                    >Informasi Penerima</span
+                  >
+                  <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Nama Penerima</label
+                      >
+                      <span class="w-full py-2 block">{{
+                        withdrawal.senderName
+                      }}</span>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Channel Bank</label
+                      >
+                      <span class="w-full py-2 block">{{
+                        withdrawal.channelBank
+                      }}</span>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Nomor Rekening</label
+                      >
+                      <div class="flex items-center space-x-2">
+                        <span class="font-medium">{{
+                          withdrawal.noRekening
+                        }}</span>
+                        <button
+                          @click="copyRekening"
+                          class="text-blue-500 hover:text-blue-700"
+                        >
+                          <i
+                            class="text-md"
+                            :class="
+                              copied ? 'uil uil-check-circle' : 'uil uil-copy'
+                            "
+                          ></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Nominal Penarikan</label
+                      >
+                      <span class="w-full py-2 block"
+                        >Rp {{ withdrawal.jumlahPenarikan }}</span
+                      >
+                    </div>
+
+                    <!-- KTP -->
+                    <div class="col-span-2">
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >Scan Rekening</label
+                      >
+                      <div class="flex items-center justify-center mb-4">
+                        <label
+                          class="flex flex-col items-center justify-center w-full sm:min-h-[150px] bg-white dark:bg-box-dark p-2 rounded-lg border-2 border-dashed border-[#c6d0dc] dark:border-box-dark-up hover:border-primary dark:hover:border-primary transition-all duration-300 ease-linear"
+                        >
+                          <!-- Preview Image -->
+                          <div
+                            v-if="withdrawal?.scanRekening"
+                            class="w-full mt-2"
+                          >
+                            <img
+                              :src="withdrawal?.scanRekening"
+                              class="w-full h-80 object-cover rounded-md"
+                            />
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Bukti Transfer  -->
+                    <div
+                      v-if="withdrawal.status != 'diajukan'"
+                      class="col-span-2"
+                    >
+                      <label
+                        class="block text-gray-700 dark:text-gray-300 font-medium mb-1"
+                        >{{
+                          withdrawal.buktiTransfer
+                            ? "Bukti Transfer"
+                            : "Upload Bukti Transfer"
+                        }}</label
+                      >
+                      <div class="flex items-center justify-center">
+                        <label
+                          for="import-file"
+                          class="flex flex-col items-center justify-center w-full sm:min-h-[150px] bg-white dark:bg-box-dark p-2 rounded-lg border-2 border-dashed border-[#c6d0dc] dark:border-box-dark-up hover:border-primary dark:hover:border-primary cursor-pointer transition-all duration-300 ease-linear"
+                        >
+                          <div
+                            v-if="!buktiTransfer && !withdrawal.buktiTransfer"
+                            class="flex flex-col items-center justify-center pt-3 pb-3"
+                          >
+                            <div
+                              class="text-[40px] text-light dark:text-subtitle-dark"
+                            >
+                              <i class="uil uil-cloud-upload"></i>
+                            </div>
+                            <p
+                              class="text-[14px] font-medium text-dark dark:text-title-dark"
+                            >
+                              Drop File or
+                              <span class="text-primary">Browse</span>
+                            </p>
+                          </div>
+                          <input
+                            id="import-file"
+                            type="file"
+                            class="hidden"
+                            accept="image/*"
+                            @change="handleImageUpload"
+                          />
+
+                          <!-- Preview Image -->
+                          <div
+                            v-if="buktiTransfer || withdrawal.buktiTransfer"
+                            class="w-full mt-2"
+                          >
+                            <img
+                              :src="
+                                buktiTransfer
+                                  ? buktiTransfer
+                                  : withdrawal.buktiTransfer
+                              "
+                              class="w-full h-80 object-cover rounded-md"
+                            />
+                          </div>
+                        </label>
+                      </div>
+                      <div
+                        v-if="withdrawal.status == 'diproses' && buktiTransfer"
+                        class="mt-2"
+                      >
+                        <button
+                          @click="removeImage"
+                          class="bg-red-600 text-white text-sm px-4 py-2 rounded-md shadow-md hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-300 ease-in-out"
+                        >
+                          ✕ Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Approve -->
+        <div class="border-t flex justify-end mt-2">
+          <div class="mt-4 pr-6 pt-2">
+            <button
+              v-if="withdrawal.status != 'selesai'"
+              @click="openWithdrawalModalConfirmation"
+              class="px-4 py-2 ml-3 text-white bg-blue-700 rounded hover:bg-blue-500"
+            >
+              {{
+                withdrawal.status == "diajukan"
+                  ? "Proses Penarikan"
+                  : "Selesaikan Penarikan"
+              }}
+            </button>
+            <button
+              @click="closeWithdrawalModalConfirmation"
+              class="px-4 py-2 ml-3 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Penarikan  -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isProcessWithdrawalConfirmationModal"
+    :description="'    Apakah Anda yakin ingin Memproses penarikan donasi ini? Pastikan Seluruh data sudah sesuai ketentuan.'"
+    @close-confirmation-modal="
+      () => (isProcessWithdrawalConfirmationModal = false)
+    "
+    @action-modal="updateStatusWithdrawal('diproses')"
+    :action="'Proses Penarikan'"
+    :title="'Konfirmasi Penarikan Donasi'"
+  />
+
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isDoneWithdrawalConfirmationModal"
+    :description="'    Apakah Anda yakin ingin Mengakhiri penarikan donasi ini? Pastikan Seluruh data sudah sesuai ketentuan.'"
+    @close-confirmation-modal="
+      () => (isDoneWithdrawalConfirmationModal = false)
+    "
+    @action-modal="updateStatusWithdrawal('selesai')"
+    :action="'Selesaikan Penarikan'"
+    :title="'Konfirmasi Penarikan Donasi'"
+  />
+
+  <!-- Approve Project  -->
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isApprovalProjectModalOpen"
+    :description="'    Apakah Anda yakin ingin Meng-approval proyek ini? Pastikan Seluruh data sudah sesuai ketentuan.'"
+    @close-confirmation-modal="closeConfirmationApprovalModal"
+    @action-modal="updateStatusProject('in_progress')"
+    :action="'Approve Project'"
+    :title="'Konfirmasi Approval Project'"
+  />
+
+  <!-- Konfirmasi Delete Modal  -->
+  <HardWarningComponent
+    :is-confirmation-modal-open="isDeleteProjectModalOpen"
+    :description="'    Apakah Anda yakin ingin menghapus proyek ini? Tindakan ini tidak dapat dibatalkan.'"
+    @close-confirmation-modal="closeConfirmationDeleteProjectModal"
+    @action-modal="deleteProjectId"
+    :action="'Hapus'"
+    :title="'Konfirmasi Hapus'"
+  />
 </template>
 
 <style scoped>

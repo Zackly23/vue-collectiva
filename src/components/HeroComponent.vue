@@ -15,12 +15,12 @@
             langkah kecil membawa harapan besar.
           </p>
           <div class="flex flex-col sm:flex-row gap-4">
-            <a
-              href="#"
+            <router-link
+              to="/project/list"
               class="px-4 py-3 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 font-semibold text-center transition-all"
             >
               Lihat Proyek
-            </a>
+            </router-link>
             <a
               href="#"
               class="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-center shadow-lg shadow-green-600/20 transition-all"

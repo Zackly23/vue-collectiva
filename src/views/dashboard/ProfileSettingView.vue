@@ -44,6 +44,7 @@ const userProfile = ref({
     linkedin: "",
   },
 });
+
 // const imagePreview = ref(null);
 const ktpImage = ref(null);
 const profileImage = ref(null);
@@ -117,7 +118,7 @@ const socialMediaFields = ref([
   },
 ]);
 
-const openNotificatication = (message, type="success") => {
+const openNotificatication = (message, type = "success") => {
   toastNotification.open({
     type: type,
     message: message,
@@ -178,39 +179,39 @@ const changePassword = async () => {
       new_password_confirmation: passwordData.value.newConfirmationPassword,
     };
 
-    const response = await api.post(
-      `/password/change`,
-      passwordRequest
-    );
+    const response = await api.post(`/password/change`, passwordRequest);
 
     if (response.status === 200) {
       console.log("Password Berhasil Diubah");
-      openNotificatication('Password Berhasil Diubah', 'success');
+      openNotificatication("Password Berhasil Diubah", "success");
     }
   } catch (error) {
     console.error("error change password : ", error);
-    openNotificatication(`Password Gagal Diubah \n${error.response.data.message}`, 'warning');
+    openNotificatication(
+      `Password Gagal Diubah \n${error.response.data.message}`,
+      "warning"
+    );
   }
 };
 
 const verifyEmail = async () => {
   try {
-    const response = await api.post(
-      `email/verification`,
-      {},
-    );
+    const response = await api.post(`email/verification`, {});
     if (response.status === 200) {
       console.log("Email Verifikasi Telah dikirim");
-      openNotificatication('Email Verifikasi Telah dikirim', 'success');
+      openNotificatication("Email Verifikasi Telah dikirim", "success");
     } else if (response.status === 404) {
       console.log("User tidak ditemukan");
     } else {
       console.log("Ada kesalahan pada sistem");
-      openNotificatication('Ada kesalahan pada sistem', 'warning');
+      openNotificatication("Ada kesalahan pada sistem", "warning");
     }
   } catch (error) {
     console.error("error verifikasi : ", error);
-    openNotificatication(`Email Verifikasi Gagal Dikirim \n${error.response.data.message}`, 'warning');
+    openNotificatication(
+      `Email Verifikasi Gagal Dikirim \n${error.response.data.message}`,
+      "warning"
+    );
   }
 };
 
@@ -227,19 +228,19 @@ const updateSocialMedia = async () => {
     formData.append("_method", "PUT");
 
     // Lakukan request POST ke endpoint API yang sesuai
-    const response = await api.post(
-      `/test-profile/${userId}`,
-      formData
-    );
+    const response = await api.post(`/user/${userId}/profile`, formData);
 
     if (response.status == 200) {
       console.log("Social Media updated successfully:", response.data);
-      openNotificatication('Social Media Berhasil Diupdate', 'success');
+      openNotificatication("Social Media Berhasil Diupdate", "success");
       getUserProfile();
     }
   } catch (error) {
     console.error("Error updating Social Media:", error);
-    openNotificatication(`Social Media Gagal Diupdate \n${error.response.data.message}`, 'warning');
+    openNotificatication(
+      `Social Media Gagal Diupdate \n${error.response.data.message}`,
+      "warning"
+    );
   }
 };
 
@@ -252,7 +253,7 @@ const updateUserProfile = async () => {
     formData.append("address", userProfile.value.address);
     formData.append("nik", userProfile.value.nik);
     formData.append("jabatan", userProfile.value.jabatan);
-    
+
     formData.append("organization_name", userProfile.value.organizationName);
 
     if (userProfile.value.birthDate) {
@@ -289,30 +290,31 @@ const updateUserProfile = async () => {
     formData.append("_method", "PUT");
 
     // Lakukan request POST ke endpoint API yang sesuai
-    const response = await api.post(
-      `/test-profile/${userId}`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        }
-      }
-    );
+    const response = await api.post(`/user/${userId}/profile`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     if (response.status == 200) {
       console.log("Profile updated successfully:", response.data);
+      localStorage.setItem("user", JSON.stringify(user));
+      
       getUserProfile();
-      openNotificatication('Profile Berhasil Diupdate', 'success');
+      openNotificatication("Profile Berhasil Diupdate", "success");
     }
   } catch (error) {
     console.error("Error updating profile:", error);
-    openNotificatication(`Profile Gagal Diupdate \n${error.response.data.message}`, 'warning')
+    openNotificatication(
+      `Profile Gagal Diupdate \n${error.response.data.message}`,
+      "warning"
+    );
   }
 };
 
 const getUserProfile = async () => {
   try {
-    const response = await api.get(`/test-profile`,);
+    const response = await api.get(`/user/${userId}/profile`);
 
     console.log("is email verified : ", isEmailVerified.value);
     console.log("user : ", response.data.user);
@@ -331,7 +333,6 @@ const getUserProfile = async () => {
       organizationName: data.organization_name,
       jabatan: data.jabatan,
       socialMedia: JSON.parse(data.social_media), // Parsing string JSON menjadi objek
-
     };
 
     profileImage.value = userProfile.value.profilePicture;
@@ -354,7 +355,6 @@ watch(
   { immediate: true } // Agar watch langsung dijalankan saat komponen dimuat
 );
 
-
 onMounted(async () => {
   try {
     await getUserProfile(); // Tunggu fetching selesai
@@ -362,13 +362,11 @@ onMounted(async () => {
     console.error("Gagal mengambil data:", error);
   }
   emits("toggle-loading"); // Matikan loading setelah fetching selesai
-
 });
 
 onBeforeMount(() => {
   emits("toggle-active-loading");
-
-})
+});
 </script>
 
 <template>
@@ -463,6 +461,9 @@ onBeforeMount(() => {
                       </div>
                     </div>
                     <input
+                      v-action="{
+                        role: ['admin', 'verified', 'active', 'reported'],
+                      }"
                       id="widget-profile-dropzone-file"
                       type="file"
                       accept="image/*"
@@ -548,6 +549,9 @@ onBeforeMount(() => {
                   </p>
                 </div>
                 <input
+                  v-action="{
+                    role: ['admin', 'verified', 'active', 'reported'],
+                  }"
                   @change="(e) => handleImageUpload(e, 'cover')"
                   id="profile-dropzone-file"
                   type="file"
@@ -595,6 +599,9 @@ onBeforeMount(() => {
                         Nama Lengkap
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         type="text"
                         v-model="userProfile.fullName"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -608,6 +615,9 @@ onBeforeMount(() => {
                         Nomor Induk Kependudukan
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         type="text"
                         v-model="userProfile.nik"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -621,6 +631,9 @@ onBeforeMount(() => {
                         Alamat
                       </label>
                       <textarea
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="userProfile.address"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       ></textarea>
@@ -633,6 +646,9 @@ onBeforeMount(() => {
                         >Tanggal Lahir</label
                       >
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         id="start_date"
                         type="date"
                         v-model="userProfile.birthDate"
@@ -646,6 +662,9 @@ onBeforeMount(() => {
                         >Jenis Kelamin</label
                       >
                       <select
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="userProfile.jenisKelamin"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       >
@@ -662,9 +681,15 @@ onBeforeMount(() => {
                       <label
                         for="organisasi"
                         class="block text-gray-700 dark:text-gray-300 font-medium"
-                        >Organisasi <span class="text-xs text-gray-600">(opsional)</span></label
+                        >Organisasi
+                        <span class="text-xs text-gray-600"
+                          >(opsional)</span
+                        ></label
                       >
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         id="organisasi"
                         type="text"
                         v-model="userProfile.organizationName"
@@ -673,13 +698,19 @@ onBeforeMount(() => {
                     </div>
 
                     <!-- Jabatan  -->
-                    <div >
+                    <div>
                       <label
                         for="jabatan"
                         class="block text-gray-700 dark:text-gray-300 font-medium"
-                        >Jabatan <span class="text-xs text-gray-600">(opsional)</span></label
+                        >Jabatan
+                        <span class="text-xs text-gray-600"
+                          >(opsional)</span
+                        ></label
                       >
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         id="organisasi"
                         type="text"
                         v-model="userProfile.jabatan"
@@ -715,6 +746,9 @@ onBeforeMount(() => {
                             </p>
                           </div>
                           <input
+                            v-action="{
+                              role: ['admin', 'verified', 'active', 'reported'],
+                            }"
                             id="import-file"
                             type="file"
                             class="hidden"
@@ -753,6 +787,9 @@ onBeforeMount(() => {
                         Nomor Telephone
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="userProfile.phoneNumber"
                         type="text"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -764,6 +801,9 @@ onBeforeMount(() => {
                       class="flex flex-wrap items-center gap-3 mt-8 justify-end"
                     >
                       <button
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         @click="updateUserProfile"
                         type="button"
                         class="group text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition duration-300 rounded-6 h-9 sm:px-5 px-4 flex items-center gap-2"
@@ -826,6 +866,9 @@ onBeforeMount(() => {
                         >
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="userProfile.email"
                         type="email"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -847,13 +890,23 @@ onBeforeMount(() => {
                         Password
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="passwordData.oldPassword"
                         :type="passwordVisible ? 'text' : 'password'"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <i v-if="!passwordVisible" @click="() => passwordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
-                      <i v-else @click="() => passwordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
-                   
+                      <i
+                        v-if="!passwordVisible"
+                        @click="() => (passwordVisible = true)"
+                        class="ui uil-eye absolute right-4 bottom-2 text-lg"
+                      ></i>
+                      <i
+                        v-else
+                        @click="() => (passwordVisible = false)"
+                        class="ui uil-eye-slash absolute right-4 bottom-2 text-lg"
+                      ></i>
                     </div>
                     <!-- New Password  -->
                     <div class="relative">
@@ -863,13 +916,23 @@ onBeforeMount(() => {
                         New Password
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="passwordData.newPassword"
                         :type="newPasswordVisible ? 'text' : 'password'"
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <i v-if="!newPasswordVisible" @click="() => newPasswordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
-                      <i v-else @click="() => newPasswordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
-                   
+                      <i
+                        v-if="!newPasswordVisible"
+                        @click="() => (newPasswordVisible = true)"
+                        class="ui uil-eye absolute right-4 bottom-2 text-lg"
+                      ></i>
+                      <i
+                        v-else
+                        @click="() => (newPasswordVisible = false)"
+                        class="ui uil-eye-slash absolute right-4 bottom-2 text-lg"
+                      ></i>
                     </div>
                     <!-- Confirmation New Password  -->
                     <div class="relative">
@@ -879,19 +942,34 @@ onBeforeMount(() => {
                         ConfirmationNew Password
                       </label>
                       <input
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         v-model="passwordData.newConfirmationPassword"
-                        :type="confirmationPasswordVisible ? 'text' : 'password'"
+                        :type="
+                          confirmationPasswordVisible ? 'text' : 'password'
+                        "
                         class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <i v-if="!confirmationPasswordVisible" @click="() => confirmationPasswordVisible = true " class="ui uil-eye absolute right-4 bottom-2 text-lg"></i>
-                      <i v-else @click="() => confirmationPasswordVisible = false " class="ui uil-eye-slash absolute right-4 bottom-2 text-lg "></i>
-                   
+                      <i
+                        v-if="!confirmationPasswordVisible"
+                        @click="() => (confirmationPasswordVisible = true)"
+                        class="ui uil-eye absolute right-4 bottom-2 text-lg"
+                      ></i>
+                      <i
+                        v-else
+                        @click="() => (confirmationPasswordVisible = false)"
+                        class="ui uil-eye-slash absolute right-4 bottom-2 text-lg"
+                      ></i>
                     </div>
                     <!-- Tombol Aksi -->
                     <div
                       class="flex flex-wrap items-center justify-end gap-3 mt-8"
                     >
                       <button
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         @click="changePassword"
                         type="button"
                         class="group text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition duration-300 rounded-6 h-9 sm:px-5 px-4 flex items-center gap-2"
@@ -991,6 +1069,9 @@ onBeforeMount(() => {
                             <i :class="[item.icon, 'text-[20px]']"></i>
                           </button>
                           <input
+                            v-action="{
+                              role: ['admin', 'verified', 'active', 'reported'],
+                            }"
                             :id="item.id"
                             type="text"
                             v-model="userProfile.socialMedia[item.id]"
@@ -1004,6 +1085,8 @@ onBeforeMount(() => {
                       class="static flex flex-wrap items-center gap-[10px] sm:mt-[43px] mt-[24] justify-end"
                     >
                       <button
+                      v-action="{role: ['admin', 'verified', 'active', 'reported']}"
+
                         @click="updateSocialMedia"
                         type="button"
                         class="group text-[13px] border-normal font-semibold text-white dark:text-title-dark btn-outlined h-[37px] dark:border-box-dark-up sm:px-[20px] px-[15px] rounded-6 flex items-center gap-[5px] leading-[22px] hover:text-white hover:bg-primary-hbr bg-primary transition duration-300"
