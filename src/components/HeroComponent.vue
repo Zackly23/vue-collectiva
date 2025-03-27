@@ -36,7 +36,7 @@
             class="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl"
           >
             <img
-              src="C:\Users\hp\Downloads\headline-illustration.webp"
+              src="../assets/images/hero/headline-illustration.webp"
               alt="Charity illustration"
               class="object-cover w-full h-full"
             />
