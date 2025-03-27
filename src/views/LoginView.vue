@@ -112,7 +112,12 @@ const handleSubmit = async () => {
           localStorage.getItem("permissions")
         );
 
-        if (localStorage.setItem("last_visited_page", currentPath)) {
+        console.log(
+          "Last Visited Page:",
+          localStorage.getItem("last_visited_page")
+        );
+
+        if (localStorage.getItem("last_visited_page")) {
           router.push(localStorage.getItem("last_visited_page"));
         }
           router.push(`/dashboard/${userId}`);
@@ -237,10 +242,11 @@ function redirectToSignup() {
               <button
                 @click="handleSocialLogin('google')"
                 class="py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                title="google"
               >
                 <i class="ui uil-google"></i>
               </button>
-              <button
+              <!-- <button
                 @click="handleSocialLogin('twitter')"
                 class="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
               >
@@ -251,7 +257,7 @@ function redirectToSignup() {
                 class="py-2 px-4 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition-colors"
               >
                 <i class="ui uil-github"></i>
-              </button>
+              </button> -->
             </div>
           </div>
 

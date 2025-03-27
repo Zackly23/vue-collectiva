@@ -32,6 +32,7 @@ const signOut = async () => {
     if (response.status === 200) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
+      localStorage.removeItem("last_visited_page");
       authStore.logout();
       openNotificatication("Anda Berhasil Sign Out");
 

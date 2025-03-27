@@ -29,7 +29,7 @@ notificationPrivate.listen(".notify-event", async function (data) {
   const notification = data.notification;
   const targetId = data.target_id;
 
-  console.log('userprofile : ', userProfile.value);
+  console.log("userprofile : ", userProfile.value);
   if (targetId == userProfile.value.user_id) {
     console.log("notification : ", notification);
     await getNotifications();
@@ -116,7 +116,8 @@ const signOut = async () => {
     if (response.status === 200) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-     
+      localStorage.removeItem("last_visited_page");
+
       authStore.logout();
       openNotificatication("Anda Berhasil Sign Out");
       userProfile.value = null;
@@ -184,7 +185,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleOutsideClick);
 });
-
 
 const emit = defineEmits(["toggle-aside"]);
 
@@ -1069,9 +1069,7 @@ defineProps({
                       </div>
                       <div
                         class="mb-0 text-xs"
-                        :class="
-                          userProfile?.badge_color
-                        "
+                        :class="userProfile?.badge_color"
                       >
                         {{ userProfile?.badge }}
                       </div>

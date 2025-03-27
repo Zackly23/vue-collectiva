@@ -3,6 +3,8 @@ import { onBeforeMount, onMounted, ref, watch } from "vue";
 import api from "@/api";
 import { useRoute } from "vue-router";
 import { useToast } from "vue-toast-notification";
+import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
+import VerifiedAlertComponent from "@/components/VerifiedAlertComponent.vue";
 
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const toastNotification = useToast();
@@ -299,7 +301,7 @@ const updateUserProfile = async () => {
     if (response.status == 200) {
       console.log("Profile updated successfully:", response.data);
       localStorage.setItem("user", JSON.stringify(user));
-      
+
       getUserProfile();
       openNotificatication("Profile Berhasil Diupdate", "success");
     }
@@ -333,6 +335,8 @@ const getUserProfile = async () => {
       organizationName: data.organization_name,
       jabatan: data.jabatan,
       socialMedia: JSON.parse(data.social_media), // Parsing string JSON menjadi objek
+      status: data.status,
+      suspendedTime: data.suspended_time,
     };
 
     profileImage.value = userProfile.value.profilePicture;
@@ -431,6 +435,13 @@ onBeforeMount(() => {
           </div>
         </div>
       </div>
+
+      <SuspendedAlertComponent
+        v-if="userProfile.status === 'suspended'"
+        :suspendedTime="userProfile.suspendedTime"
+      />
+
+      <VerifiedAlertComponent v-if="userProfile.status === 'active'" />
 
       <div class="grid grid-cols-12 sm:gap-[25px] gap-y-[25px]">
         <!-- Start sidebar -->
@@ -1085,8 +1096,9 @@ onBeforeMount(() => {
                       class="static flex flex-wrap items-center gap-[10px] sm:mt-[43px] mt-[24] justify-end"
                     >
                       <button
-                      v-action="{role: ['admin', 'verified', 'active', 'reported']}"
-
+                        v-action="{
+                          role: ['admin', 'verified', 'active', 'reported'],
+                        }"
                         @click="updateSocialMedia"
                         type="button"
                         class="group text-[13px] border-normal font-semibold text-white dark:text-title-dark btn-outlined h-[37px] dark:border-box-dark-up sm:px-[20px] px-[15px] rounded-6 flex items-center gap-[5px] leading-[22px] hover:text-white hover:bg-primary-hbr bg-primary transition duration-300"

@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref, watch, computed, onBeforeMount } from "vue";
+import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
 import api from "@/api";
 import {
   Chart as ChartJS,
@@ -27,14 +28,13 @@ ChartJS.register(
   ArcElement
 );
 
-
 const props = defineProps({
   isLoading: Boolean,
 });
 
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
-const userId = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user")).user_id
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
   : null;
 const monthLineChart = ref([]);
 const weekLineChart = ref([]);
@@ -252,7 +252,7 @@ const topDonatur = ref([]);
 const getTopDonatur = async () => {
   try {
     const response = await api.get(
-      `/dashboard/user/${userId}/donatur`,
+      `/dashboard/user/${user.user_id}/donatur`,
 
       {
         params: {
@@ -278,14 +278,14 @@ const getTopDonatur = async () => {
   } catch (error) {
     console.log("lenght : ", topDonatur.value.length);
 
-    console.log("error : ", error.response.data); 
+    console.log("error : ", error.response.data);
   }
 };
 
 const getBestProjectPerformance = async () => {
   try {
     const response = await api.get(
-      `/dashboard/user/${userId}/project/performance`
+      `/dashboard/user/${user.user_id}/project/performance`
     );
 
     const projectBestPerformaceData = response.data.projects.map((item) => ({
@@ -308,7 +308,7 @@ const getBestProjectPerformance = async () => {
 
 const getProjectCardStatistic = async () => {
   try {
-    const response = await api.get(`/dashboard/user/${userId}/statistic`);
+    const response = await api.get(`/dashboard/user/${user.user_id}/statistic`);
 
     // const projectCardStastistic = response.data.project_statistics.map((statistic) => {
 
@@ -324,7 +324,7 @@ const getProjectCardStatistic = async () => {
 const getPieChart = async () => {
   try {
     const response = await api.get(
-      `/dashboard/user/${userId}/socialmedia/statistic`
+      `/dashboard/user/${user.user_id}/socialmedia/statistic`
     );
     console.log("aa : ", response.data.project_social_media.length);
     if (response.data.project_social_media.length > 0) {
@@ -359,7 +359,7 @@ const getPieChart = async () => {
 const getLineChart = async () => {
   try {
     const response = await api.get(
-      `/dashboard/user/${userId}/donation/statistic`
+      `/dashboard/user/${user.user_id}/donation/statistic`
     );
 
     monthLineChart.value = response.data.donation_amount_monthly.map(
@@ -383,11 +383,11 @@ const getLineChart = async () => {
 const fetchData = async () => {
   try {
     await Promise.all([
-    getLineChart(),
-  getPieChart(),
-  getProjectCardStatistic(),
-  getTopDonatur(),
-  getBestProjectPerformance(),
+      getLineChart(),
+      getPieChart(),
+      getProjectCardStatistic(),
+      getTopDonatur(),
+      getBestProjectPerformance(),
     ]);
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -397,13 +397,11 @@ const fetchData = async () => {
 onMounted(async () => {
   await fetchData();
   emits("toggle-loading"); // Matikan loading setelah fetching selesai
-
 });
 
 onBeforeMount(() => {
   emits("toggle-active-loading"); // Aktifkan loading sebelum fetching dimulai
-
-})
+});
 </script>
 
 <template>
@@ -452,6 +450,10 @@ onBeforeMount(() => {
           </div>
         </div>
       </div>
+      <SuspendedAlertComponent
+        v-if="user.status == 'suspended'"
+        :suspended-time="user.suspended_time"
+      />
       <div class="grid grid-cols-12 gap-[25px]">
         <!-- Card Number Statistic  -->
         <div
@@ -631,9 +633,10 @@ onBeforeMount(() => {
                     <div
                       class="flex items-center justify-center w-16 h-16 mb-2 rounded-lg text-2xl"
                       :style="{ color: socialMedia.social_media_color }"
-                      
                     >
-                      <i :class="[socialMedia.social_media_icon, 'text-[40px]']"></i>
+                      <i
+                        :class="[socialMedia.social_media_icon, 'text-[40px]']"
+                      ></i>
                     </div>
                     <div class="text-center">
                       <div

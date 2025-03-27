@@ -3,12 +3,14 @@ import { onBeforeMount, onMounted, ref, watch } from "vue";
 import { useToast } from "vue-toast-notification";
 import { useRouter } from "vue-router";
 import api from "@/api";
+import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
 
 import "vue-toast-notification/dist/theme-sugar.css";
 
-const userID = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user")).user_id
-  : null; // Ambil data JSON dari localStorage
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
+  : null;
+
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const router = useRouter();
 const toastNotification = useToast();
@@ -19,17 +21,11 @@ const selectedStatus = ref("");
 const searchProjectBar = ref("");
 const selectedCategory = ref("");
 const selectedSort = ref("asc");
-const statusList = [
-  "all",
-  "in_progress",
-  "in_review",
-  "completed",
-  "inactive",
-];
+const statusList = ["all", "in_progress", "in_review", "completed", "inactive"];
 const dropdownEditorId = ref();
 
 const getProjectsList = async () => {
-  console.log("user id : ", userID);
+  console.log("user id : ", user.user_id);
   console.log("sort : ", selectedSort.value);
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
@@ -38,7 +34,7 @@ const getProjectsList = async () => {
   try {
     const response = await api.get(`/project/list`, {
       params: {
-        user_id: userID,
+        user_id: user.user_id,
         status: selectedStatus.value,
         category: selectedCategory.value,
         sort: selectedSort.value,
@@ -183,15 +179,7 @@ onBeforeMount(() => {
     <div
       class="mx-[30px] min-h-[calc(100vh-195px)] mb-[30px] ssm:mt-[30px] mt-[15px]"
     >
-      <div
-        class="flex items-center ssm:justify-between justify-center max-sm:flex-wrap gap-x-[30px] gap-y-[15px]"
-      >
-        <div
-          class="leading-[1.8571428571] flex flex-wrap sm:justify-between justify-center items-center ssm:mb-[33px] mb-[18px] max-sm:flex-col gap-x-[15px] gap-y-[5px]"
-        >
-          <!-- Title -->
-          <!-- Breadcrumb Navigation -->
-          <div class="flex flex-wrap justify-center">
+    <div class="flex flex-wrap justify-start mb-4">
             <nav>
               <ol
                 class="flex flex-wrap p-0 mb-0 list-none gap-[8px] max-sm:justify-center"
@@ -232,8 +220,22 @@ onBeforeMount(() => {
               </ol>
             </nav>
           </div>
+      <SuspendedAlertComponent
+        v-if="user.status == 'suspended'"
+        :suspended-time="user.suspended_time"
+      />
+      <div
+        class="flex items-center ssm:justify-between justify-center max-sm:flex-wrap gap-x-[30px] gap-y-[15px]"
+      >
+        <div
+          class="leading-[1.8571428571] flex flex-wrap sm:justify-between justify-center items-center ssm:mb-[33px] mb-[18px] max-sm:flex-col gap-x-[15px] gap-y-[5px]"
+        >
+          <!-- Title -->
+          <!-- Breadcrumb Navigation -->
+  
         </div>
-        <div class="inline-flex items-center">
+
+        <div class="inline-flex items-center ml-24">
           <h1
             class="text-dark dark:text-title-dark text-[20px] font-semibold mb-0"
           >
