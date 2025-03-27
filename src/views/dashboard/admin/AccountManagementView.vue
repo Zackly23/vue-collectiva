@@ -14,6 +14,8 @@ const isApprovalProjectModalOpen = ref(false);
 const isDeleteAccountModalOpen = ref(false);
 const isSuspendModalOpen = ref(false);
 const suspendData = ref();
+const clarityReport = ref("");
+const suspendDuration = ref(0);
 const isSuspendConfirmationModalOpen = ref(false);
 const isReportCaseModalOpen = ref(false);
 const isReportDetailOpen = ref(false);
@@ -139,6 +141,9 @@ const openConfirmationDeleteProjectModal = (userId) => {
 const suspendUser = (data) => {
   suspendData.value = data;
 
+  clarityReport.value = suspendData.value.clarityReport;
+  suspendDuration.value = suspendData.value.suspendDuration;
+
   console.log("data : ", data);
   console.log("formDsata : ", suspendData.value);
 
@@ -148,10 +153,12 @@ const suspendUser = (data) => {
 const handleSubmitSuspend = async () => {
   try {
     console.log("formsata : ", suspendData.value);
+    console.log('clarity : ', clarityReport.value);
+    console.log('duration : ', suspendDuration.value);
     const formData = new FormData();
 
-    formData.append("suspended_reason", suspendData.value.clarityReport);
-    formData.append("suspend_duration", suspendData.value.suspendDuration);
+    formData.append("suspended_reason", clarityReport.value);
+    formData.append("suspend_duration", suspendDuration.value);
     formData.append("status", "suspended");
 
     const response = await api.post(
@@ -160,11 +167,13 @@ const handleSubmitSuspend = async () => {
     );
 
     console.log("user telah disuspend");
-    console.log("response report : ", response.data);
+    // console.log("response report : ", response.data);
     if (response.status == 200) {
       isSuspendConfirmationModalOpen.value = false;
       isSuspendModalOpen.value = false;
       isReportCaseModalOpen.value = false;
+      suspendData.value.clarityReport = "";
+      suspendData.value.suspendDuration = "";
       openNotificatication(" User Telah Berhasil ditangguhkan");
 
       await getAccountList();

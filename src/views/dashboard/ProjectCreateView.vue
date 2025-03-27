@@ -212,6 +212,7 @@ const handleFileTimelineUpload = (event) => {
         if (indexRow === 0) {
           console.log("Header :", dataRow);
         } else {
+          console.log('data : ', dataRow)
           const timelineRowData = {
             timelineDateFull: dataRow[0].toISOString().split("T")[0], // Format tanggal "YYYY-MM-DD"
             timelineDateDay: dataRow[0]

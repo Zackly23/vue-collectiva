@@ -69,7 +69,9 @@ const attributesEventAgendaList = computed(() => [
 //Initial Agenda
 const todayisTheDay = () => {
   const calendar = document.querySelector(".vc-container");
-  const today = new Date().toISOString().split("T")[0]; // Mendapatkan tanggal hari ini dalam format "YYYY-MM-DD"
+  const today = new Date()
+    .toLocaleString("en-CA", { timeZone: "Asia/Jakarta" })
+    .split(",")[0];
 
   if (calendar) {
     calendar.querySelectorAll(".vc-day").forEach((day) => {
@@ -157,9 +159,9 @@ const dotsModifier = () => {
       // const popOverEventElement = document.createElement("div");
       // popOverEventElement.className = "vc-dot-popover-element hidden";
       // popOverEventElement.textContent = "Hallo World";
-      dot.classList.add("w-6", "h-6");
-      dot.style.width = "12px"; // Pastikan ukuran tetap seragam
-      dot.style.height = "12px";
+      dot.classList.add("w-10", "h-10");
+      dot.style.width = "14px"; // Pastikan ukuran tetap seragam
+      dot.style.height = "14px";
       // dot.addEventListener("hover", popoverElementDescription);
       // dot.appendChild(popOverEventElement);
     });
@@ -350,7 +352,6 @@ onBeforeMount(() => {
                 locale="id"
                 v-model="mainDate"
                 :masks="{ weekdays: 'WWWW' }"
-
                 :flow="flow"
               />
             </div>

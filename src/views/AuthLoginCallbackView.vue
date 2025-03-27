@@ -38,12 +38,19 @@ onMounted(async () => {
 
       const success = await getUserProfile(user_id);
       if (success) {
-        if (localStorage.setItem("last_visited_page", currentPath)) {
+        if (localStorage.getItem("last_visited_page")) {
+          console.log(
+            "Redirecting to last visited page... : ",
+            localStorage.getItem("last_visited_page")
+          );
           router.push(localStorage.getItem("last_visited_page"));
+        } else {
+          console.log("Redirecting to home page...");
+
+          router.push("/"); // Redirect ke halaman utama jika sukses
         }
-        
-        router.push("/"); // Redirect ke halaman utama jika sukses
       } else {
+        console.error("Login failed. Redirecting to login page...", error);
         router.push("/login"); // Redirect ke halaman login jika gagal
       }
     } catch (error) {

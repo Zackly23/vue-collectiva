@@ -6,6 +6,8 @@ import api from "@/api";
 import { useToast } from "vue-toast-notification";
 import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
+import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
+
 
 import "vue3-emoji-picker/css";
 
@@ -30,8 +32,8 @@ const selectedFile = ref(null);
 // Reactive state for image preview
 const imagePreview = ref(null);
 
-const userID = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user")).user_id
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
   : null;
 
 const messages = ref();
@@ -45,8 +47,8 @@ const storeChatChannel = window.Echo.channel("chat-channel");
 const deleteChatChaneel = window.Echo.channel("chat-delete-channel");
 
 storeChatChannel.listen(".chat-event", function (data) {
-  // console.log("from channel:", data);
-  // console.log('chatsa : ', chats.value)
+  console.log("from channel:", data);
+  console.log('chatsa : ', chats.value)
   // console.log(
   //   "sender_id : ",
   //   data.chats.sender_id,
@@ -61,14 +63,14 @@ storeChatChannel.listen(".chat-event", function (data) {
     message: data.chats.chat_text,
     image_path: data.chats.image_path ? data.chats.image_path : null,
     date: data.chats.chat_send_time,
-    isSender: data.chats.sender_id === userID, // Cocokkan dengan ID pengguna Anda
+    isSender: data.chats.sender_id === user.user_id, // Cocokkan dengan ID pengguna Anda
     senderId: data.chats.sender_id,
   };
 
   console.log('chat new : ', chat);
 
   // Tambahkan chat baru ke chats
-  if (!data.chats.group_chat_id) {
+  if (data.chats.group_chat_id) {
     console.log("tidak true");
     if (data.chats.group_chat_id == activeChatId.value) {
       console.log("ini juga tidak true");
@@ -79,7 +81,7 @@ storeChatChannel.listen(".chat-event", function (data) {
 
   if (
     data.chats.sender_id == activeChatId.value ||
-    data.chats.sender_id == userID
+    data.chats.sender_id == user.user_id
   ) {
     console.log("true min");
     chats.value.push(chat);
@@ -292,7 +294,7 @@ const clearPreview = () => {
 //Leave Group Chat
 const leaveGroupChat = async () => {
   const response = await api.delete(
-    `/user/${userID}/chat/${activeChatId.value}/leavr`
+    `/user/${user.user_id}/chat/${activeChatId.value}/leavr`
   );
 
   console.log(response.data.message);
@@ -304,7 +306,7 @@ const deleteMessage = async (key) => {
   if (activeTab.value == "private-chat") {
     try {
       const response = await api.delete(
-        `/user/${userID}/chat/private/message/${key}`
+        `/user/${user.user_id}/chat/private/message/${key}`
       );
 
       console.log(response.data.message);
@@ -318,7 +320,7 @@ const deleteMessage = async (key) => {
     console.log("delete group chat by id");
     try {
       const response = await api.delete(
-        `/user/${userID}/chat/groupchat/message/${key}`
+        `/user/${user.user_id}/chat/groupchat/message/${key}`
       );
 
       console.log(response.data.message);
@@ -334,7 +336,7 @@ const deleteMessage = async (key) => {
 //GetMessages and replace
 const getChatMessage = async (messageType, key) => {
   if (messageType == "private-chat") {
-    const response = await api.get(`/user/${userID}/chat/sender/${key}`);
+    const response = await api.get(`/user/${user.user_id}/chat/sender/${key}`);
     console.log("get private chat : ", response.data);
     const newChat = response.data.chats.map((chat) => ({
       id: chat.chat_id,
@@ -343,7 +345,7 @@ const getChatMessage = async (messageType, key) => {
       message: chat.chat_text,
       image_path: chat.image_path,
       date: chat.chat_send_time,
-      isSender: chat.sender_id == userID ? true : false,
+      isSender: chat.sender_id == user.user_id ? true : false,
       senderId: chat.sender_id,
     }));
 
@@ -353,7 +355,7 @@ const getChatMessage = async (messageType, key) => {
   } else if (messageType == "group-chat") {
     console.log("key group : ", key);
     const response = await api.get(
-      `/user/${userID}/chat/groupchat/${key}/chat`
+      `/user/${user.user_id}/chat/groupchat/${key}/chat`
     );
     console.log(response.data);
     const newChat = response.data.chats.map((chat) => ({
@@ -363,7 +365,7 @@ const getChatMessage = async (messageType, key) => {
       message: chat.chat_text,
       image_path: chat.image_path,
       date: chat.chat_send_time,
-      isSender: chat.sender_id == userID ? true : false,
+      isSender: chat.sender_id == user.user_id ? true : false,
       senderId: chat.sender_id,
     }));
 
@@ -379,7 +381,7 @@ const getChatMessage = async (messageType, key) => {
 
 //Initial BodyChatContent
 const initialBodyChat = async () => {
-  const response = await api.get(`/user/${userID}/chat/private-chat/initial`);
+  const response = await api.get(`/user/${user.user_id}/chat/private-chat/initial`);
 
   console.log("initial : ", response.data);
 
@@ -390,7 +392,7 @@ const initialBodyChat = async () => {
     message: chat.chat_text,
     image_path: chat.image_path,
     date: chat.chat_send_time,
-    isSender: chat.sender_id == userID ? true : false,
+    isSender: chat.sender_id == user.user_id ? true : false,
   }));
 
   chats.value = bodyContent;
@@ -407,7 +409,7 @@ const switchTab = async (tab) => {
   console.log("bodyContent key : ", bodyChatContentType.value.key);
 
   try {
-    const response = await api.get(`/user/${userID}/chat/${tab}/initial`);
+    const response = await api.get(`/user/${user.user_id}/chat/${tab}/initial`);
 
     console.log("switch tab: ", response.data);
 
@@ -421,7 +423,7 @@ const switchTab = async (tab) => {
         message: chat.chat_text,
         image_path: chat.image_path,
         date: chat.chat_send_time,
-        isSender: chat.sender_id == userID ? true : false,
+        isSender: chat.sender_id == user.user_id ? true : false,
         senderId: chat.sender_id,
       }));
 
@@ -471,7 +473,7 @@ const formattedDate = (date) => {
 
 const groupMessageList = async () => {
   try {
-    const response = await api.get(`/user/${userID}/chat/groupchat/list`);
+    const response = await api.get(`/user/${user.user_id}/chat/groupchat/list`);
     console.log("group: ", response.data);
     const groupChatList = response.data.group_chats.map((gcl) => ({
       groupChatId: gcl.group_chat_id,
@@ -489,7 +491,7 @@ const groupMessageList = async () => {
 };
 
 const privateMessageList = async () => {
-  const response = await api.get(`/user/${userID}/chat/private/list`);
+  const response = await api.get(`/user/${user.user_id}/chat/private/list`);
 
   console.log("priv: ", response.data);
   const privateChatList = response.data.private_chat.map((pcl) => ({
@@ -514,11 +516,11 @@ const sendMessage = async () => {
     console.log("send data to group chat");
 
     try {
-      console.log("userid : ", userID, "dan sender : ", activeChatId.value);
+      console.log("user.user_id : ", user.user_id, "dan sender : ", activeChatId.value);
       const response = await api.post(
-        `/user/${userID}/chat/groupchat/${activeChatId.value}`, // Pastikan userID valid
+        `/user/${user.user_id}/chat/groupchat/${activeChatId.value}`, // Pastikan user.user_id valid
         {
-          sender_id: userID, // ID pengirim
+          sender_id: user.user_id, // ID pengirim
           group_chat_text: messageText.value, // Konsisten dengan key di server
           image: selectedFile.value, // Path media
         },
@@ -547,11 +549,11 @@ const sendMessage = async () => {
     console.log("image: ", selectedFile.value);
 
     try {
-      console.log("userid : ", userID, "dan sender : ", activeChatId.value);
+      console.log("user.user_id : ", user.user_id, "dan sender : ", activeChatId.value);
       const response = await api.post(
-        `/user/${userID}/chat/private/${activeChatId.value}`, // Pastikan userID valid
+        `/user/${user.user_id}/chat/private/${activeChatId.value}`, // Pastikan user.user_id valid
         {
-          sender_id: userID, // ID pengirim
+          sender_id: user.user_id, // ID pengirim
           private_chat_text: messageText.value, // Konsisten dengan key di server
           image: selectedFile.value, // Path media
         },
@@ -630,11 +632,12 @@ onUnmounted(() => {
     <div
       class="mx-[30px] min-h-[calc(100vh-195px)] mb-[30px] ssm:mt-[30px] mt-[15px]"
     >
+
       <div class="grid grid-cols-12 gap-5">
         <div class="col-span-12">
           <!-- Breadcrumb Section -->
           <div
-            class="leading-[1.8571428571] flex flex-wrap sm:justify-between justify-center items-center ssm:mb-[33px] mb-[18px] max-sm:flex-col gap-x-[15px] gap-y-[5px]"
+            class="leading-[1.8571428571] flex flex-wrap sm:justify-between justify-center items-center ssm:mb-[33px] mb-[10px] max-sm:flex-col gap-x-[15px] gap-y-[5px]"
           >
             <!-- Title -->
             <!-- <h4
@@ -687,9 +690,13 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+      <SuspendedAlertComponent
+          v-if="user.status == 'suspended'"
+          :suspended-time="user.suspended_time"
+        />
       <!-- Responsive Toggler -->
       <div
-        class="flex items-center justify-center lg:hidden ssm:mb-[30px] mb-[15px]"
+        class="flex items-center justify-end lg:hidden ssm:mb-[30px] mb-[15px]"
       >
         <button
           @click="sidebarCollapse"
@@ -949,13 +956,13 @@ onUnmounted(() => {
                         </a>
                       </li> -->
                       <li>
-                        <a
+                        <button
                           class="block w-full px-4 py-2 text-sm font-normal capitalize bg-transparent whitespace-nowrap text-neutral-700 hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark active:text-neutral-800 active:no-underline disabled:pointer-events-none disabled:bg-transparent disabled:text-neutral-400 dark:text-subtitle-dark dark:hover:bg-box-dark-up"
-                          href="#"
+                          :disabled="true"
                           data-te-dropdown-item-ref
                         >
                           <i class="uil uil-trash-alt"></i> Mute notification
-                        </a>
+                        </button>
                       </li>
                       <li>
                         <button

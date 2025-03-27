@@ -9,6 +9,7 @@ import "vue-toast-notification/dist/theme-sugar.css";
 import HardWarningComponent from "@/components/dashboard/modal/HardWarningComponent.vue";
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
+import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -35,8 +36,8 @@ const isTagDropdownOpen = ref(false);
 const tabInformation = ref("evaluation");
 
 //
-const userId = JSON.parse(localStorage.getItem("user"))
-  ? JSON.parse(localStorage.getItem("user")).user_id
+const user = JSON.parse(localStorage.getItem("user"))
+  ? JSON.parse(localStorage.getItem("user"))
   : null;
 const projectId = route.params.projectid;
 console.log("project id : ", projectId);
@@ -620,7 +621,7 @@ const saveChangeEvaluation = async () => {
     console.log("evaluationData : ", evaluationData);
 
     const response = await api.put(
-      `/project/${projectId}/user/${userId}/evaluation`,
+      `/project/${projectId}/user/${user.user_id}/evaluation`,
       evaluationData // Kirim langsung sebagai JSON
     );
 
@@ -1198,6 +1199,7 @@ const getEvaluationList = async () => {
         evaluationTag: evaluation.project_evaluation_tag_component,
         // evaluationTagColor: evaluation.project_evaluation_tag_component_color,
         evaluationEvaluatorAvatar: evaluation.project_evaluator_avatar,
+        evaluationEvaluatorName: evaluation.project_evaluator_name,
         evaluationTime: evaluation.project_evaluation_send_time,
       })
     );
@@ -1386,6 +1388,10 @@ onBeforeMount(() => {
     <div
       class="mx-[30px] min-h-[calc(100vh-195px)] mb-[30px] ssm:mt-[30px] mt-[15px]"
     >
+      <SuspendedAlertComponent
+        v-if="user.status == 'suspended'"
+        :suspended-time="user.suspended_time"
+      />
       <div
         class="flex items-center md:justify-between justify-center max-md:flex-col max-sm:flex-wrap gap-x-[30px] gap-y-[15px]"
       >
@@ -2362,19 +2368,17 @@ onBeforeMount(() => {
                           class="text-light dark:text-subtitle-dark text-[19px] flex items-center justify-center p-0 m-0 gap-[20px]"
                         >
                           <div class="flex items-center justify-center gap-x-2">
-                        
-                              <img
-                                class="w-[30px] min-w-[30px] h-[30px] rounded-full object-cover"
-                                :src="evaluation.evaluationEvaluatorAvatar"
-                                title="admin"
-                              />
-                              <span
-                                class="text-xs leading-none capitalize whitespace-nowrap text-light-extra dark:text-subtitle-dark"
-                              >
-                                {{ evaluation.evaluationTime }}
-                              </span>
-                          
-                
+                            <img
+                              class="w-[30px] min-w-[30px] h-[30px] rounded-full object-cover"
+                              :src="evaluation.evaluationEvaluatorAvatar"
+                              title="admin"
+                            />
+                            <span
+                              class="text-sm leading-none capitalize whitespace-nowrap text-light-extra dark:text-subtitle-dark"
+                            >
+                              {{ evaluation.evaluationEvaluatorName }}
+                            </span>
+
                             <!-- <li>
                               <a
                                 href="#"
@@ -2624,7 +2628,7 @@ onBeforeMount(() => {
                         </div>
                       </td>
                       <td class="px-6 py-3">
-                        <div class="flex justify-center items-center space-x-2" >
+                        <div class="flex justify-center items-center space-x-2">
                           <button
                             v-action="{ permission: ['approve-volunteer'] }"
                             @click="openModalVolunteer(volunteer.volunteerId)"
@@ -2635,7 +2639,10 @@ onBeforeMount(() => {
                           </button>
                           <button
                             v-action="{ permission: ['approve-volunteer'] }"
-                            @click="() => isConfirmationRejectVolunteerModalOpen = true"
+                            @click="
+                              () =>
+                                (isConfirmationRejectVolunteerModalOpen = true)
+                            "
                             class="py-1 px-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
                             title="Reject Volunteer"
                           >
@@ -3925,7 +3932,7 @@ onBeforeMount(() => {
             </label>
             <table class="min-w-full bg-white border rounded-md mt-1">
               <!-- Klik pada header untuk menambah baris -->
-              <thead >
+              <thead>
                 <tr class="bg-gray-100">
                   <th
                     class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
@@ -3994,13 +4001,13 @@ onBeforeMount(() => {
         <!-- Modal Footer -->
         <div class="flex justify-end pt-3 border-t">
           <button
-            @click="() => isConfirmationApproveVolunteerModalOpen = true"
+            @click="() => (isConfirmationApproveVolunteerModalOpen = true)"
             class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
           >
             Approve
           </button>
           <button
-            @click="() => isVolunteerModalOpen = false"
+            @click="() => (isVolunteerModalOpen = false)"
             class="px-4 py-2 ml-3 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
           >
             Close
@@ -4013,7 +4020,9 @@ onBeforeMount(() => {
   <SoftWarningComponent
     :is-confirmation-modal-open="isConfirmationApproveVolunteerModalOpen"
     :description="'    Apakah Anda yakin ingin Menerima Volunteer ini? Pastikan Seluruh Data sudah sesuai.'"
-    @close-confirmation-modal="() => isConfirmationApproveVolunteerModalOpen = false"
+    @close-confirmation-modal="
+      () => (isConfirmationApproveVolunteerModalOpen = false)
+    "
     @action-modal="updateStatusVolunteer('approved')"
     :action="'Approve Volunteer'"
     :title="'Konfirmasi Volunteer'"
@@ -4022,12 +4031,13 @@ onBeforeMount(() => {
   <SoftWarningComponent
     :is-confirmation-modal-open="isConfirmationRejectVolunteerModalOpen"
     :description="'    Apakah Anda yakin ingin Menolak Volunteer ini? Pastikan Seluruh Data sudah sesuai.'"
-    @close-confirmation-modal="() => isConfirmationRejectVolunteerModalOpen = false"
+    @close-confirmation-modal="
+      () => (isConfirmationRejectVolunteerModalOpen = false)
+    "
     @action-modal="updateStatusVolunteer('decline')"
     :action="'Reject Volunteer'"
     :title="'Konfirmasi Volunteer'"
   />
-  
 </template>
 
 <style scoped>

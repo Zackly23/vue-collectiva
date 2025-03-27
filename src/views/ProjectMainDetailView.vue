@@ -93,7 +93,7 @@ const shareSocialMedia = async (platform) => {
     const response = await api.get(
       `/project/${projectId}/spreader/${user.user_id}/share/${platform}`
     );
-    console.log('social media : ', response.data)
+    console.log("social media : ", response.data);
     if (response.status == 200) {
       console.log("Share to ", platform);
       openNotificatication("Berhasil membagikan proyek ke " + platform);
@@ -966,7 +966,8 @@ onBeforeMount(() => {
             <router-link
               v-if="
                 projectDetail?.projectCategory === 'volunteer' &&
-                !projectDetail?.userParticipation
+                !projectDetail?.userParticipation &&
+                projectDetail.projectStatus == 'in_progress'
               "
               :to="`/project/${projectId}/volunteer`"
               class="flex justify-center items-center w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition duration-200"
@@ -1068,7 +1069,7 @@ onBeforeMount(() => {
         >
           <div class="flex items-start space-x-4">
             <img
-              src="C:\Users\hp\Pictures\Filtering\david.jpg"
+              :src="user.profile_picture"
               alt="User Avatar"
               class="w-8 h-8 rounded-full mt-2"
             />
