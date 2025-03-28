@@ -47,7 +47,7 @@ const currentYear = ref(new Date().getFullYear());
         </div>
 
         <div
-          class="mt-1 text-gray-600 dark:text-gray-400 text-[15px] max-md:text-[16px] flex max-md:justify-center flex-col max-md:items-center"
+          class="mt-1 text-gray-600 dark:text-gray-400 text-[13px] max-md:text-[14px] flex max-md:justify-center flex-col max-md:items-center"
         >
           <p>PT Indah Jaya Musabahar</p>
           <p>Jl. Sudirman No. 123, Jakarta, Indonesia</p>
@@ -80,20 +80,20 @@ const currentYear = ref(new Date().getFullYear());
 
       <!-- Footer navigation links -->
       <div class="flex items-center gap-[15px]">
-        <a
-          href="#"
+        <router-link
+          to="/about"
           class="text-gray-700 dark:text-gray-300 text-[15px] hover:text-primary transition-colors duration-200"
-          >About</a
+          >About</router-link
         >
-        <a
-          href="#"
+        <router-link
+          to="/team"
           class="text-gray-700 dark:text-gray-300 text-[15px] hover:text-primary transition-colors duration-200"
-          >Team</a
+          >Team</router-link
         >
-        <a
-          href="#"
+        <router-link
+          to="/guidance"
           class="text-gray-700 dark:text-gray-300 text-[15px] hover:text-primary transition-colors duration-200"
-          >Guide</a
+          >Guide</router-link
         >
       </div>
     </div>

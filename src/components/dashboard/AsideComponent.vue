@@ -278,14 +278,12 @@ defineProps({
             :style="dropdownAgendaStyle"
             class="sub-item m-0 list-none overflow-hidden transition-all duration-300 ease-in-out"
           >
-            <li
-   
-            class="relative">
+            <li class="relative">
               <a
                 class="rounded-e-[20px] hover:bg-primary/10 hover:text-primary dark:hover:text-title-dark focus:bg-primary/10 focus:text-inherit active:bg-primary/10 active:text-inherit focus:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark dark:text-subtitle-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] text-body outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize active gap-x-2"
               >
-              <span class="capitalize title">komunitas</span>
-              <span class="text-gray-400">(Segera)</span>
+                <span class="capitalize title">komunitas</span>
+                <span class="text-gray-400">(Segera)</span>
               </a>
             </li>
             <li class="relative">
@@ -319,7 +317,6 @@ defineProps({
         </li>
         <li class="relative">
           <a
-            
             class="rounded-e-[20px] hover:bg-primary/10 focus:bg-primary/10 active:bg-primary/10 dark:text-subtitle-dark flex h-12 cursor-pointer items-center gap-[16px] truncate px-6 py-4 text-[14px] font-medium text-body outline-none transition duration-300 ease-linear hover:text-primary dark:hover:text-title-dark hover:outline-none focus:text-primary dark:focus:text-title-dark focus:outline-none active:text-primary active:outline-none [&.active]:text-primary dark:[&.active]:text-title-dark motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up group capitalize"
           >
             <span
@@ -361,26 +358,26 @@ defineProps({
             <!-- Elemen Anak 1 -->
             <li class="relative">
               <router-link
-                to="/dashboard/project"
-                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-blue-500 dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-blue-500 active:bg-primary/10 active:text-blue-500 [&.active]:text-blue-500 dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
+                to="/dashboard/guidance"
+                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-primary dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-primary active:bg-primary/10 active:text-primary [&.active]:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
               >
                 Panduan Komunitas
               </router-link>
             </li>
             <!-- Elemen Anak 2 -->
             <li class="relative">
-              <a
-                href="project-details.html"
-                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-green-500 dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-green-500 active:bg-primary/10 active:text-green-500 [&.active]:text-green-500 dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
+              <router-link
+                to="/dashboard/news/article"
+                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-primary dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-primary active:bg-primary/10 active:text-primary [&.active]:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
               >
                 Artikel & Berita
-              </a>
+              </router-link>
             </li>
             <!-- Elemen Anak 3 -->
             <li class="relative">
               <router-link
-                to="/dashboard"
-                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-red-500 dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-red-500 active:bg-primary/10 active:text-red-500 [&.active]:text-red-500 dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
+                to="/dashboard/faq"
+                class="rounded-e-[20px] bg-transparent text-gray-700 hover:bg-primary/10 hover:text-primary dark:text-gray-400 dark:hover:text-title-dark focus:bg-primary/10 focus:text-primary active:bg-primary/10 active:text-primary [&.active]:text-primary dark:focus:text-title-dark dark:[&.active]:text-title-dark flex cursor-pointer items-center truncate py-[10px] pe-6 ps-[60px] text-[14px] outline-none transition duration-300 ease-linear hover:outline-none focus:outline-none active:outline-none motion-reduce:transition-none dark:hover:bg-box-dark-up dark:focus:bg-box-dark-up dark:active:bg-box-dark-up capitalize"
               >
                 FAQ
               </router-link>
@@ -388,7 +385,6 @@ defineProps({
           </ul>
         </li>
 
-  
         <li class="relative sub-item-wrapper group">
           <span
             class="slug dark:text-white/40 mb-[10px] mt-[30px] block px-6 text-[12px] font-medium uppercase text-light"

@@ -23,9 +23,12 @@ import VolunteerView from "@/views/VolunteerView.vue";
 import ProjectManagementView from "@/views/dashboard/admin/ProjectManagementView.vue";
 import AccountManagementView from "@/views/dashboard/admin/AccountManagementView.vue";
 import WithdrawalDonationView from "@/views/dashboard/WithdrawalDonationView.vue";
-import Forbidden from '@/views/errors/403.vue'; // Import halaman 403
+import Forbidden from "@/views/errors/403.vue"; // Import halaman 403
+import NotFound from "@/views/errors/404.vue"; // Import halaman 404
 import ProjectMainView from "@/views/ProjectMainView.vue";
 import AuthLoginCallbackView from "@/views/AuthLoginCallbackView.vue";
+import FAQView from "@/views/dashboard/FAQView.vue";
+import ComunityGuidance from "@/views/dashboard/ComunityGuidance.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,13 +41,13 @@ const router = createRouter({
           path: "/",
           name: "home",
           component: HomeView,
-          meta: { requiresAuth: false,  },
+          meta: { requiresAuth: false },
         },
         {
           path: "project/list",
           name: "project-list",
           component: ProjectMainView,
-          meta: { requiresAuth: false,  },
+          meta: { requiresAuth: false },
         },
         {
           path: "/project/:projectId",
@@ -78,7 +81,7 @@ const router = createRouter({
       component: PaymentDonationView,
       meta: {
         requiresAuth: true,
-        role: ["admin", "active", "verified", "reported",],
+        role: ["admin", "active", "verified", "reported"],
       },
     },
     {
@@ -130,7 +133,7 @@ const router = createRouter({
       path: "/dashboard",
       name: "dashboard",
       component: DashboardLayout,
-      
+
       children: [
         {
           path: ":userId",
@@ -206,6 +209,24 @@ const router = createRouter({
           },
         },
         {
+          path: "faq",
+          name: "faq",
+          component: FAQView,
+          meta: {
+            requiresAuth: true,
+            role: ["admin", "active", "verified", "reported", "suspended"],
+          },
+        },
+        {
+          path: "guidance",
+          name: "guidance",
+          component: ComunityGuidance,
+          meta: {
+            requiresAuth: true,
+            role: ["admin", "active", "verified", "reported", "suspended"],
+          },
+        },
+        {
           path: "management/project",
           name: "management-project",
           component: ProjectManagementView,
@@ -219,10 +240,8 @@ const router = createRouter({
         },
       ],
     },
-    { path: "/403",
-      name: '403',
-      component: Forbidden
-     }, // Route 403
+    { path: "/403", name: "403", component: Forbidden }, // Route 403
+    { path: "/:pathMatch(.*)*", name: "NotFound", component: NotFound },
   ],
 });
 
@@ -231,11 +250,12 @@ router.beforeEach((to, from, next) => {
   const userRoles =
     authStore.roles || JSON.parse(localStorage.getItem("roles")) || [];
   const userPermissions =
-    authStore.permissions || JSON.parse(localStorage.getItem("permissions")) || [];
+    authStore.permissions ||
+    JSON.parse(localStorage.getItem("permissions")) ||
+    [];
 
   if (to.meta.blockIfLoggedIn && userRoles.length > 0) {
     next(false); // Redirect ke dashboard jika sudah login
-    
   }
 
   if (to.meta.requiresAuth) {
