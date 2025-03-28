@@ -1125,6 +1125,7 @@ onBeforeMount(() => {
           <!-- notifications -->
           <div
             v-if="activatedTab === 'notification'"
+            v-action="{ role: ['none'] }"
             class="opacity-100 transition-opacity duration-150 ease-linear data-[te-tab-active]:block"
             id="tabs-notification"
             role="tabpanel"

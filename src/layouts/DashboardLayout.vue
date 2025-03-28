@@ -19,17 +19,17 @@ const isCollapsed = ref(true);
 const isLoading = ref(true);
 
 const toggleLoading = () => {
-  console.log('before loading : ', isLoading.value);
+  console.log("before loading : ", isLoading.value);
 
   isLoading.value = false;
-  console.log('loading : ', isLoading.value);
+  console.log("loading : ", isLoading.value);
 };
 
 const toggleActiveLoading = () => {
-  console.log('before loading : ', isLoading.value);
+  console.log("before loading : ", isLoading.value);
 
   isLoading.value = true;
-  console.log('loading : ', isLoading.value);
+  console.log("loading : ", isLoading.value);
 };
 
 const toggleAside = () => {
@@ -39,7 +39,7 @@ const toggleAside = () => {
 
 <template>
   <div
-    class="print-active bg-white [&.dark]:bg-main-dark font-jost relative text-[15px] font-normal leading-[1.5] m-0 p-0"
+    class="flex flex-col min-h-screen print-active bg-white [&.dark]:bg-main-dark font-jost relative text-[15px] font-normal leading-[1.5] m-0 p-0"
   >
     <AsideComponent :isCollapsed="isCollapsed" />
     <div
@@ -51,10 +51,15 @@ const toggleAside = () => {
       id="content"
     >
       <HeaderComponent @toggle-aside="toggleAside" :isCollapsed="isCollapsed" />
-      <router-view  @toggle-active-loading="toggleActiveLoading"  @toggle-loading="toggleLoading" />
+      <main class="flex-grow">
+        <router-view
+          @toggle-active-loading="toggleActiveLoading"
+          @toggle-loading="toggleLoading"
+        />
+      </main>
       <FooterComponent />
     </div>
-    <PreloaderComponent v-if="isLoading"/>
+    <PreloaderComponent v-if="isLoading" />
   </div>
 </template>
 

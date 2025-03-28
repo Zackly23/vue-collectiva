@@ -1,6 +1,6 @@
 <script setup>
 import NavbarComponent from "@/components/NavbarComponent.vue";
-import FooterComponent from "@/components/dashboard/FooterComponent.vue";
+import FooterComponent from "@/components/FooterComponent.vue";
 import PreloaderComponent from "@/components/dashboard/PreloaderComponent.vue";
 import { ref } from "vue";
 
