@@ -88,7 +88,7 @@ defineProps({
     <div
       class="flex w-[280px] border-e border-[#edf2f9] dark:border-box-dark-up logo-wrapper items-center h-[71px] dark:bg-box-dark-up max-xl:hidden"
     >
-      <router-link to="" class="block text-center">
+      <router-link to="/" class="block text-center">
         <div class="logo-full">
           <img
             class="ps-[27px] dark:hidden"

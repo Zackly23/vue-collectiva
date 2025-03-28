@@ -35,7 +35,7 @@ const router = createRouter({
       component: MainLayout,
       children: [
         {
-          path: "",
+          path: "/",
           name: "home",
           component: HomeView,
           meta: { requiresAuth: false,  },

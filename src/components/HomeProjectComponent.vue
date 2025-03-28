@@ -163,33 +163,33 @@ onBeforeMount(() => {
 <template>
   <!-- Stats Section -->
   <div class="max-w-7xl mx-auto p-6">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Proyek Aktif</h3>
-        <p class="text-2xl font-bold">24</p>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 ">
+      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+        <h3 class="text-gray-500 md:text-sm text-lg">Total Proyek Aktif</h3>
+        <p class="md:text-2xl text-3xl font-bold">24 Proyek</p>
         <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 12% dari bulan lalu</span>
+          <span class="md:text-xs text-sm">↑ 12% dari bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Dana Terkumpul</h3>
-        <p class="text-2xl font-bold">Rp 6.4M</p>
+      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+        <h3 class="text-gray-500 md:text-sm text-lg">Total Dana Terkumpul</h3>
+        <p class="md:text-2xl text-3xl font-bold">Rp 6.4 Miliar</p>
         <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 8% dari bulan lalu</span>
+          <span class="md:text-xs text-sm">↑ 8% dari bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Volunteer Terlibat</h3>
-        <p class="text-2xl font-bold">2032</p>
+      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+        <h3 class="text-gray-500 md:text-sm text-lg">Total Volunteer Terlibat</h3>
+        <p class="md:text-2xl text-3xl font-bold">2032 Volunteer</p>
         <div class="flex items-center mt-2 text-gray-600">
-          <span class="text-xs">Sama dengan bulan lalu</span>
+          <span class="md:text-xs text-sm">Sama dengan bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 text-sm">Total Donatur</h3>
-        <p class="text-2xl font-bold">1,240</p>
+      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+        <h3 class="text-gray-500 md:text-sm text-lg">Total Donatur</h3>
+        <p class="md:text-2xl text-3xl font-bold">1,240 Donatur</p>
         <div class="flex items-center mt-2 text-green-600">
-          <span class="text-xs">↑ 15% dari bulan lalu</span>
+          <span class="md:text-xs text-sm">↑ 15% dari bulan lalu</span>
         </div>
       </div>
     </div>

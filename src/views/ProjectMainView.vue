@@ -22,23 +22,22 @@ const projectList = ref();
 const projectCount = ref(0);
 
 const hari = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-  const bulan = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ];
+const bulan = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 const formattedDate = (date) => {
-
   const d = new Date(date);
   const tahun = d.getFullYear();
   const namaHari = hari[d.getDay()]; // Mendapatkan nama hari
@@ -55,8 +54,8 @@ const getPublicProjectList = async () => {
   console.log("status : ", selectedStatus.value);
   console.log("category : ", selectedCategory.value);
   console.log("search : ", searchProjectBar.value);
-    console.log("page : ", page.value);
-    console.log("bulan : ", selectedMonth.value);
+  console.log("page : ", page.value);
+  console.log("bulan : ", selectedMonth.value);
 
   try {
     const response = await api.get(`/project/public/list`, {
@@ -246,10 +245,12 @@ onBeforeMount(() => {
     <!-- Project Cards (with hover effects) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
+        v-if="projectList?.length !== 0"
         v-for="project in projectList"
         class="border rounded-lg overflow-hidden bg-white transition-transform hover:scale-[1.02] hover:shadow-lg"
       >
         <div class="relative">
+          <div></div>
           <div
             class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full"
           >
@@ -341,13 +342,20 @@ onBeforeMount(() => {
         </div>
       </div>
 
+      <!-- projectList is null  -->
+      <div
+        v-else
+        class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-10"
+      >
+        <p class="text-gray-500 text-lg">Tidak ada proyek yang ditemukan.</p>
+      </div>
       <!-- Additional cards with same structure... -->
     </div>
 
     <!-- Page Number  -->
 
     <!-- Enhanced Pagination -->
-    <div class="flex justify-end w-full mt-6">
+    <div v-if="projectList?.length !== 0" class="flex justify-end w-full mt-6">
       <div class="flex gap-x-2">
         <!-- Tombol First -->
         <button

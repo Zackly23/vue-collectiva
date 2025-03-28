@@ -104,7 +104,8 @@ onBeforeUnmount(() => {
             >Tentang Kami</a
           >
           <a
-            href="#"
+            href="https://wa.me/6281228313265?text=Halo,%20saya%20ingin%20bertanya%20tentang%20SHCUnion."
+            target="_blank"
             class="text-gray-700 hover:text-green-600 font-medium transition-colors"
             >Hubungi Kami</a
           >
