@@ -22,13 +22,15 @@ const toggleActiveLoading = () => {
 </script>
 
 <template>
-  <NavbarComponent />
-  <main>
-    <router-view
-      @toggle-active-loading="toggleActiveLoading"
-      @toggle-loading="toggleLoading"
-    />
-  </main>
-  <FooterComponent />
+  <div class="flex flex-col min-h-screen">
+    <NavbarComponent />
+    <main class="flex-grow">
+      <router-view
+        @toggle-active-loading="toggleActiveLoading"
+        @toggle-loading="toggleLoading"
+      />
+    </main>
+    <FooterComponent />
+  </div>
   <PreloaderComponent v-if="isLoading" />
 </template>
