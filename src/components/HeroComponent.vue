@@ -10,6 +10,15 @@
             Bersama <span class="text-green-600">SHCUnion</span>, Kita Bisa
             Membantu Mereka yang Membutuhkan
           </h1>
+          <div
+            class="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl block md:hidden"
+          >
+            <img
+              src="../assets/images/hero/plain-hero-image-project.png"
+              alt="Charity illustration"
+              class="object-cover w-full h-full"
+            />
+          </div>
           <p class="text-lg text-gray-600 leading-relaxed">
             Jadilah bagian dari perubahan besar dengan donasi kecil Anda. Setiap
             langkah kecil membawa harapan besar.
@@ -33,7 +42,7 @@
         <!-- Right Image -->
         <div class="relative">
           <div
-            class="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl"
+            class="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl md:block hidden"
           >
             <img
               src="../assets/images/hero/plain-hero-image-project.png"

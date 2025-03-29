@@ -41,19 +41,19 @@ const router = createRouter({
           path: "/",
           name: "home",
           component: HomeView,
-          meta: { requiresAuth: false },
+          meta: { requiresAuth: false, title: "Home" },
         },
         {
           path: "project/list",
           name: "project-list",
           component: ProjectMainView,
-          meta: { requiresAuth: false },
+          meta: { requiresAuth: false, title: "Project List" },
         },
         {
           path: "/project/:projectId",
           name: "project-main-detail",
           component: ProjectMainDetailView,
-          meta: { requiresAuth: false },
+          meta: { requiresAuth: false, title: "Project Detail" },
         },
       ],
     },
@@ -64,6 +64,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         role: ["admin", "active", "verified", "reported", "suspended"],
+        title: "Donation",
       },
     },
     {
@@ -73,6 +74,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         role: ["admin", "active", "verified", "reported"],
+        title: "Withdrawal",
       },
     },
     {
@@ -82,6 +84,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         role: ["admin", "active", "verified", "reported"],
+        title: "Payment",
       },
     },
     {
@@ -91,43 +94,56 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         role: ["admin", "active", "verified", "reported"],
+        title: "Volunteer",
       },
     },
     {
       path: "/sign-up",
       name: "sign-up",
       component: SignUpView,
-      meta: { requiresAuth: false, blockIfLoggedIn: true },
+      meta: { requiresAuth: false, blockIfLoggedIn: true, title: "Sign Up" },
     },
     {
       path: "/login",
       name: "login",
       component: LoginView,
-      meta: { requiresAuth: false, blockIfLoggedIn: true },
+      meta: { requiresAuth: false, blockIfLoggedIn: true, title: "Login" },
     },
     {
       path: "/auth/callback",
       name: "auth-callback",
       component: AuthLoginCallbackView,
-      meta: { requiresAuth: false, blockIfLoggedIn: true },
+      meta: { requiresAuth: false, blockIfLoggedIn: true, title: "SSO Login" },
     },
     {
       path: "/password/reset/:token",
       name: "password-reset",
       component: NewPasswordView,
-      meta: { requiresAuth: false, blockIfLoggedIn: true },
+      meta: {
+        requiresAuth: false,
+        blockIfLoggedIn: true,
+        title: "Reset Password",
+      },
     },
     {
       path: "/password/send-reset",
       name: "password-send-reset",
       component: ResetPasswordView,
-      meta: { requiresAuth: false, blockIfLoggedIn: true },
+      meta: {
+        requiresAuth: false,
+        blockIfLoggedIn: true,
+        title: "Send Reset Password",
+      },
     },
     {
       path: "/email/verify/:id/:hash",
       name: "email-verification",
       component: EmailVerificationView,
-      meta: { requiresAuth: false, blockIfLoggedIn: false },
+      meta: {
+        requiresAuth: false,
+        blockIfLoggedIn: false,
+        title: "Email Verification",
+      },
     },
     {
       path: "/dashboard",
@@ -142,6 +158,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Dashboard",
           },
         },
         {
@@ -151,6 +168,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Profile Setting",
           },
         },
         {
@@ -160,6 +178,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Project",
           },
         },
         {
@@ -169,6 +188,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported"],
+            title: "Create Project",
           },
         },
         {
@@ -178,6 +198,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Project Detail",
           },
         },
 
@@ -188,6 +209,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Contribution",
           },
         },
         {
@@ -197,6 +219,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Chat",
           },
         },
         {
@@ -206,6 +229,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Calendar",
           },
         },
         {
@@ -215,6 +239,7 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "FAQ",
           },
         },
         {
@@ -224,24 +249,43 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             role: ["admin", "active", "verified", "reported", "suspended"],
+            title: "Guidance",
           },
         },
         {
           path: "management/project",
           name: "management-project",
           component: ProjectManagementView,
-          meta: { requiresAuth: true, role: ["admin"] },
+          meta: {
+            requiresAuth: true,
+            role: ["admin"],
+            title: "Project Management",
+          },
         },
         {
           path: "management/account",
           name: "management-account",
           component: AccountManagementView,
-          meta: { requiresAuth: true, role: ["admin"] },
+          meta: {
+            requiresAuth: true,
+            role: ["admin"],
+            title: "Account Management",
+          },
         },
       ],
     },
-    { path: "/403", name: "403", component: Forbidden }, // Route 403
-    { path: "/:pathMatch(.*)*", name: "NotFound", component: NotFound },
+    {
+      path: "/403",
+      name: "403",
+      component: Forbidden,
+      title: "Forbidden Page",
+    }, // Route 403
+    {
+      path: "/:pathMatch(.*)*",
+      name: "NotFound",
+      component: NotFound,
+      title: "Page Not Found",
+    },
   ],
 });
 
@@ -273,6 +317,11 @@ router.beforeEach((to, from, next) => {
   } else {
     next();
   }
+});
+
+// Update title berdasarkan meta title setiap kali route berubah
+router.afterEach((to) => {
+  document.title = to.meta.title || "SHCUnion";
 });
 
 export default router;
