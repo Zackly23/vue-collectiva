@@ -1,10 +1,18 @@
 <script setup>
-import { onBeforeMount, onMounted, ref, watch } from "vue";
+import {
+  onBeforeMount,
+  onMounted,
+  ref,
+  watch,
+  reactive,
+  ErrorCodes,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import readXlsxFile from "read-excel-file";
 import { useToast } from "vue-toast-notification";
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
+import { validateForm } from "@/validations/CreateProjectErrorValidation";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -20,6 +28,7 @@ const token = localStorage.getItem("access_token");
 const route = useRoute();
 const router = useRouter();
 const stepProjectNumber = ref(route.query.step || "1");
+const errors = reactive({}); // Reactive agar Vue bisa mendeteksi perubahan
 const iconList = ref();
 const lampiranList = ref([]);
 const userProfile = ref();
@@ -62,7 +71,7 @@ const projectData = ref({
   projectCriteria: [{ key: "", value: "", role: "" }],
   projectRole: [{ key: "", value: "" }],
   projectGroupChatName: "",
-  projectGroupAvatar: null
+  projectGroupAvatar: null,
 });
 const creatorInformation = ref({
   creatorName: "",
@@ -82,11 +91,13 @@ const beneficialInformation = ref({
   beneficiaryAddress: "",
   beneficiaryPhone: "",
   beneficiaryNeeds: "",
+
   organizationName: "",
   organizationRegNumber: "",
   organizationAddress: "",
   organizationPIC: "",
   organizationPhone: "",
+
   beneficiaryRelation: "",
   beneficiaryRelationOther: "",
   beneficiaryFile: "",
@@ -109,9 +120,9 @@ const closeConfirmationModal = () => {
   isConfirmatioModalOpen.value = false;
 };
 
-const openNotificatication = (message) => {
+const openNotificatication = (message, type = "success") => {
   toastNotification.open({
-    type: "success",
+    type: type,
     message: message,
     position: "top-right",
     duration: 3000,
@@ -212,7 +223,7 @@ const handleFileTimelineUpload = (event) => {
         if (indexRow === 0) {
           console.log("Header :", dataRow);
         } else {
-          console.log('data : ', dataRow)
+          console.log("data : ", dataRow);
           const timelineRowData = {
             timelineDateFull: dataRow[0].toISOString().split("T")[0], // Format tanggal "YYYY-MM-DD"
             timelineDateDay: dataRow[0]
@@ -494,99 +505,133 @@ const storeProject = () => {
 };
 
 const storeNewProject = async () => {
-  console.log("projectData : ", projectData.value);
-  console.log("locationForm : ", locationForm.value);
+  const validationResult = validateForm(
+    creatorInformation,
+    beneficialInformation,
+    projectData,
+    locationForm,
+    timelineDataUploadList,
+    lampiranList
+  );
 
-  const formData = new FormData();
-  formData.append("project_title", projectData.value.projectTitle);
-  formData.append("project_description", projectData.value.projectDescription);
-  formData.append("project_start_date", projectData.value.projectStartDate);
-  formData.append("project_end_date", projectData.value.projectEndDate);
-  formData.append("project_category", projectData.value.projectCategory);
-  formData.append("project_group_chat", projectData.value.projectGroupChatName);
-  formData.append("project_group_avatar", projectData.value.projectGroupAvatar);
+  // Reset error sebelum validasi
+  Object.keys(errors).forEach((key) => {
+    errors[key] = null;
+  });
 
-  if (projectData.value.projectTags.length !== 0) {
-    projectData.value.projectTags.forEach((tag, index) => {
-      formData.append(`project_tags[${index}][tagId]`, tag.tagId);
-    });
-  }
-  if (projectData.value.projectCategory === "donation") {
+  if (validationResult.isValid) {
+    console.log("projectData : ", projectData.value);
+    console.log("locationForm : ", locationForm.value);
+
+    const formData = new FormData();
+    formData.append("project_title", projectData.value.projectTitle);
     formData.append(
-      "project_target_amount",
-      projectData.value.projectTargetAmount
+      "project_description",
+      projectData.value.projectDescription
     );
-  } else {
+    formData.append("project_start_date", projectData.value.projectStartDate);
+    formData.append("project_end_date", projectData.value.projectEndDate);
+    formData.append("project_category", projectData.value.projectCategory);
     formData.append(
-      "project_target_amount",
-      projectData.value.projectTargetVolunteer
+      "project_group_chat",
+      projectData.value.projectGroupChatName
     );
-  }
-
-  // Mengubah array `project_criteria` ke format JSON sebelum dikirim
-  if (projectData.value.projectCategory === "donation") {
-    formData.append("project_criteria", null);
-  } else if (projectData.value.projectCategory === "volunteer") {
     formData.append(
-      "project_criteria",
-      JSON.stringify(
-        projectData.value.projectCriteria.map((criteria) => ({
-          key: criteria.key,
-          value: criteria.value,
-          role: criteria.role,
-        }))
-      )
+      "project_group_avatar",
+      projectData.value.projectGroupAvatar
     );
 
-    formData.append(
-      "project_role",
-      JSON.stringify(
-        projectData.value.projectRole.map((role) => ({
-          key: role.key,
-          value: role.value,
-        }))
-      )
-    );
-  }
-
-  // Menambahkan file gambar (pastikan projectFile sudah berupa File)
-  if (projectData.value.projectFile) {
-    formData.append("project_image", projectData.value.projectFile);
-    console.log("Project image ada!", projectData.value.projectFile);
-  } else {
-    console.error("Project image tidak ada!");
-  }
-
-  // Menambahkan data lokasi
-  formData.append("project_address", locationForm.value.address);
-  formData.append("kode_desa", locationForm.value.desa);
-  formData.append("latitude", locationForm.value.latitude);
-  formData.append("longitude", locationForm.value.longitude);
-
-  try {
-    const response = await api.post("/project/create/detail", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-    if (response.status == 200 || response.status == 201) {
-      console.log(response.data);
-      const projectId = response.data.project_id;
-
-      await storeProjectInformation(projectId);
-      await storeProjectTimeline(projectId);
-      await storeProjectLampiran(projectId);
-
-      console.log("Project berhasil disimpan!");
-      openNotificatication("Project Berhasil Dibuat");
-      router.push("/dashboard/project");
+    if (projectData.value.projectTags.length !== 0) {
+      projectData.value.projectTags.forEach((tag, index) => {
+        formData.append(`project_tags[${index}][tagId]`, tag.tagId);
+      });
     }
-  } catch (error) {
-    console.error(
-      "Error saving project:",
-      error.response ? error.response.data : error.message
+    if (projectData.value.projectCategory === "donation") {
+      formData.append(
+        "project_target_amount",
+        projectData.value.projectTargetAmount
+      );
+    } else {
+      formData.append(
+        "project_target_amount",
+        projectData.value.projectTargetVolunteer
+      );
+    }
+
+    // Mengubah array `project_criteria` ke format JSON sebelum dikirim
+    if (projectData.value.projectCategory === "donation") {
+      formData.append("project_criteria", null);
+    } else if (projectData.value.projectCategory === "volunteer") {
+      formData.append(
+        "project_criteria",
+        JSON.stringify(
+          projectData.value.projectCriteria.map((criteria) => ({
+            key: criteria.key,
+            value: criteria.value,
+            role: criteria.role,
+          }))
+        )
+      );
+
+      formData.append(
+        "project_role",
+        JSON.stringify(
+          projectData.value.projectRole.map((role) => ({
+            key: role.key,
+            value: role.value,
+          }))
+        )
+      );
+    }
+
+    // Menambahkan file gambar (pastikan projectFile sudah berupa File)
+    if (projectData.value.projectFile) {
+      formData.append("project_image", projectData.value.projectFile);
+      console.log("Project image ada!", projectData.value.projectFile);
+    } else {
+      console.error("Project image tidak ada!");
+    }
+
+    // Menambahkan data lokasi
+    formData.append("project_address", locationForm.value.address);
+    formData.append("kode_desa", locationForm.value.desa);
+    formData.append("latitude", locationForm.value.latitude);
+    formData.append("longitude", locationForm.value.longitude);
+
+    try {
+      const response = await api.post("/project/create/detail", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.status == 200 || response.status == 201) {
+        console.log(response.data);
+        const projectId = response.data.project_id;
+
+        await storeProjectInformation(projectId);
+        await storeProjectTimeline(projectId);
+        await storeProjectLampiran(projectId);
+
+        console.log("Project berhasil disimpan!");
+        openNotificatication("Project Berhasil Dibuat");
+        router.push("/dashboard/project");
+      }
+    } catch (error) {
+      console.error(
+        "Error saving project:",
+        error.response ? error.response.data : error.message
+      );
+    }
+  } else {
+    Object.assign(errors, validationResult.errors); // Salin error ke reactive object
+
+    openNotificatication(
+      "Project Gagal Disimpan! Pastikan Semua Data Terisi dengan Benar",
+      "error"
     );
+
+    console.log("Error validation:", errors);
   }
 };
 
@@ -628,7 +673,8 @@ const storeProjectInformation = async (projectId) => {
     "creator_social_media",
     JSON.stringify({
       key: creatorSocialMedia.value,
-      value: creatorInformation.value.creatorSocialMedia[creatorSocialMedia.value],
+      value:
+        creatorInformation.value.creatorSocialMedia[creatorSocialMedia.value],
     })
   );
 
@@ -767,7 +813,6 @@ const storeProjectLampiran = async (projectId) => {
     formData.append(`project_lampiran[${index}][file]`, lampiran.lampiranFile);
     formData.append(`project_lampiran[${index}][tag]`, "dokumen pendukung");
     formData.append(`project_lampiran[${index}][section]`, "lampiran");
-
   });
 
   try {
@@ -1051,9 +1096,13 @@ onBeforeMount(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-400': errors?.creatorName }"
                 v-model="creatorInformation.creatorName"
                 required
               />
+              <p v-if="errors?.creatorName" class="error-message">
+                {{ errors?.creatorName }}
+              </p>
             </div>
 
             <!-- Email -->
@@ -1065,8 +1114,12 @@ onBeforeMount(() => {
                 type="email"
                 class="w-full px-4 py-2 border rounded-md"
                 v-model="creatorInformation.creatorEmail"
+                :class="{ 'border-red-400': errors?.creatorEmail }"
                 required
               />
+              <p v-if="errors?.creatorEmail" class="error-message">
+                {{ errors?.creatorEmail }}
+              </p>
             </div>
 
             <!-- Nomor Telepon/WhatsApp -->
@@ -1079,8 +1132,12 @@ onBeforeMount(() => {
                 type="tel"
                 class="w-full px-4 py-2 border rounded-md"
                 v-model="creatorInformation.creatorPhone"
+                :class="{ 'border-red-500': errors?.creatorPhone }"
                 required
               />
+              <p v-if="errors?.creatorPhone" class="error-message">
+                {{ errors?.creatorPhone }}
+              </p>
             </div>
 
             <!-- Sosial Media -->
@@ -1109,10 +1166,16 @@ onBeforeMount(() => {
                 <input
                   type="text"
                   class="w-[70%] px-4 py-2 border rounded-md"
+                  :class="{
+                    'border-red-400': errors?.creatorSocialMedia,
+                  }"
                   v-model="
                     creatorInformation.creatorSocialMedia[creatorSocialMedia]
                   "
                 />
+                <p v-if="errors?.creatorSocialMedia" class="error-message">
+                  {{ errors?.creatorSocialMedia }}
+                </p>
               </div>
             </div>
 
@@ -1123,12 +1186,16 @@ onBeforeMount(() => {
               >
               <select
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-400': errors?.creatorType }"
                 v-model="creatorInformation.creatorType"
                 required
               >
                 <option value="perorangan">Perorangan</option>
                 <option value="organisasi">Organisasi/Lembaga</option>
               </select>
+              <p v-if="errors?.creatorType" class="error-message">
+                {{ errors?.creatorType }}
+              </p>
             </div>
 
             <!-- Nama Organisasi/Lembaga (Muncul jika memilih "Organisasi") -->
@@ -1140,8 +1207,12 @@ onBeforeMount(() => {
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-400': errors?.organizationName }"
                 v-model="creatorInformation.organizationName"
               />
+              <p v-if="errors?.organizationName" class="error-message">
+                {{ errors?.organizationName }}
+              </p>
             </div>
 
             <!-- Tautan Media Sosial atau Website -->
@@ -1152,20 +1223,30 @@ onBeforeMount(() => {
               <input
                 type="url"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-400': errors?.creatorWebsite }"
                 v-model="creatorInformation.creatorWebsite"
               />
+
+              <p v-if="errors?.creatorWebsite" class="error-message">
+                {{ errors?.creatorWebsite }}
+              </p>
             </div>
 
             <!-- Nomor Identitas -->
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Nomor Identitas (KTP/SIM/Paspor) (Opsional)</label
+                >Nomor Identitas (KTP/SIM/Paspor)
+                <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
                 v-model="creatorInformation.creatorID"
+                :class="{ 'border-red-400': errors?.creatorID }"
               />
+              <p v-if="errors?.creatorID" class="error-message">
+                {{ errors?.creatorID }}
+              </p>
             </div>
 
             <!-- Unggah Dokumen Proposal -->
@@ -1191,11 +1272,12 @@ onBeforeMount(() => {
           <!-- Jenis Penerima Manfaat -->
           <div>
             <label class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Jenis Penerima Manfaat</label
+              >Jenis Penerima Manfaat <span class="text-red-500">*</span></label
             >
             <select
               v-model="beneficialInformation.beneficiaryType"
               class="w-full px-4 py-2 border rounded-md"
+              :class="{ 'border-red-400': errors?.beneficiaryType }"
             >
               <option value="" disabled="true" hidden selected class="">
                 Pilih Jenis Penerima Manfaat
@@ -1203,6 +1285,9 @@ onBeforeMount(() => {
               <option value="perorangan">Perorangan</option>
               <option value="lembaga">Lembaga/Organisasi</option>
             </select>
+            <p v-if="errors?.beneficiaryType" class="error-message">
+              {{ errors?.beneficiaryType }}
+            </p>
           </div>
 
           <!-- Jika Perorangan -->
@@ -1212,13 +1297,17 @@ onBeforeMount(() => {
           >
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Nama Lengkap</label
+                >Nama Lengkap <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
                 v-model="beneficialInformation.beneficiaryName"
+                :class="{ 'border-red-400': errors.beneficiaryName }"
               />
+              <p v-if="errors?.beneficiaryName" class="error-message">
+                {{ errors?.beneficiaryName }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -1232,23 +1321,34 @@ onBeforeMount(() => {
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Alamat</label
+                >Alamat <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors?.beneficiaryAddress }"
                 v-model="beneficialInformation.beneficiaryAddress"
               />
+              <p v-if="errors?.beneficiaryAddress" class="error-message">
+                {{ errors?.beneficiaryAddress }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Nomor Telepon (Opsional)</label
+                >Nomor Telepon <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{
+                  'border-red-600': errors.beneficiaryPhone,
+                }"
                 v-model="beneficialInformation.beneficiaryPhone"
               />
+
+              <p v-if="errors?.beneficiaryPhone" class="error-message">
+                {{ errors?.beneficiaryPhone }}
+              </p>
             </div>
             <div class="md:col-span-2">
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -1279,13 +1379,18 @@ onBeforeMount(() => {
           >
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Nama Lembaga</label
+                >Nama Lembaga <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors.organizationName }"
                 v-model="beneficialInformation.organizationName"
               />
+
+              <p v-if="errors?.organizationName" class="error-message">
+                {{ errors?.organizationName }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -1299,33 +1404,48 @@ onBeforeMount(() => {
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Alamat Lembaga</label
+                >Alamat Lembaga <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors.organizationAddress }"
                 v-model="beneficialInformation.organizationAddress"
               />
+
+              <p v-if="errors?.organizationAddress" class="error-message">
+                {{ errors?.organizationAddress }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Penanggung Jawab (Nama & Jabatan)</label
+                >Penanggung Jawab <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors.organizationPIC }"
                 v-model="beneficialInformation.organizationPIC"
               />
+              <p v-if="errors?.organizationPIC" class="error-message">
+                {{ errors?.organizationPIC }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Nomor Telepon Lembaga</label
+                >Nomor Telepon Lembaga
+                <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors.organizationPhone }"
                 v-model="beneficialInformation.organizationPhone"
               />
+
+              <p v-if="errors?.organizationPhone" class="error-message">
+                {{ errors?.organizationPhone }}
+              </p>
             </div>
             <div class="md:col-span-2">
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -1353,11 +1473,13 @@ onBeforeMount(() => {
           <!-- Hubungan dengan Penerima Manfaat -->
           <div class="mt-5">
             <label class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Hubungan dengan Penerima Manfaat</label
+              >Hubungan dengan Penerima Manfaat
+              <span class="text-red-500">*</span></label
             >
             <select
               v-model="beneficialInformation.beneficiaryRelation"
               class="w-full px-4 py-2 border rounded-md"
+              :class="{ 'border-red-600': errors.beneficiaryRelation }"
             >
               <option value="diri-sendiri">Diri Sendiri</option>
               <option value="keluarga">Keluarga</option>
@@ -1365,6 +1487,10 @@ onBeforeMount(() => {
               <option value="organisasi">Mewakili Organisasi</option>
               <option value="lainnya">Lainnya</option>
             </select>
+
+            <p v-if="errors?.beneficiaryRelation" class="error-message">
+              {{ errors?.beneficiaryRelation }}
+            </p>
           </div>
 
           <!-- Jika Lainnya, Tambah Input -->
@@ -1373,13 +1499,19 @@ onBeforeMount(() => {
             class="mt-3"
           >
             <label class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Jelaskan Hubungan</label
+              >Penjelasan Hubungan dengan Penerima Manfaat
+              <span class="text-red-500">*</span></label
             >
             <input
               type="text"
               class="w-full px-4 py-2 border rounded-md"
+              :class="{ 'border-red-400': errors.beneficiaryRelationOther }"
               v-model="beneficialInformation.beneficiaryRelationOther"
             />
+
+            <p v-if="errors?.beneficiaryRelationOther" class="error-message">
+              {{ errors?.beneficiaryRelationOther }}
+            </p>
           </div>
         </div>
 
@@ -1400,7 +1532,7 @@ onBeforeMount(() => {
         class="bg-white dark:bg-gray-700 pb-6 pl-6 pr-6 pt-2 rounded-lg shadow"
       >
         <h5 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Edit Form
+          Informasi Umum
         </h5>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1408,7 +1540,7 @@ onBeforeMount(() => {
             <label
               for="title"
               class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Title</label
+              >Judul <span class="text-red-500">*</span></label
             >
             <input
               id="title"
@@ -1416,17 +1548,23 @@ onBeforeMount(() => {
               placeholder="Masukkan Judul Project kamu"
               type="text"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+              :class="{ 'border-red-600': errors.projectTitle }"
             />
+
+            <p v-if="errors?.projectTitle" class="error-message">
+              {{ errors?.projectTitle }}
+            </p>
           </div>
           <div>
             <label class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Tags</label
+              >Tags <span class="text-red-500">*</span></label
             >
             <div class="relative w-full flex items-center">
               <!-- Button to Open Dropdown -->
               <button
                 @click="isTagDropdownOpen = !isTagDropdownOpen"
                 class="w-full px-3 py-2 border rounded-md text-gray-700 bg-white focus:outline-none focus:ring focus:ring-blue-300"
+                :class="{ 'border-red-600': errors.projectTags }"
               >
                 Select Tags
               </button>
@@ -1476,62 +1614,75 @@ onBeforeMount(() => {
                 </button>
               </span>
             </div>
+            <p v-if="errors?.projectTags" class="error-message">
+              {{ errors?.projectTags }}
+            </p>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
-        <div>
+          <div>
             <label
               for="group_chat_name"
               class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Group Name</label
+              >Group Name <span class="text-red-500">*</span></label
             >
             <input
               id="group_chat_name"
               v-model="projectData.projectGroupChatName"
               placeholder="Masukkan Nama Group Chat kamu"
               type="text"
+              :class="{ 'border-red-600': errors.projectGroupChatName }"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             />
+
+            <p v-if="errors?.projectGroupChatName" class="error-message">
+              {{ errors?.projectGroupChatName }}
+            </p>
           </div>
 
           <!-- Unggah Avatar Group Chat -->
-          <div >
-              <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >Unggah Group Avatar</label
-              >
-              <input
-                type="file"
-                class="w-full px-4 py-2 border rounded-md"
-                @change="handleGroupAvatar"
-              />
-            </div>
+          <div>
+            <label class="block text-gray-700 dark:text-gray-300 font-medium"
+              >Unggah Group Avatar</label
+            >
+            <input
+              type="file"
+              class="w-full px-4 py-2 border rounded-md"
+              @change="handleGroupAvatar"
+            />
           </div>
+        </div>
 
         <div class="mt-3">
           <label
             for="description"
             class="block text-gray-700 dark:text-gray-300 font-medium"
-            >Description</label
+            >Deskripsi <span class="text-red-500">*</span></label
           >
           <textarea
             id="description"
             v-model="projectData.projectDescription"
             placeholder="Masukkan Deskripsi Project kamu"
+            :class="{ 'border-red-600': errors.projectDescription }"
             class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             rows="4"
           ></textarea>
+          <p v-if="errors?.projectDescription" class="error-message">
+            {{ errors?.projectDescription }}
+          </p>
         </div>
 
         <!-- Upload Image Section -->
         <div class="mt-4">
           <h6 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-            Upload Image
+            Upload Image <span class="text-red-500">*</span>
           </h6>
           <div class="flex items-center justify-center">
             <label
               for="import-file"
               class="flex flex-col items-center justify-center w-full sm:min-h-[150px] bg-white dark:bg-box-dark p-2 rounded-lg border-2 border-dashed border-[#c6d0dc] dark:border-box-dark-up hover:border-primary dark:hover:border-primary cursor-pointer transition-all duration-300 ease-linear"
+              :class="{ 'border-red-600': errors.projectFile }"
             >
               <div
                 v-if="!imagePreview"
@@ -1563,6 +1714,9 @@ onBeforeMount(() => {
               </div>
             </label>
           </div>
+          <p v-if="errors?.projectFile" class="error-message">
+            {{ errors?.projectFile }}
+          </p>
           <div v-if="imagePreview" class="mt-2">
             <button
               @click="removeImage"
@@ -1579,27 +1733,37 @@ onBeforeMount(() => {
             <label
               for="start_date"
               class="block text-gray-700 dark:text-gray-300 font-medium"
-              >Start Date</label
+              >Start Date <span class="text-red-500">*</span></label
             >
             <input
               id="start_date"
               type="date"
               v-model="projectData.projectStartDate"
+              :class="{ 'border-red-600': errors.projectStartDate }"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             />
+
+            <p v-if="errors?.projectStartDate" class="error-message">
+              {{ errors?.projectStartDate }}
+            </p>
           </div>
           <div>
             <label
               for="end_date"
               class="block text-gray-700 dark:text-gray-300 font-medium"
-              >End Date</label
+              >End Date <span class="text-red-500">*</span></label
             >
             <input
               id="end_date"
               type="date"
+              :class="{ 'border-red-600': errors.projectEndDate }"
               v-model="projectData.projectEndDate"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
             />
+
+            <p v-if="errors?.projectEndDate" class="error-message">
+              {{ errors?.projectEndDate }}
+            </p>
           </div>
         </div>
 
@@ -1611,17 +1775,21 @@ onBeforeMount(() => {
               for="category"
               class="block text-gray-700 dark:text-gray-300 font-medium"
             >
-              Category
+              Category <span class="text-red-500">*</span>
             </label>
             <select
               v-model="projectData.projectCategory"
               class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+              :class="{ 'border-red-600': errors.projectCategory }"
               name="category"
               id=""
             >
               <option value="donation">Donasi</option>
               <option value="volunteer">Volunteer</option>
             </select>
+            <p v-if="errors?.projectCategory" class="error-message">
+              {{ errors?.projectCategory }}
+            </p>
           </div>
 
           <!-- Target Donasi -->
@@ -1635,9 +1803,10 @@ onBeforeMount(() => {
               for="target_donasi"
               class="block text-gray-700 dark:text-gray-300 font-medium"
             >
-              Target Donasi (Rp)
+              Target Donasi (Rp) <span class="text-red-500">*</span>
             </label>
             <div
+              :class="{ 'border-red-600': errors.projectTargetAmount }"
               class="w-full rounded-md border border-gray-300 dark:border-gray-600 text-[15px] dark:bg-gray-800 px-4 py-2 flex items-center focus:ring-blue-400 focus:border-blue-400"
             >
               <span class="text-gray-500 dark:text-gray-400 mr-2">
@@ -1653,6 +1822,9 @@ onBeforeMount(() => {
                 min="0"
               />
             </div>
+            <p v-if="errors?.projectTargetAmount" class="error-message">
+              {{ errors?.projectTargetAmount }}
+            </p>
           </div>
 
           <!-- Target Volunteer -->
@@ -1661,9 +1833,10 @@ onBeforeMount(() => {
               for="target_volunteer"
               class="block text-gray-700 dark:text-gray-300 font-medium"
             >
-              Target Volunteer (Orang)
+              Target Volunteer (Orang) <span class="text-red-500">*</span>
             </label>
             <div
+              :class="{ 'border-red-600': errors.projectTargetVolunteer }"
               class="w-full rounded-md border border-gray-300 dark:border-gray-600 text-[15px] dark:bg-gray-800 px-4 py-2 flex items-center focus:ring-blue-400 focus:border-blue-400"
             >
               <span class="text-gray-500 dark:text-gray-400 mr-2">
@@ -1679,6 +1852,9 @@ onBeforeMount(() => {
                 min="1"
               />
             </div>
+            <p v-if="errors?.projectTargetVolunteer" class="error-message">
+              {{ errors?.projectTargetVolunteer }}
+            </p>
           </div>
         </div>
 
@@ -1691,9 +1867,12 @@ onBeforeMount(() => {
             for="criteria_volunteer"
             class="block text-gray-700 dark:text-gray-300 font-medium"
           >
-            Kebutuhan Volunteer
+            Kebutuhan Volunteer <span class="text-red-500">*</span>
           </label>
-          <table class="min-w-full bg-white border rounded-md mt-1">
+          <table
+            class="min-w-full bg-white border rounded-md mt-1"
+            :class="{ 'border-red-600': errors.projectRole }"
+          >
             <!-- Klik pada header untuk menambah baris -->
             <thead @click="addRole" class="cursor-pointer">
               <tr class="bg-gray-100">
@@ -1745,6 +1924,10 @@ onBeforeMount(() => {
               </tr>
             </tbody>
           </table>
+
+          <p v-if="errors?.projectRole" class="error-message">
+            {{ errors?.projectRole }}
+          </p>
         </div>
 
         <!-- Tabel Kriteria dan Nilai -->
@@ -1756,9 +1939,12 @@ onBeforeMount(() => {
             for="criteria_volunteer"
             class="block text-gray-700 dark:text-gray-300 font-medium"
           >
-            Kriteria Volunteer
+            Kriteria Volunteer <span class="text-red-500">*</span>
           </label>
-          <table class="min-w-full bg-white border rounded-md mt-1">
+          <table
+            class="min-w-full bg-white border rounded-md mt-1"
+            :class="{ 'border-red-600': errors.projectCriteria }"
+          >
             <!-- Klik pada header untuk menambah baris -->
             <thead @click="addCriteria" class="cursor-pointer">
               <tr class="bg-gray-100">
@@ -1833,6 +2019,9 @@ onBeforeMount(() => {
               </tr>
             </tbody>
           </table>
+          <p v-if="errors?.projectCriteria" class="error-message">
+            {{ errors?.projectCriteria }}
+          </p>
         </div>
 
         <!-- Submit Button -->
@@ -1861,7 +2050,7 @@ onBeforeMount(() => {
         class="bg-white dark:bg-gray-700 pb-6 pl-6 pr-6 pt-2 rounded-lg shadow"
       >
         <h5 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Edit Location
+          Lokasi Proyek
         </h5>
 
         <!-- Modal Body -->
@@ -1872,14 +2061,19 @@ onBeforeMount(() => {
               for="address"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Address
+              Alamat <span class="text-red-500">*</span>
             </label>
             <textarea
               id="address"
               v-model="locationForm.address"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+              :class="{ 'border-red-600': errors.address }"
               rows="1"
             ></textarea>
+
+            <p v-if="errors?.address" class="error-message">
+              {{ errors?.address }}
+            </p>
           </div>
 
           <!-- Province -->
@@ -1888,12 +2082,13 @@ onBeforeMount(() => {
               for="province"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Province
+              Provinsi <span class="text-red-500">*</span>
             </label>
             <select
               v-model="locationForm.provinsi"
               @change="getKabupaten(locationForm.provinsi)"
               id="province"
+              :class="{ 'border-red-600': errors.provinsi }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
               <option value="">Select Province</option>
@@ -1905,6 +2100,10 @@ onBeforeMount(() => {
                 {{ provinsi.namaProvinsi }}
               </option>
             </select>
+
+            <p v-if="errors?.provinsi" class="error-message">
+              {{ errors?.provinsi }}
+            </p>
           </div>
 
           <!-- Kabupaten -->
@@ -1913,13 +2112,14 @@ onBeforeMount(() => {
               for="kabupaten"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Kabupaten
+              Kabupaten <span class="text-red-500">*</span>
             </label>
             <select
               id="kabupaten"
               v-model="locationForm.kabupaten"
               @change="getKecamatan(locationForm.kabupaten)"
               :disabled="!locationForm.provinsi"
+              :class="{ 'border-red-600': errors.kabupaten }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
               <option value="">Select Kabupaten</option>
@@ -1931,6 +2131,9 @@ onBeforeMount(() => {
                 {{ kabupaten.namaKabupaten }}
               </option>
             </select>
+            <p v-if="errors?.kabupaten" class="error-message">
+              {{ errors?.kabupaten }}
+            </p>
           </div>
 
           <!-- Kecamatan -->
@@ -1939,13 +2142,14 @@ onBeforeMount(() => {
               for="kecamatan"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Kecamatan
+              Kecamatan <span class="text-red-500">*</span>
             </label>
             <select
               id="kecamatan"
               v-model="locationForm.kecamatan"
               @change="getDesa(locationForm.kecamatan)"
               :disabled="!locationForm.kabupaten"
+              :class="{ 'border-red-600': errors.kecamatan }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
             >
               <option value="">Select Kecamatan</option>
@@ -1957,6 +2161,9 @@ onBeforeMount(() => {
                 {{ kecamatan.namaKecamatan }}
               </option>
             </select>
+            <p v-if="errors?.kecamatan" class="error-message">
+              {{ errors?.kecamatan }}
+            </p>
           </div>
 
           <!-- Desa -->
@@ -1965,12 +2172,13 @@ onBeforeMount(() => {
               for="desa"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Desa
+              Desa <span class="text-red-500">*</span>
             </label>
             <select
               id="desa"
               v-model="locationForm.desa"
               :disabled="!locationForm.kecamatan"
+              :class="{ 'border-red-600': errors.desa }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
               size="1"
             >
@@ -1983,6 +2191,9 @@ onBeforeMount(() => {
                 {{ desa.namaDesa }}
               </option>
             </select>
+            <p v-if="errors?.desa" class="error-message">
+              {{ errors?.desa }}
+            </p>
           </div>
 
           <!-- Latitude -->
@@ -1991,14 +2202,18 @@ onBeforeMount(() => {
               for="latitude"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Latitude
+              Latitude <span class="text-red-500">*</span>
             </label>
             <input
               id="latitude"
               type="text"
               v-model="locationForm.latitude"
+              :class="{ 'border-red-600': errors.latitude }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
+            <p v-if="errors?.latitude" class="error-message">
+              {{ errors?.latitude }}
+            </p>
           </div>
 
           <!-- Longitude -->
@@ -2007,14 +2222,18 @@ onBeforeMount(() => {
               for="longitude"
               class="block mb-2 text-sm font-medium text-gray-700"
             >
-              Longitude
+              Longitude <span class="text-red-500">*</span>
             </label>
             <input
               id="longitude"
               type="text"
               v-model="locationForm.longitude"
+              :class="{ 'border-red-600': errors.longitude }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
+            <p v-if="errors?.longitude" class="error-message">
+              {{ errors?.longitude }}
+            </p>
           </div>
         </div>
 
@@ -2045,7 +2264,7 @@ onBeforeMount(() => {
       >
         <div class="flex justify-between mb-4">
           <h5 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-            Create Timeline
+            Timeline Proyek <span class="text-red-500">*</span>
           </h5>
 
           <div class="flex justify-center gap-2">
@@ -2145,6 +2364,9 @@ onBeforeMount(() => {
               >
                 New Timeline
               </button>
+              <p v-if="errors?.timeline" class="error-message">
+                {{ errors?.timeline }}
+              </p>
             </div>
           </div>
 
@@ -2244,7 +2466,7 @@ onBeforeMount(() => {
         class="bg-white dark:bg-gray-700 pb-6 pl-6 pr-6 pt-2 rounded-lg shadow"
       >
         <h5 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Edit File
+          Lampiran Proyek<span class="text-red-500">*</span>
         </h5>
 
         <!-- Modal Body -->
@@ -2309,6 +2531,12 @@ onBeforeMount(() => {
               />
             </label>
           </div>
+          <p
+            v-if="errors?.lampiranList"
+            class="error-message flex justify-center text-center items-center"
+          >
+            {{ errors?.lampiranList }}
+          </p>
         </div>
 
         <!-- Submit Button -->
@@ -2342,3 +2570,11 @@ onBeforeMount(() => {
     :title="'Konfirmasi Project'"
   />
 </template>
+
+<style scoped>
+.error-message {
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+</style>

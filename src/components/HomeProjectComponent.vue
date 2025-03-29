@@ -197,7 +197,7 @@ onBeforeMount(() => {
     <!-- Search and Filter Bar -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <div class="flex flex-wrap gap-4">
-        <div class="flex-1 min-w-[200px]">
+        <div class="md:flex-1 min-w-[200px] ">
           <input
             type="text"
             v-model="searchProjectBar"
@@ -218,7 +218,7 @@ onBeforeMount(() => {
           id="province"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
         >
-          <option value="">Select Province</option>
+          <option value="">Pilih Provinsi</option>
           <option
             v-for="provinsi in provinsiList"
             :key="provinsi.kodeProvinsi"
