@@ -83,6 +83,11 @@ onBeforeUnmount(() => {
         <div class="flex-shrink-0 flex items-center">
           <router-link to="/" class="cursor-pointer">
             <span class="text-2xl font-bold text-green-600">SHCUnion</span>
+            <!-- <img
+              src="../../src/assets/images/logos/SHCUnion-logo-home.png"
+              alt=""
+              class="w-30 h-10 block md:hidden"
+            /> -->
           </router-link>
         </div>
 

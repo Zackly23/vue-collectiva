@@ -96,16 +96,13 @@ const handleSubmit = async () => {
     console.log("Form data:", toRaw(form));
 
     try {
-      const response = await api.post(
-       '/sign-up',
-        {
-          first_name: form.firstName,
-          last_name: form.lastName,
-          email: form.email,
-          password: form.password,
-          password_confirmation: form.passwordConfirmation,
-        },
-      );
+      const response = await api.post("/sign-up", {
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.passwordConfirmation,
+      });
 
       Object.keys(errors).forEach((key) => {
         errors[key] = null;
@@ -257,15 +254,14 @@ function redirectToLogin() {
           <!-- Terms -->
           <p class="text-xs text-gray-600 mt-4">
             By clicking "Create account" above, you acknowledge that you will
-            receive updates from the Relume team and that you have read,
-            understood, and agreed to Relume Library's
-            <a href="#" class="text-black hover:underline">Terms & Conditions</a
-            >,
-            <a href="#" class="text-black hover:underline"
-              >Licensing Agreement</a
+            receive updates from
+            <span class="font-semibold text-black">SHCunion</span> and that you
+            have read, understood, and agreed to Relume Library's
+            <button download="_.pdf" class="text-black hover:underline"
+              >Terms & Conditions</button
             >
             and
-            <a href="#" class="text-black hover:underline">Privacy Policy</a>.
+            <button download="#" class="text-black hover:underline">Privacy Policy</button>.
           </p>
 
           <!-- Login Link -->
@@ -273,7 +269,7 @@ function redirectToLogin() {
             <span class="text-sm">Already have an Account?</span>
             <button
               @click="redirectToLogin"
-              class="py-1 px-3 bg-white text-black border border-black rounded-md hover:bg-gray-100 transition-colors text-sm"
+              class="py-1 px-3 bg-white text-black border border-black rounded-md hover:bg-gray-100 transition-colors text-sm font-semibold"
             >
               Login
             </button>
@@ -287,9 +283,9 @@ function redirectToLogin() {
       >
         <div class="text-center mb-12">
           <img
-            src="https://via.placeholder.com/48"
+            src="../../src/assets/images/logos/SHCUnion-logo.png"
             alt="Pengguna"
-            class="rounded-full mx-auto mb-4"
+            class="rounded-full mx-auto  w-24 h-24"
           />
           <p class="font-medium text-lg mb-2">
             "Membangun jembatan kepedulian dan kebaikan bersama SHCUnion."
@@ -299,11 +295,11 @@ function redirectToLogin() {
             untuk membuat perubahan nyata bersama-sama.
           </p>
           <p class="text-gray-800">ikuti di</p>
-          <a href="http://instagram.com" class="hover:underline"
+          <a href="http://instagram.com/pahlawankomunitas" class="hover:underline"
             ><p class="font-medium">@pahlawankomunitas</p></a
           >
         </div>
-        <div class="grid grid-cols-3 gap-8">
+        <!-- <div class="grid grid-cols-3 gap-8">
           <img
             src="https://via.placeholder.com/80x40?text=OrganisasiPeduli"
             alt="Organisasi Peduli"
@@ -319,7 +315,7 @@ function redirectToLogin() {
             alt="Pelukan Hangat"
             class="opacity-50"
           />
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
