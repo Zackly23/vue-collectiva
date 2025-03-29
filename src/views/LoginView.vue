@@ -120,7 +120,7 @@ const handleSubmit = async () => {
         if (localStorage.getItem("last_visited_page")) {
           router.push(localStorage.getItem("last_visited_page"));
         }
-          router.push(`/dashboard/${userId}`);
+        router.push(`/dashboard/${userId}`);
       }
     } catch (error) {
       if (error.response) {
@@ -172,7 +172,7 @@ function redirectToSignup() {
 
         <!-- Main Card -->
         <div class="bg-white p-8 rounded-3xl shadow-sm">
-          <h1 class="text-2xl font-semibold mb-6 font-sans">Log In</h1>
+          <h1 class="text-2xl font-semibold mb-6">Log In</h1>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Email Field -->
@@ -231,20 +231,35 @@ function redirectToSignup() {
               type="submit"
               class="w-full bg-black font-semibold text-white py-3 px-4 rounded-md hover:bg-gray-800 transition-colors"
             >
-              Login In
+              Login
             </button>
           </form>
 
           <!-- Social Login Buttons -->
           <div class="mt-4">
-            <p class="text-center text-sm text-gray-600 mb-4">Or login with</p>
+            <p class="text-center text-sm text-gray-600 mb-4">
+              Or Login with
+            </p>
             <div class="flex justify-center space-x-4">
               <button
                 @click="handleSocialLogin('google')"
-                class="py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                class="bg-white text-white rounded-md transition-colors"
                 title="google"
               >
-                <i class="ui uil-google"></i>
+                <img
+                  src="../../src/assets/images/logos/google-icon.png"
+                  alt="Google"
+                  class="w-6 h-6"
+                />
+              </button>
+
+              <button
+                v-action="{ role: ['none'] }"
+                @click="handleSocialLogin('twitter')"
+                class="bg-blue-600 text-white rounded-md transition-colors w-8 h-8"
+                title="twitter"
+              >
+                <i class="ui uil-twitter w-6 h-6"></i>
               </button>
               <!-- <button
                 @click="handleSocialLogin('twitter')"
@@ -263,10 +278,10 @@ function redirectToSignup() {
 
           <!-- Sign Up Link -->
           <div class="mt-6 flex items-center justify-between space-x-2">
-            <span class="text-xs">Don't Have an Account?</span>
+            <span class="text-xs">Dont have account yet ?</span>
             <button
               @click="redirectToSignup"
-              class="py-1 px-3 bg-white text-black border border-black rounded-md hover:bg-gray-100 transition-colors text-sm"
+              class="py-1 px-3 bg-white text-black border border-black rounded-md hover:bg-gray-100 transition-colors text-sm font-sans font-semibold"
             >
               Sign Up
             </button>
