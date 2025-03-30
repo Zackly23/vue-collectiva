@@ -90,7 +90,7 @@ defineProps({
     >
       <router-link to="/" class="block text-center">
         <div class="logo-full">
-          <img
+          <!-- <img
             class="ps-[27px] dark:hidden"
             src="../../assets/images/logos/logo-dark.png"
             alt="Logo"
@@ -99,14 +99,16 @@ defineProps({
             class="ps-[27px] hidden dark:block"
             src="../../assets/images/logos/logo-white.png"
             alt="Logo"
-          />
+          /> -->
+          <span class="ml-6 text-2xl font-bold text-primary">SHCUnion</span>
         </div>
         <div class="hidden logo-fold">
-          <img
+          <!-- <img
             class="p-[27px] max-w-[80px]"
             src="../../assets/images/logos/logo-fold.png"
             alt="Logo"
-          />
+          /> -->
+          <span class="text-2xl font-bold text-primary">SHCUnion</span>
         </div>
       </router-link>
     </div>

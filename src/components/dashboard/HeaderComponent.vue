@@ -224,9 +224,11 @@ defineProps({
           <div
             class="flex md:w-[190px] xs:w-[170px] max-xs:w-[100px] max-md:pe-[30px] max-xs:pe-[15px] md:border-none sm:border-none xs:border-none border-e border-[#edf2f9] dark:border-box-dark-up logo-wrapper items-center h-[71px] dark:bg-box-dark-up"
           >
-            <a href="index.html" class="block text-center">
+            <router-link to="/" class="block text-center">
               <div class="logo-full">
-                <img
+                <span class="text-2xl font-bold text-primary">SHCUnion</span>
+
+                <!-- <img
                   class="md:ps-[15px] dark:hidden"
                   src="../../assets/images/logos/logo-dark.png"
                   alt="Logo"
@@ -235,9 +237,10 @@ defineProps({
                   class="md:ps-[15px] hidden dark:block"
                   src="../../assets/images/logos/logo-white.png"
                   alt="Logo"
-                />
+                /> -->
+
               </div>
-            </a>
+            </router-link>
           </div>
         </li>
         <li>
