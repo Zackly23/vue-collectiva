@@ -345,6 +345,8 @@ const getUserProfile = async () => {
     console.log("user profile HEADER : ", userProfile.value);
   } catch (error) {
     console.error("error Fetch User : ", error);
+    openNotificatication("Terjadi Kesalahan saat Mengambil Data Profile", "error");
+
   }
 };
 
@@ -364,6 +366,8 @@ onMounted(async () => {
     await getUserProfile(); // Tunggu fetching selesai
   } catch (error) {
     console.error("Gagal mengambil data:", error);
+    openNotificatication("Terjadi Kesalahan saat Mengambil Data Profil", "error");
+
   }
   emits("toggle-loading"); // Matikan loading setelah fetching selesai
 });
@@ -535,7 +539,7 @@ onBeforeMount(() => {
           <!-- Author profile cover -->
           <div
             v-if="settingTab === 'edit'"
-            class="relative z-[1] bg-dark rounded-10 w-full flex mb-[25px]"
+            class="relative z-[1] bg-dark rounded-10 w-full md:flex mb-[25px] hidden "
             data-te-ripple-init
             data-te-ripple-color="dark"
           >

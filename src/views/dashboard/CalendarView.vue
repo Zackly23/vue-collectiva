@@ -39,9 +39,9 @@ const categoryColors = ref({
   other: "gray", // Kategori lainnya
 });
 
-const openNotificatication = (message) => {
+const openNotificatication = (message, type="success") => {
   toastNotification.open({
-    type: "success",
+    type: type,
     message: message,
     position: "top-right",
     duration: 3000,
@@ -193,6 +193,7 @@ const fetchAgendas = async () => {
     console.log("ag : ", eventAgendaList.value);
   } catch (error) {
     console.error("Gagal mengambil data agenda:", error);
+    openNotificatication("Terjadi kesalahan saat Mengambil Data Agenda", "error");
   }
 };
 
@@ -230,6 +231,9 @@ const saveNewAgenda = async () => {
     console.log("Agenda berhasil disimpan:", response.data);
   } catch (error) {
     console.error("Gagal menyimpan agenda:", error);
+
+    openNotificatication("Terjadi kesalahan saat menyimpan Agenda", "error");
+
   }
 };
 
@@ -251,6 +255,8 @@ onMounted(async () => {
     await fetchAgendas();
   } catch (error) {
     console.error("Gagal mengambil data:", error);
+    openNotificatication("Terjadi kesalahan saat Mengambil data Agenda", "error");
+
   }
   emits("toggle-loading"); // Matikan loading setelah fetching selesai
 
@@ -344,7 +350,7 @@ onBeforeMount(() => {
             <!-- Full calendar -->
             <div
               id="full-calendar"
-              class="col-start-1 col-span-12 md:col-span-9 h-auto relative bg-white main-calendar dark:bg-box-dark rounded-10 p-[25px] overflow-x-auto scrollbar"
+              class="col-start-1 col-span-12 md:col-span-9 h-auto relative bg-white main-calendar dark:bg-box-dark rounded-10 p-[25px] overflow-x-auto scrollbar "
             >
               <VCalendar
                 :attributes="attributesEventAgendaList"

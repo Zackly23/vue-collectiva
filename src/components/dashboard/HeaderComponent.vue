@@ -594,7 +594,7 @@ defineProps({
         class="flex items-center ms-auto py-[15px] sm:gap-x-[25px] max-sm:gap-x-[15px] gap-y-[15px] relative"
       >
         <!-- Search Button -->
-        <div class="relative" ref="searchContainer">
+        <!-- <div class="relative" ref="searchContainer">
           <button
             type="button"
             @click="toggleSearchInput"
@@ -611,7 +611,9 @@ defineProps({
             v-show="isSearchVisible"
             class="theme-dropdown absolute end-0 transition-[opacity,margin] duration opacity-100 min-w-[15rem] mt-8 dark:bg-box-dark-down p-1.5 h-[48px] px-[20px] dark:shadow-none border-1 border-regular dark:border-box-dark-up rounded-6 capitalize bg-white text-body dark:text-title-dark placeholder:text-body dark:placeholder:text-subtitle-dark text-ellipsis outline-none"
           />
-        </div>
+        </div> -->
+
+
         <!-- End Search Button -->
         <!-- Button Elipsis (Pas Resposive)  -->
         <button
@@ -1109,24 +1111,26 @@ defineProps({
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
                       >
-                        <button
+                        <router-link
+                        disabled
                           class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                         >
                           <i class="text-[16px] uil uil-users-alt"></i>
                           Activity
-                        </button>
+                        </router-link>
                       </div>
                     </li>
                     <li class="w-full">
                       <div
                         class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
                       >
-                        <button
+                        <router-link
+                        to="/dashboard/guidance"
                           class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                         >
                           <i class="text-[16px] uil uil-bell"></i>
                           Help
-                        </button>
+                        </router-link>
                       </div>
                     </li>
                   </ul>

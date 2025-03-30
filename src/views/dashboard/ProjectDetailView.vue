@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeMount, toRaw } from "vue";
+import { ref, onMounted, onBeforeMount, toRaw, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
@@ -10,11 +10,13 @@ import HardWarningComponent from "@/components/dashboard/modal/HardWarningCompon
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue";
 import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
+import { validateForm } from "@/validations/DetailProjectErrorValidation";
 
 const props = defineProps({
   isLoading: Boolean,
 });
 
+const errors = reactive({}); // Reactive agar Vue bisa mendeteksi perubahan
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 //Toast Notification
 const toastNotification = useToast();
@@ -333,6 +335,7 @@ const storeEvaluation = async () => {
     }
   } catch (error) {
     console.error("error menyimpan evaluasi : ", error);
+    openNotificatication("Terjadi Kesalahan saat Menyimpan Evaluasi", "error");
   }
 };
 
@@ -371,6 +374,7 @@ const storeTimeline = async () => {
     resetActivityData();
   } catch (error) {
     console.error("Error saving activity:", error);
+    openNotificatication("Terjadi Kesalahan saat Menyimpan Timeline", "error");
   }
 };
 
@@ -399,6 +403,10 @@ const storeTimelineDetail = async () => {
     resetActivityData();
   } catch (error) {
     console.error("Error saving activity:", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Menyimpan Detail Timeline",
+      "error"
+    );
   }
 };
 
@@ -472,6 +480,10 @@ const updateTimeline = async () => {
     resetSelectedTimeline();
   } catch (error) {
     console.error("Error saving activity:", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Memperbarui Timeline",
+      "error"
+    );
   }
 };
 
@@ -536,34 +548,50 @@ const locationForm = ref({
 });
 
 const updateLocation = async () => {
+  const validationResult = validateForm(locationForm);
+
+  Object.keys(errors).forEach((key) => {
+    errors[key] = "";
+  });
+
   console.log("Location Form Data:", locationForm.value);
 
-  const formData = new FormData();
-  formData.append("kode_desa", locationForm.value.desa);
-  formData.append("project_address", locationForm.value.address);
-  formData.append("latitude", locationForm.value.latitude);
-  formData.append("longitude", locationForm.value.longitude);
+  if (validationResult.isValid) {
+    const formData = new FormData();
+    formData.append("kode_desa", locationForm.value.desa);
+    formData.append("project_address", locationForm.value.address);
+    formData.append("latitude", locationForm.value.latitude);
+    formData.append("longitude", locationForm.value.longitude);
 
-  formData.append("_method", "PUT");
+    formData.append("_method", "PUT");
 
-  try {
-    const response = await api.post(
-      `/project/${projectId}/location`, // Perbaiki URL
-      formData
-    );
+    try {
+      const response = await api.post(
+        `/project/${projectId}/location`, // Perbaiki URL
+        formData
+      );
 
-    console.log(response.data);
-    if (response.status === 200) {
-      getProjectDetail();
-      resetLocationForm();
-      closeLocationModal();
-      openNotificatication(`Lokasi Project Berhasil Diupdate`);
+      console.log(response.data);
+      if (response.status === 200) {
+        getProjectDetail();
+        resetLocationForm();
+        closeLocationModal();
+        openNotificatication(`Lokasi Project Berhasil Diupdate`);
+      }
+    } catch (error) {
+      console.error(
+        "Error:",
+        error.response ? error.response.data : error.message
+      );
+      openNotificatication(
+        "Terjadi Kesalahan saat Memperbarui Data Lokasi",
+        "error"
+      );
     }
-  } catch (error) {
-    console.error(
-      "Error:",
-      error.response ? error.response.data : error.message
-    );
+  } else {
+    Object.assign(errors, validationResult.errors); // Salin error ke reactive object
+
+    openNotificatication(`Lokasi Gagal Diupdate! Pastikan semua data terisi`);
   }
 };
 
@@ -631,6 +659,11 @@ const saveChangeEvaluation = async () => {
     }
   } catch (error) {
     console.error("Error updating evaluation:", error);
+
+    openNotificatication(
+      "Terjadi Kesalahan saat Menyimpan Perubahan Data Evaluasi",
+      "error"
+    );
   }
 };
 
@@ -735,6 +768,11 @@ const updateProjectDetail = async () => {
       "Error:",
       error.response ? error.response.data : error.message
     );
+
+    openNotificatication(
+      "Terjadi Kesalahan saat Memperbarui Data Proyek",
+      "error"
+    );
   }
 
   console.log("Form data submitted:", projectModalData.value);
@@ -777,6 +815,8 @@ const addFile = () => {
     const newFile = event.target.files[0];
     if (!newFile) {
       console.error("No file selected.");
+      openNotificatication("Tidak ada file yang dipilih", "warning");
+
       return;
     }
 
@@ -820,6 +860,10 @@ const addFile = () => {
         "Error:",
         error.response ? error.response.data : error.message
       );
+      openNotificatication(
+        "Terjadi Kesalahan saat Menyimpan Lampiran Proyek",
+        "error"
+      );
     }
   };
 };
@@ -839,6 +883,8 @@ const updateFile = async (lampiranId) => {
     const newFile = event.target.files[0];
     if (!newFile) {
       console.error("No file selected.");
+      openNotificatication("Tidak ada file yang dipilih", "error");
+
       return;
     }
 
@@ -872,13 +918,18 @@ const updateFile = async (lampiranId) => {
         "Error:",
         error.response ? error.response.data : error.message
       );
+
+      openNotificatication(
+        "Terjadi Kesalahan saat Memperbarui Lampiran Proyek",
+        "error"
+      );
     }
   };
 };
 
-const openNotificatication = (message) => {
+const openNotificatication = (message, type = "success") => {
   toastNotification.open({
-    type: "success",
+    type: type,
     message: message,
     position: "top-right",
     duration: 3000,
@@ -901,6 +952,10 @@ const updateStatusProject = async () => {
     getProjectDetail();
   } catch (error) {
     console.error(error.response);
+    openNotificatication(
+      "Terjadi Kesalahan saat Memperbarui Status Proyek",
+      "error"
+    );
   }
 
   isConfirmationInactiveModalOpen.value = false;
@@ -919,6 +974,7 @@ const deleteProjectId = async () => {
     }
   } catch (error) {
     console.error(error.response);
+    openNotificatication("Terjadi Kesalahan saat Menghapus Proyek", "error");
   }
 };
 
@@ -943,6 +999,10 @@ const deleteFile = async (lampiranId) => {
     console;
   } catch (error) {
     console.error(error.response.data);
+    openNotificatication(
+      "Terjadi Kesalahan saat Menghapus Lampiran Proyek",
+      "error"
+    );
   }
 };
 
@@ -1090,6 +1150,10 @@ const getProjectDetail = async () => {
     }
   } catch (error) {
     console.error("error Fetch Project : ", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Proyek",
+      "error"
+    );
   }
 };
 
@@ -1112,6 +1176,15 @@ const getDonatur = async () => {
     console.log("donatur : ", donaturList.value);
   } catch (error) {
     console.error(error.response.data);
+    if (error.status == 404) {
+      // openNotificatication("Data Donatur Tidak Ditemukan", "warning");
+      donaturList.value = [];
+    } else {
+      openNotificatication(
+        "Terjadi Kesalahan saat Mengambil Data Donatur",
+        "error"
+      );
+    }
   }
 };
 
@@ -1179,6 +1252,15 @@ const getTimeline = async () => {
     console.log("timelinesList : ", timelineList.value);
   } catch (error) {
     console.error(error);
+    if (error.status == 404) {
+      // openNotificatication("Data Timeline tidak ditemukan", "warning");
+      timelineList.value = [];
+    } else {
+      openNotificatication(
+        "Terjadi Kesalahan saat Mengambil Data Timeline",
+        "error"
+      );
+    }
   }
 };
 
@@ -1226,6 +1308,10 @@ const getProvinsi = async () => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Provinsi",
+      "error"
+    );
   }
 };
 
@@ -1243,6 +1329,10 @@ const getKabupaten = async (kodeProvinsi) => {
   } catch (error) {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Kabupaten",
+      "error"
     );
   }
 };
@@ -1266,6 +1356,10 @@ const getKecamatan = async (kodeKabupaten) => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Kecamatan",
+      "error"
+    );
   }
 };
 
@@ -1285,6 +1379,7 @@ const getDesa = async (kodeKecamatan) => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication("Terjadi Kesalahan saat Mengambil Data Desa", "error");
   }
 };
 
@@ -1313,6 +1408,16 @@ const getLampiran = async () => {
     console.log("lampiran : ", lampiranList.value);
   } catch (error) {
     console.error(error.response.data);
+    if (error.status == 404) {
+      // openNotificatication("Lampiran Proyek tidak Ditemukan", "warning");
+      lampiranList.value = [];
+      supportDocumentList.value = [];
+    } else {
+      openNotificatication(
+        "Terjadi Kesalahan saat Mengambil Data Lampiran Proyek",
+        "error"
+      );
+    }
   }
 };
 
@@ -1332,6 +1437,10 @@ const getProjectTagsList = async () => {
     console.log("tag bos ", projectTagList.value);
   } catch (error) {
     console.error(error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Tag Proyek",
+      "error"
+    );
   }
 };
 
@@ -1351,6 +1460,10 @@ const getIconList = async () => {
     console.log("woy ", iconList.value);
   } catch (error) {
     console.error(error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Icon Proyek",
+      "error"
+    );
   }
 };
 
@@ -1367,6 +1480,10 @@ const fetchData = async () => {
     ]);
   } catch (error) {
     console.error("Error fetching data:", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Proyek",
+      "error"
+    );
   }
 };
 
@@ -3059,9 +3176,14 @@ onBeforeMount(() => {
             <textarea
               id="address"
               v-model="locationForm.address"
+              :class="{ 'border-red-600': errors.address }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
               rows="2"
             ></textarea>
+
+            <p v-if="errors?.address" class="error-message">
+              {{ errors?.address }}
+            </p>
           </div>
 
           <!-- Province -->
@@ -3076,9 +3198,10 @@ onBeforeMount(() => {
               id="province"
               v-model="locationForm.provinsi"
               @change="getKabupaten(locationForm.provinsi)"
+              :class="{ 'border-red-600': errors.provinsi }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
-              <option value="">Select Province</option>
+              <option value="">Pilih Provinsi</option>
               <option
                 v-for="provinsi in provinsiList"
                 :key="provinsi.kodeProvinsi"
@@ -3087,6 +3210,10 @@ onBeforeMount(() => {
                 {{ provinsi.namaProvinsi }}
               </option>
             </select>
+
+            <p v-if="errors?.provinsi" class="error-message">
+              {{ errors?.provinsi }}
+            </p>
           </div>
 
           <!-- Kabupaten -->
@@ -3102,9 +3229,10 @@ onBeforeMount(() => {
               v-model="locationForm.kabupaten"
               @change="getKecamatan(locationForm.kabupaten)"
               :disabled="!locationForm.provinsi"
+              :class="{ 'border-red-600': errors.kabupaten }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
-              <option value="">Select Kabupaten</option>
+              <option value="">Pilih Kabupaten</option>
               <option
                 v-for="kabupaten in kabupatenList"
                 :key="kabupaten.kodeKabupaten"
@@ -3113,6 +3241,10 @@ onBeforeMount(() => {
                 {{ kabupaten.namaKabupaten }}
               </option>
             </select>
+
+            <p v-if="errors?.kabupaten" class="error-message">
+              {{ errors?.kabupaten }}
+            </p>
           </div>
 
           <!-- Kecamatan -->
@@ -3128,9 +3260,10 @@ onBeforeMount(() => {
               v-model="locationForm.kecamatan"
               @change="getDesa(locationForm.kecamatan)"
               :disabled="!locationForm.kabupaten"
+              :class="{ 'border-red-600': errors.kecamatan }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
             >
-              <option value="">Select Kecamatan</option>
+              <option value="">Pilih Kecamatan</option>
               <option
                 v-for="kecamatan in kecamatanList"
                 :key="kecamatan.kodeKecamatan"
@@ -3139,6 +3272,9 @@ onBeforeMount(() => {
                 {{ kecamatan.namaKecamatan }}
               </option>
             </select>
+            <p v-if="errors?.kecamatan" class="error-message">
+              {{ errors?.kecamatan }}
+            </p>
           </div>
 
           <!-- Desa -->
@@ -3153,10 +3289,11 @@ onBeforeMount(() => {
               id="desa"
               v-model="locationForm.desa"
               :disabled="!locationForm.kecamatan"
+              :class="{ 'border-red-600': errors.desa }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
               size="1"
             >
-              <option value="">Select Desa</option>
+              <option value="">Pilih Desa</option>
               <option
                 v-for="desa in desaList"
                 :key="desa.kodeDesa"
@@ -3165,6 +3302,10 @@ onBeforeMount(() => {
                 {{ desa.namaDesa }}
               </option>
             </select>
+
+            <p v-if="errors?.desa" class="error-message">
+              {{ errors?.desa }}
+            </p>
           </div>
 
           <!-- Latitude -->
@@ -3179,8 +3320,13 @@ onBeforeMount(() => {
               id="latitude"
               type="text"
               v-model="locationForm.latitude"
+              :class="{ 'border-red-600': errors.latitude }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
+
+            <p v-if="errors?.latitude" class="error-message">
+              {{ errors?.latitude }}
+            </p>
           </div>
 
           <!-- Longitude -->
@@ -3195,8 +3341,13 @@ onBeforeMount(() => {
               id="longitude"
               type="text"
               v-model="locationForm.longitude"
+              :class="{ 'border-red-600': errors.longitude }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             />
+
+            <p v-if="errors?.longitude" class="error-message">
+              {{ errors?.longitude }}
+            </p>
           </div>
         </div>
 
@@ -3630,6 +3781,7 @@ onBeforeMount(() => {
                     class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   >
                     <option value="" disabled selected>Pilih Role</option>
+                    <option value="all">Semua Role</option>
                     <option
                       v-for="role in projectDetail?.projectRole"
                       :key="role.key"

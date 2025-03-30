@@ -87,6 +87,6 @@ const submitReport = () => {
         </div>
       </div>
     </div>
-    >
+    
   </div>
 </template>
