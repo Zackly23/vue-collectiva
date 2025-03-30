@@ -221,9 +221,9 @@ const handleFileTimelineUpload = (event) => {
 
       rows.forEach((dataRow, indexRow) => {
         if (indexRow === 0) {
-          console.log("Header :", dataRow);
+          // console.log("Header :", dataRow);
         } else {
-          console.log("data : ", dataRow);
+          // console.log("data : ", dataRow);
           const timelineRowData = {
             timelineDateFull: dataRow[0].toISOString().split("T")[0], // Format tanggal "YYYY-MM-DD"
             timelineDateDay: dataRow[0]
@@ -253,7 +253,7 @@ const handleFileTimelineUpload = (event) => {
         return new Date(a.timelineDate) - new Date(b.timelineDate);
       });
 
-      console.log("Grouped Timeline Data:", timelineDataUploadList.value);
+      // console.log("Grouped Timeline Data:", timelineDataUploadList.value);
     })
     .finally(() => {
       // Reset nilai input file agar event change dapat terpicu kembali ketika file yang sama dipilih
@@ -310,7 +310,7 @@ const goToStep = (step) => {
       step: step,
     },
   });
-  console.log("step : ", step);
+  // console.log("step : ", step);
   // console.log("social media : ", JSON.stringify(creatorInformation.value.creatorSocialMedia))
   // console.log("creator ", creatorInformation.value);
   // console.log("beneficial : ", beneficialInformation.value);
@@ -328,7 +328,7 @@ const resetTimelineData = () => {
 };
 
 const createNewTimeline = () => {
-  console.log("Data timeline sebelum diproses: ", timelineData.value);
+  // console.log("Data timeline sebelum diproses: ", timelineData.value);
 
   // Dapatkan data ikon berdasarkan input icon
   const iconData = getMatchingIconId(timelineData.value.icon);
@@ -336,7 +336,11 @@ const createNewTimeline = () => {
   // Pastikan tanggal sudah diisi dan dalam format "YYYY-MM-DD"
   const timelineDate = timelineData.value.date;
   if (!timelineDate) {
-    console.error("Tanggal tidak boleh kosong!");
+    // console.error("Tanggal tidak boleh kosong!");
+    openNotificatication(
+      "Pastikan tanggal sudah diisi dalam Format yang benar",
+      "error"
+    );
     return;
   }
 
@@ -365,7 +369,7 @@ const createNewTimeline = () => {
       timelineDetail: [newTimelineDetail],
     };
 
-    console.log("new group : ", newGroup);
+    // console.log("new group : ", newGroup);
     timelineDataUploadList.value.push(newGroup);
   } else {
     // Jika sudah ada data, cari grup dengan tanggal yang sama
@@ -419,6 +423,10 @@ const getUserProfile = async () => {
     console.log("user profile : ", userProfile.value);
   } catch (error) {
     console.error("error Fetch User : ", error);
+    openNotificatication(
+      "Terjadi kesalahan saat mengambil Profil User",
+      "error"
+    );
   }
 };
 
@@ -437,6 +445,10 @@ const getProvinsi = async () => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Provinsi",
+      "error"
+    );
   }
 };
 
@@ -454,6 +466,10 @@ const getKabupaten = async (kodeProvinsi) => {
   } catch (error) {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
+    );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Kabupaten",
+      "error"
     );
   }
 };
@@ -477,6 +493,10 @@ const getKecamatan = async (kodeKabupaten) => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Kecamatan",
+      "error"
+    );
   }
 };
 
@@ -496,6 +516,7 @@ const getDesa = async (kodeKecamatan) => {
     console.error(
       error.response.data ? error.response.data : "Error Fetching Provinsi"
     );
+    openNotificatication("Terjadi Kesalahan saat Mengambil Data Desa", "error");
   }
 };
 
@@ -514,15 +535,14 @@ const storeNewProject = async () => {
     lampiranList
   );
 
+  // console.log('validation result : ', validationResult);
+
   // Reset error sebelum validasi
   Object.keys(errors).forEach((key) => {
-    errors[key] = null;
+    errors[key] = "";
   });
 
   if (validationResult.isValid) {
-    console.log("projectData : ", projectData.value);
-    console.log("locationForm : ", locationForm.value);
-
     const formData = new FormData();
     formData.append("project_title", projectData.value.projectTitle);
     formData.append(
@@ -590,6 +610,7 @@ const storeNewProject = async () => {
       console.log("Project image ada!", projectData.value.projectFile);
     } else {
       console.error("Project image tidak ada!");
+      openNotificatication("Pastikan Project Memiliki Gambar/Foto !", "error");
     }
 
     // Menambahkan data lokasi
@@ -621,6 +642,10 @@ const storeNewProject = async () => {
       console.error(
         "Error saving project:",
         error.response ? error.response.data : error.message
+      );
+      openNotificatication(
+        "Terjadi Kesalahan saat Mengambil Menyimpan Project",
+        "error"
       );
     }
   } else {
@@ -770,6 +795,10 @@ const storeProjectInformation = async (projectId) => {
   } catch (error) {
     console.log("Error menyimpan creator dan beneficiary information");
     console.error("Error:", error.response?.data || error.message);
+    openNotificatication(
+      "Terjadi Kesalahan saat Menyimpan Data Creator dan Penerima Manfaat",
+      "error"
+    );
   }
 };
 
@@ -799,6 +828,10 @@ const storeProjectTimeline = async (projectId) => {
     }
   } catch (error) {
     console.error("Error saving activity:", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Menyimpan Data Timeline",
+      "error"
+    );
   }
 
   console.log("storeProjectTimeline : ", timelineStoreList);
@@ -853,6 +886,10 @@ const getProjectTag = async () => {
     console.log("tag bos ", projectTagList.value);
   } catch (error) {
     console.error(error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Tag Proyek",
+      "error"
+    );
   }
 };
 
@@ -872,6 +909,10 @@ const getIconList = async () => {
     console.log("woy ", iconList.value);
   } catch (error) {
     console.error(error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Icon Proyek",
+      "error"
+    );
   }
 };
 
@@ -895,6 +936,8 @@ const addFile = () => {
     const newFile = event.target.files[0];
     if (!newFile) {
       console.error("No file selected.");
+      openNotificatication("Tidak Ada File yang dipilih", "error");
+
       return;
     }
 
@@ -928,6 +971,8 @@ const updateFile = async (lampiranId) => {
   const fileInput = document.getElementById("file-attach-upload");
   if (!fileInput) {
     console.error("File input tidak ditemukan!");
+    openNotificatication("Terjadi Kesalahan Membuka Input File", "error");
+
     return;
   }
 
@@ -942,6 +987,8 @@ const updateFile = async (lampiranId) => {
     const newFile = event.target.files[0];
     if (!newFile) {
       console.error("Tidak ada file yang dipilih.");
+      openNotificatication("Tidak ada File yang Dipilih", "error");
+
       return;
     }
 
@@ -1022,6 +1069,10 @@ const fetchData = async () => {
     ]);
   } catch (error) {
     console.error("Error fetching data:", error);
+    openNotificatication(
+      "Terjadi Kesalahan saat Mengambil Data Proyek",
+      "error"
+    );
   }
 };
 
@@ -1311,13 +1362,17 @@ onBeforeMount(() => {
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
-                >NIK (Opsional)</label
+                >NIK <span class="text-red-500">*</span></label
               >
               <input
                 type="text"
                 class="w-full px-4 py-2 border rounded-md"
+                :class="{ 'border-red-600': errors.beneficiaryNIK }"
                 v-model="beneficialInformation.beneficiaryNIK"
               />
+              <p v-if="errors?.beneficiaryNIK" class="error-message">
+                {{ errors?.beneficiaryNIK }}
+              </p>
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300 font-medium"
@@ -1997,6 +2052,7 @@ onBeforeMount(() => {
                     class="w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   >
                     <option value="" disabled selected>Pilih Role</option>
+                    <option value="all">Semua Role</option>
                     <option
                       v-for="role in projectData?.projectRole"
                       :key="role.key"
@@ -2091,7 +2147,7 @@ onBeforeMount(() => {
               :class="{ 'border-red-600': errors.provinsi }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
-              <option value="">Select Province</option>
+              <option value="">Pilih Provinsi</option>
               <option
                 v-for="provinsi in provinsiList"
                 :key="provinsi.kodeProvinsi"
@@ -2122,7 +2178,7 @@ onBeforeMount(() => {
               :class="{ 'border-red-600': errors.kabupaten }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
             >
-              <option value="">Select Kabupaten</option>
+              <option value="">Pilih Kabupaten</option>
               <option
                 v-for="kabupaten in kabupatenList"
                 :key="kabupaten.kodeKabupaten"
@@ -2152,7 +2208,7 @@ onBeforeMount(() => {
               :class="{ 'border-red-600': errors.kecamatan }"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
             >
-              <option value="">Select Kecamatan</option>
+              <option value="">Pilih Kecamatan</option>
               <option
                 v-for="kecamatan in kecamatanList"
                 :key="kecamatan.kodeKecamatan"
@@ -2182,7 +2238,7 @@ onBeforeMount(() => {
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 max-h-40 overflow-y-auto"
               size="1"
             >
-              <option value="">Select Desa</option>
+              <option value="">Pilih Desa</option>
               <option
                 v-for="desa in desaList"
                 :key="desa.kodeDesa"

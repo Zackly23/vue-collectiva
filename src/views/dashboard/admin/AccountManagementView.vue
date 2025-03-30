@@ -467,7 +467,7 @@ onBeforeMount(() => {
       <div
         v-for="statistic in userStatistic"
         :key="statistic.statistic_id"
-        class="col-span-15 2xl:col-span-3 sm:col-span-5 gap-x-6"
+        class="md:col-span-15 2xl:col-span-3 sm:col-span-5 gap-x-6 col-start-1 col-span-12"
       >
         <div
           bordered="false"
@@ -532,8 +532,8 @@ onBeforeMount(() => {
       </div>
     </div>
 
-    <div class="flex justify-between items-center mx-4">
-      <div class="text-xl ml-4">Tabel Akun</div>
+    <div class="md:flex block justify-between items-center mx-4 ">
+      <div class="items-start text-xl ml-4">Tabel Akun</div>
       <!-- Search Bar -->
       <div class="flex justify-end items-center mb-4 px-4">
         <input

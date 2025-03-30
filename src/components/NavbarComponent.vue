@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
                         :to="`/dashboard/${user.user_id}`"
                         class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                       >
-                        <i class="text-[16px] uil uil-setting"></i>
+                        <i class="text-[16px] uil uil-create-dashboard"></i>
                         Dashboard
                       </router-link>
                     </div>
@@ -245,12 +245,22 @@ onBeforeUnmount(() => {
                     <div
                       class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
                     >
-                      <button
+                      <router-link
+                        v-action="{
+                          role: [
+                            'admin',
+                            'active',
+                            'verified',
+                            'suspended',
+                            'reported',
+                          ],
+                        }"
+                        to="/dashboard/guidance"
                         class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                       >
                         <i class="text-[16px] uil uil-bell"></i>
                         Help
-                      </button>
+                      </router-link>
                     </div>
                   </li>
                 </ul>

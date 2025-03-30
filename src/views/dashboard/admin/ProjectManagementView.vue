@@ -881,7 +881,7 @@ const copyRekening = async () => {
       <div
         v-for="statistic in projectStatistics"
         :key="statistic.statistic_id"
-        class="col-span-15 2xl:col-span-3 sm:col-span-5 gap-x-6"
+        class="md:col-span-15 2xl:col-span-3 sm:col-span-5 gap-x-6 col-start-1 col-span-12"
       >
         <div
           bordered="false"
@@ -965,7 +965,7 @@ const copyRekening = async () => {
       </div>
     </div>
 
-    <div class="flex justify-between items-center mx-4">
+    <div class="block md:flex justify-between items-center mx-4">
       <div class="text-xl ml-4">Tabel Project</div>
       <!-- Search Bar -->
       <div class="flex justify-end items-center mb-4 px-4">

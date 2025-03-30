@@ -89,7 +89,7 @@ const isFAQActive = (index) => {
             class="overflow-hidden transition-all duration-300 px-6"
             :style="
               isFAQActive(1)
-                ? 'max-height: 200px; opacity: 1;'
+                ? 'max-height: 300px; opacity: 1;'
                 : 'max-height: 0; opacity: 0;'
             "
           >
@@ -162,7 +162,7 @@ const isFAQActive = (index) => {
             class="overflow-hidden transition-all duration-300 px-6"
             :style="
               isFAQActive(2)
-                ? 'max-height: 200px; opacity: 1;'
+                ? 'max-height: 300px; opacity: 1;'
                 : 'max-height: 0; opacity: 0;'
             "
           >
@@ -241,7 +241,7 @@ const isFAQActive = (index) => {
             class="overflow-hidden transition-all duration-300 px-6"
             :style="
               isFAQActive(3)
-                ? 'max-height: 200px; opacity: 1;'
+                ? 'max-height: 300px; opacity: 1;'
                 : 'max-height: 0; opacity: 0;'
             "
           >
@@ -316,7 +316,7 @@ const isFAQActive = (index) => {
             class="overflow-hidden transition-all duration-300 px-6"
             :style="
               isFAQActive(4)
-                ? 'max-height: 200px; opacity: 1;'
+                ? 'max-height: 300px; opacity: 1;'
                 : 'max-height: 0; opacity: 0;'
             "
           >

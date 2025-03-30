@@ -8,7 +8,6 @@ import ReportCaseModalComponent from "@/components/ReportCaseModalComponent.vue"
 import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 import SuspendedAlertComponent from "@/components/SuspendedAlertComponent.vue";
 
-
 import "vue3-emoji-picker/css";
 
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
@@ -48,7 +47,7 @@ const deleteChatChaneel = window.Echo.channel("chat-delete-channel");
 
 storeChatChannel.listen(".chat-event", function (data) {
   console.log("from channel:", data);
-  console.log('chatsa : ', chats.value)
+  console.log("chatsa : ", chats.value);
   // console.log(
   //   "sender_id : ",
   //   data.chats.sender_id,
@@ -67,7 +66,7 @@ storeChatChannel.listen(".chat-event", function (data) {
     senderId: data.chats.sender_id,
   };
 
-  console.log('chat new : ', chat);
+  console.log("chat new : ", chat);
 
   // Tambahkan chat baru ke chats
   if (data.chats.group_chat_id) {
@@ -138,9 +137,9 @@ const caseTypes = ref([
   "Other",
 ]);
 
-const openNotificatication = (message) => {
+const openNotificatication = (message, type = "success") => {
   toastNotification.open({
-    type: "success",
+    type: type,
     message: message,
     position: "top-right",
     duration: 3000,
@@ -201,6 +200,10 @@ const handleSubmitReport = async () => {
     }
   } catch (error) {
     console.error("error report : ", error);
+    openNotificatication(
+      "Terjadi kesalahan saat menyimpan Data Report User",
+      "error"
+    );
   }
 };
 
@@ -253,6 +256,7 @@ const copyToClipboard = async (text) => {
     // alert("Text copied to clipboard!");
   } catch (err) {
     console.error("Failed to copy text: ", err);
+    openNotificatication("Terjadi kesalahan saat Men-copy Text", "error");
   }
 };
 
@@ -315,6 +319,8 @@ const deleteMessage = async (key) => {
         "Error sending data:",
         error.response?.data || error.message
       );
+
+      openNotificatication("Terjadi kesalahan saat Menghapus Pesan", "error");
     }
   } else if (activeTab.value == "group-chat") {
     console.log("delete group chat by id");
@@ -329,6 +335,8 @@ const deleteMessage = async (key) => {
         "Error sending data:",
         error.response?.data || error.message
       );
+
+      openNotificatication("Terjadi kesalahan saat Menghapus Pesan", "error");
     }
   }
 };
@@ -381,7 +389,9 @@ const getChatMessage = async (messageType, key) => {
 
 //Initial BodyChatContent
 const initialBodyChat = async () => {
-  const response = await api.get(`/user/${user.user_id}/chat/private-chat/initial`);
+  const response = await api.get(
+    `/user/${user.user_id}/chat/private-chat/initial`
+  );
 
   console.log("initial : ", response.data);
 
@@ -435,6 +445,12 @@ const switchTab = async (tab) => {
     }
   } catch (error) {
     console.error("Error sending data:", error.response?.data || error.message);
+
+    if (error.status == 404) {
+      chats.value = [];
+    } else {
+      openNotificatication("Terjadi kesalahan saat Mengambil Pesan", "error");
+    }
   }
 
   // if (bodyChatContentType.value.key == "group-chat") {
@@ -487,6 +503,9 @@ const groupMessageList = async () => {
     console.log("list: ", groupMessages.value);
   } catch (error) {
     console.error("error group chat : ", error);
+    if (error.status == 404) {
+      groupMessages.value = [];
+    }
   }
 };
 
@@ -516,7 +535,12 @@ const sendMessage = async () => {
     console.log("send data to group chat");
 
     try {
-      console.log("user.user_id : ", user.user_id, "dan sender : ", activeChatId.value);
+      console.log(
+        "user.user_id : ",
+        user.user_id,
+        "dan sender : ",
+        activeChatId.value
+      );
       const response = await api.post(
         `/user/${user.user_id}/chat/groupchat/${activeChatId.value}`, // Pastikan user.user_id valid
         {
@@ -538,6 +562,8 @@ const sendMessage = async () => {
         "Error sending data:",
         error.response?.data || error.message
       );
+
+      openNotificatication("Terjadi kesalahan saat Mengirim Pesan", "error");
     }
     messageText.value = "";
     imagePreview.value = null;
@@ -549,7 +575,12 @@ const sendMessage = async () => {
     console.log("image: ", selectedFile.value);
 
     try {
-      console.log("user.user_id : ", user.user_id, "dan sender : ", activeChatId.value);
+      console.log(
+        "user.user_id : ",
+        user.user_id,
+        "dan sender : ",
+        activeChatId.value
+      );
       const response = await api.post(
         `/user/${user.user_id}/chat/private/${activeChatId.value}`, // Pastikan user.user_id valid
         {
@@ -573,6 +604,8 @@ const sendMessage = async () => {
         "Error sending data:",
         error.response?.data || error.message
       );
+
+      openNotificatication("Terjadi kesalahan saat Mengirim Pesan", "error");
     }
     messageText.value = "";
     imagePreview.value = null;
@@ -602,6 +635,10 @@ const fetchData = async () => {
     ]);
   } catch (error) {
     console.error("Error fetching data:", error);
+    openNotificatication(
+      "Terjadi kesalahan saat Mengambil Data Pesan",
+      "error"
+    );
   }
 };
 
@@ -632,7 +669,6 @@ onUnmounted(() => {
     <div
       class="mx-[30px] min-h-[calc(100vh-195px)] mb-[30px] ssm:mt-[30px] mt-[15px]"
     >
-
       <div class="grid grid-cols-12 gap-5">
         <div class="col-span-12">
           <!-- Breadcrumb Section -->
@@ -691,9 +727,9 @@ onUnmounted(() => {
         </div>
       </div>
       <SuspendedAlertComponent
-          v-if="user.status == 'suspended'"
-          :suspended-time="user.suspended_time"
-        />
+        v-if="user.status == 'suspended'"
+        :suspended-time="user.suspended_time"
+      />
       <!-- Responsive Toggler -->
       <div
         class="flex items-center justify-end lg:hidden ssm:mb-[30px] mb-[15px]"
@@ -804,7 +840,6 @@ onUnmounted(() => {
                   <figure
                     class="inline-flex w-full mb-0 align-top sm:gap-x-[16px] gap-y-[8px]"
                   >
-           
                     <div
                       class="w-[40px] min-w-[40px] h-[40px] rounded-full relative"
                     >
@@ -813,7 +848,6 @@ onUnmounted(() => {
                         :src="message.avatar"
                         alt="Avatar"
                       />
-                  
                     </div>
                     <figcaption
                       @click="getChatMessage('private-chat', message.senderId)"
@@ -896,7 +930,7 @@ onUnmounted(() => {
                 class="ssm:px-[25px] px-[15px] py-[15.50px] border-b-1 border-regular dark:border-white/10"
               >
                 <div
-                  class="flex items-center ssm:justify-between justify-center max-ssm:flex-wrap gap-x-[15px] gap-y-[5px]"
+                  class="flex items-center ssm:justify-between justify-center  gap-x-[15px] gap-y-[5px]"
                 >
                   <!-- Active User -->
                   <div class="flex items-center w-full gap-x-3 py-2">
@@ -1175,7 +1209,7 @@ onUnmounted(() => {
                               v-action="{ permission: ['report-user-chat'] }"
                               @click="reportUserGroup(chat.senderId)"
                               href="#"
-                              class="block  py-1 text-sm text-right"
+                              class="block py-1 text-sm text-right"
                             >
                               Report
                             </button>
@@ -1192,11 +1226,10 @@ onUnmounted(() => {
                             <button
                               v-action="{
                                 role: ['admin', 'active', 'verified'],
-                                
                               }"
                               v-if="chat.isSender"
                               @click="deleteMessage(chat.id)"
-                              class="block  py-1 text-sm text-right"
+                              class="block py-1 text-sm text-right"
                             >
                               Remove
                             </button>

@@ -723,7 +723,7 @@ onBeforeMount(() => {
                 v-if="topDonatur?.length == 0"
                 class="flex justify-center items-center h-[50%]"
               >
-                Ngga ada data
+                Data Tidak Ditemukan
               </div>
               <div class="max-h-[320px] scrollbar overflow-y-auto">
                 <div
@@ -848,7 +848,7 @@ onBeforeMount(() => {
               class="p-[25px] pt-0 h-full min-h-24"
             >
               <div class="flex justify-center items-center h-[50%]">
-                Ngga ada data
+                Data Tidak Ditemukan
               </div>
             </div>
             <div class="p-[25px] pt-0">

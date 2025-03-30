@@ -68,11 +68,17 @@ const validateForm = (
   document
 ) => {
   let isValid = true;
+  Object.keys(errors).forEach((key) => {
+    errors[key] = "";
+  });
+
 
   // Validate Creator Details
   if (!creator.value.creatorName.trim()) {
     errors.creatorName = "Full Name is required";
     isValid = false;
+  } else {
+    errors.creatorName = "";
   }
 
   if (!creator.value.creatorEmail) {
@@ -133,6 +139,8 @@ const validateForm = (
       if (!beneficiary.value.beneficiaryName) {
         errors.beneficiaryName = "Beneficiary Name is required";
         isValid = false;
+      } else {
+        errors.beneficiaryName = "";
       }
 
       if (!beneficiary.value.beneficiaryAddress) {
@@ -146,7 +154,7 @@ const validateForm = (
       }
 
       if (!beneficiary.value.beneficiaryNIK) {
-        errors.beneficiaryNIK = "Beneficiary Phone is required";
+        errors.beneficiaryNIK = "Beneficiary NIK is required";
         isValid = false;
       }
 
@@ -192,7 +200,10 @@ const validateForm = (
   if (!project.value.projectTitle) {
     errors.projectTitle = "Project Title is required";
     isValid = false;
+  } else {
+    errors.projectTitle = ""
   }
+
   if (!project.value.projectDescription) {
     errors.projectDescription = "Project Description is required";
     isValid = false;
@@ -227,6 +238,34 @@ const validateForm = (
         errors.projectTargetVolunteer = "Target Volunteer is required";
         isValid = false;
       }
+
+      if (
+        !Array.isArray(project.value.projectCriteria) ||
+        project.value.projectCriteria.length === 0
+      ) {
+        errors.projectCriteria = "At least one project criteria is required";
+        isValid = false;
+      } else {
+        errors.projectCriteria = project.value.projectCriteria.some(
+          (criteria) => !criteria.key || !criteria.value || !criteria.role
+        )
+          ? "Each project criteria must have key, value, and role"
+          : "";
+      }
+
+      if (
+        !Array.isArray(project.value.projectRole) ||
+        project.value.projectRole.length === 0
+      ) {
+        errors.projectRole = "At least one project role is required";
+        isValid = false;
+      } else {
+        errors.projectRole = project.value.projectRole.some(
+          (role) => !role.key || !role.value
+        )
+          ? "Each project role must have key and value"
+          : "";
+      }
     }
     errors.projectCategory = "";
   }
@@ -236,33 +275,10 @@ const validateForm = (
     isValid = false;
   }
 
-  if (
-    !Array.isArray(project.value.projectCriteria) ||
-    project.value.projectCriteria.length === 0
-  ) {
-    errors.projectCriteria = "At least one project criteria is required";
-    isValid = false;
-  } else {
-    errors.projectCriteria = project.value.projectCriteria.some(
-      (criteria) => !criteria.key || !criteria.value || !criteria.role
-    )
-      ? "Each project criteria must have key, value, and role"
-      : "";
-  }
 
-  if (
-    !Array.isArray(project.value.projectRole) ||
-    project.value.projectRole.length === 0
-  ) {
-    errors.projectRole = "At least one project role is required";
-    isValid = false;
-  } else {
-    errors.projectRole = project.value.projectRole.some(
-      (role) => !role.key || !role.value
-    )
-      ? "Each project role must have key and value"
-      : "";
-  }
+  
+
+  
 
   if (!project.value.projectGroupChatName) {
     errors.projectGroupChatName = "Group Chat Name is required";
@@ -315,7 +331,6 @@ const validateForm = (
     isValid = false;
   } else {
     errors.lampiranList = "";
-    isValid = false;
   }
 
   return { errors, isValid }; // Pastikan return dalam bentuk OBJECT
