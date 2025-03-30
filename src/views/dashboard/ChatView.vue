@@ -930,7 +930,7 @@ onUnmounted(() => {
                 class="ssm:px-[25px] px-[15px] py-[15.50px] border-b-1 border-regular dark:border-white/10"
               >
                 <div
-                  class="flex items-center ssm:justify-between justify-center  gap-x-[15px] gap-y-[5px]"
+                  class="flex items-center ssm:justify-between justify-center gap-x-[15px] gap-y-[5px]"
                 >
                   <!-- Active User -->
                   <div class="flex items-center w-full gap-x-3 py-2">
@@ -1390,4 +1390,5 @@ onUnmounted(() => {
 .rounded-md {
   border-radius: 0.375rem;
 }
+
 </style>
