@@ -153,8 +153,8 @@ const suspendUser = (data) => {
 const handleSubmitSuspend = async () => {
   try {
     console.log("formsata : ", suspendData.value);
-    console.log('clarity : ', clarityReport.value);
-    console.log('duration : ', suspendDuration.value);
+    console.log("clarity : ", clarityReport.value);
+    console.log("duration : ", suspendDuration.value);
     const formData = new FormData();
 
     formData.append("suspended_reason", clarityReport.value);
@@ -291,7 +291,7 @@ const getAccountCardStatistic = async () => {
 const getAccountList = async () => {
   try {
     const querySort = getActiveQueries();
-    console.log("query sort : ", querySort);
+    // console.log("query sort : ", querySort);
     const response = await api.get("/account/manage/account/list", {
       params: {
         search: searchText.value,
@@ -302,7 +302,7 @@ const getAccountList = async () => {
     });
 
     if (response.status === 200) {
-      console.log("response data : ", response.data);
+      // console.log("response data : ", response.data);
       const accountLists = response.data.accounts.map((user) => ({
         userId: user.user_id,
         userName: user.user_full_name,
@@ -315,10 +315,18 @@ const getAccountList = async () => {
 
       accountList.value = accountLists;
       lastPage.value = response.data.last_page;
-      console.log("account : ", accountList.value);
+      // console.log("account : ", accountList.value);
     }
   } catch (error) {
-    console.error(error);
+    // console.error(error);
+    if (error.status == 404) {
+      accountList.value = [];
+    } else {
+      openNotificatication(
+        "Terjadi Kesalahan dalam Mengambil Data Akun",
+        "error"
+      );
+    }
   }
 };
 
@@ -328,7 +336,7 @@ const getReportedList = async (userId) => {
 
     const response = await api.get(`/user/${userId}/reportcase/list`);
 
-    console.log("user : ", response.data.report_cases);
+    // console.log("user : ", response.data.report_cases);
 
     const reportedList = response.data.report_cases.map((report) => ({
       reportCaseId: report.reported_case_id,
@@ -347,9 +355,17 @@ const getReportedList = async (userId) => {
       isReportCaseModalOpen.value = true;
     }
 
-    console.log("reported list : ", userReportedCaseList.value);
+    // console.log("reported list : ", userReportedCaseList.value);
   } catch (error) {
-    console.error("error Fetch report : ", error);
+    // console.error("error Fetch report : ", error);
+    if (error.status == 404) {
+      userReportedCaseList.value = [];
+    } else {
+      openNotificatication(
+        "Terjadi Kesalahan dalam Mengambil Data Report",
+        "error"
+      );
+    }
   }
 };
 
@@ -357,7 +373,7 @@ const getUserProfile = async (userId) => {
   try {
     const response = await api.get(`/user/${userId}/profile`);
 
-    console.log("user : ", response.data.user);
+    // console.log("user : ", response.data.user);
     const data = response.data.user;
     userProfile.value = {
       userId: data.user_id,
@@ -377,9 +393,13 @@ const getUserProfile = async (userId) => {
     };
 
     isAccountUserOpen.value = true;
-    console.log("user : ", userProfile.value);
+    // console.log("user : ", userProfile.value);
   } catch (error) {
-    console.error("error Fetch User : ", error);
+    // console.error("error Fetch User : ", error);
+    openNotificatication(
+      "Terjadi Kesalahan dalam Mengambil Data Profile",
+      "error"
+    );
   }
 };
 
@@ -407,7 +427,11 @@ const deleteAccountId = async () => {
       await getAccountList();
     }
   } catch (error) {
-    console.error(error.response);
+    // console.error(error.response);
+    openNotificatication(
+      "Terjadi Kesalahan dalam Menghapus Akun User",
+      "error"
+    );
   }
 };
 
@@ -532,7 +556,7 @@ onBeforeMount(() => {
       </div>
     </div>
 
-    <div class="md:flex block justify-between items-center mx-4 ">
+    <div class="md:flex block justify-between items-center mx-4">
       <div class="items-start text-xl ml-4">Tabel Akun</div>
       <!-- Search Bar -->
       <div class="flex justify-end items-center mb-4 px-4">
@@ -953,7 +977,11 @@ onBeforeMount(() => {
                     <!-- Nilai Sosial Media -->
                     <span>|</span>
                     <span class="text-sm text-gray-600 dark:text-gray-400">
-                      {{ userProfile.socialMedia[selectedSosialMedia] || "-" }}
+                      {{
+                        userProfile.socialMedia
+                          ? userProfile.socialMedia[selectedSosialMedia] || "-"
+                          : " "
+                      }}
                     </span>
                   </div>
                 </div>
