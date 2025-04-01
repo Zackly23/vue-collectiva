@@ -135,7 +135,7 @@ onBeforeUnmount(() => {
             class="flex justify-center items-center gap-x-3 relative"
             data-te-dropdown-ref
           >
-            <span class="text-gray-700 font-medium">{{ user.full_name }}</span>
+            <span class="text-gray-700 font-medium hidden md:block">{{ user.full_name }}</span>
             <button
               data-dropdown-button="profile"
               @click="toggleDropdown('profile')"
