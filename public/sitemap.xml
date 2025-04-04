@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset 
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://www.shcunion.com/</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://www.shcunion.com/login</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.shcunion.com/sign-up</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://www.shcunion.com/project/list</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Untuk halaman detail project, Google bisa indexing secara dinamis kalau SSR/Prerender -->
+  <url>
+    <loc>https://www.shcunion.com/project/123</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://www.shcunion.com/password/send-reset</loc>
+    <lastmod>2025-04-04</lastmod>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>
