@@ -1,0 +1,17 @@
+User-agent: *
+Disallow: /403
+Disallow: /dashboard
+Disallow: /project/*/donation
+Disallow: /project/*/donation/withdrawal
+Disallow: /project/*/volunteer
+Disallow: /donation/payment/*
+Disallow: /login
+Disallow: /sign-up
+Disallow: /password/reset/
+Disallow: /password/send-reset
+Disallow: /email/verify/
+Disallow: /auth/callback
+
+Allow: /
+
+Sitemap: https://www.shcunion.com/sitemap.xml
