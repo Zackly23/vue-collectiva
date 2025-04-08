@@ -555,7 +555,7 @@ onBeforeMount(() => {
               <h2
                 class="text-xl font-semibold text-dark dark:text-title-dark capitalize"
               >
-                Sale Revenue
+                Capaian Donasi Terkumpul
               </h2>
               <ul class="flex gap-4 mt-2 md:mt-0" role="tablist">
                 <li role="presentation">
@@ -606,7 +606,7 @@ onBeforeMount(() => {
               <h2
                 class="mb-0 inline-flex items-center py-[16px] max-sm:pb-[5px] overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-semibold text-dark dark:text-title-dark capitalize"
               >
-                Source Of Revenue Generated
+                Statistik Penyebaran Sosmed
               </h2>
 
               <!-- Print atau Download Laporan  -->
@@ -794,7 +794,7 @@ onBeforeMount(() => {
               <h2
                 class="mb-0 inline-flex items-center py-[16px] max-sm:pb-[5px] overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-semibold text-dark dark:text-title-dark capitalize"
               >
-                Best Performance Project
+                Top Proyek
               </h2>
               <ul
                 class="py-[16px] max-ssm:py-[10px] flex items-center max-xs:flex-wrap max-xs:justify-center"
