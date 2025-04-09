@@ -78,7 +78,7 @@ const getPublicProjectList = async () => {
   try {
     const response = await api.get(`/project/public/list`, {
       params: {
-        kode_provinsi: "11.00",
+        // kode_provinsi: "",
         limit: 3,
         status: selectedStatus.value,
         category: selectedCategory.value,
