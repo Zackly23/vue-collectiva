@@ -430,7 +430,7 @@ onBeforeMount(() => {
                           >
                         </span>
                         <span class="text-sm text-gray-500">
-                          Role: {{ criteria.role }}
+                          Role: {{ criteria.role !== 'all' ? criteria.role : 'Semua Role' }}
                         </span>
                       </label>
                     </div>
