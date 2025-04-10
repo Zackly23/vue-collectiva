@@ -1563,6 +1563,7 @@ onBeforeMount(() => {
         <div class="flex items-center gap-x-[6px] gap-y-[3px]">
           <button
             v-action="{ permission: ['edit-project-detail'] }"
+            v-if="projectDetail.projectStatus == 'in_review'"
             @click="toggleEditMode"
             type="button"
             class="flex items-center px-[15px] text-[12px] text-dark dark:text-title-dark rounded-[6px] font-semibold bg-white dark:bg-box-dark-up border-1 border-white dark:border-box-dark-up h-[35px] gap-[6px] transition-[0.3s] capitalize whitespace-nowrap"

@@ -277,18 +277,18 @@ onBeforeMount(() => {
         class="border rounded-lg overflow-hidden bg-white transition-transform hover:scale-[1.02] hover:shadow-lg"
       >
         <div class="relative">
-          <div
+          <!-- <div
             class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full"
           >
             ROI 16%
-          </div>
+          </div> -->
           <img
             :src="project.projectImage"
             :alt="project.projectTitle"
             class="w-full h-48 object-cover"
           />
           <div
-            class="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30 flex items-center justify-center"
+            class="absolute inset-0  flex items-center justify-center"
           >
             <!-- <div class="bg-white/90 backdrop-blur rounded-full p-4">
               <span class="text-green-700 font-bold"></span>
