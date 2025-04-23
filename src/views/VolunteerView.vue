@@ -180,8 +180,9 @@ const getProjectDetail = async () => {
         : [{ key: "", value: "" }],
       projectRole: project.project_role
         ? JSON.parse(project.project_role).map((role) => ({
-            key: role.key,
-            value: role.value,
+            key: role.role,
+            value: role.jumlah,
+            sisa: role.sisa
           }))
         : [{ key: "", value: "" }],
     }));
@@ -463,13 +464,13 @@ onBeforeMount(() => {
                         role.key
                       }}</span>
                       <span class="text-sm text-gray-500">
-                        Ini adallah role yang kamu pilih
+                        Kebutuhan Role : {{ role.value }}
                       </span>
                     </label>
                   </div>
                   <!-- <img :src="role.icon" :alt="role.key" class="h-8" /> -->
                   <span class="h-8">
-                    {{ role.value }}
+                    {{ role.sisa }}
                   </span>
                 </div>
                 <!-- <div
