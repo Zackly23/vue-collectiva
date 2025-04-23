@@ -1167,6 +1167,7 @@ onBeforeMount(() => {
                     class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   >
                     {{ criteria.role !== "all" ? criteria.role : "Semua Role" }}
+
                   </span>
                 </td>
               </tr>
