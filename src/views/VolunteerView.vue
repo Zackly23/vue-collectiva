@@ -178,8 +178,8 @@ const getProjectDetail = async () => {
             fulfilled: false,
           }))
         : [{ key: "", value: "" }],
-      projectRole: project.project_role
-        ? JSON.parse(project.project_role).map((role) => ({
+      projectRole: project.project_roles
+        ? JSON.parse(project.project_roles).map((role) => ({
             key: role.role,
             value: role.jumlah,
             sisa: role.sisa

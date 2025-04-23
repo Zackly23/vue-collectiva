@@ -285,11 +285,11 @@ const getProjectDetail = async () => {
             role: criteria.role,
           }))
         : [{ key: "", value: "" }],
-      projectRole: project.project_role
-        ? JSON.parse(project.project_role).map((role) => ({
+      projectRole: project.project_roles
+        ? JSON.parse(project.project_roles).map((role) => ({
             key: role.role,
             value: role.jumlah,
-            sisa: role.sisa
+            sisa: role.sisa,
           }))
         : [{ key: "", value: "" }],
       projectCreatorId: project.project_creator_id,
@@ -1167,7 +1167,6 @@ onBeforeMount(() => {
                     class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   >
                     {{ criteria.role !== "all" ? criteria.role : "Semua Role" }}
-
                   </span>
                 </td>
               </tr>
@@ -1235,7 +1234,7 @@ onBeforeMount(() => {
                   <span
                     class="flex justify-center items-center w-full px-2 py-1 border-0 outline-none focus:ring-0 bg-transparent text-center"
                   >
-                    {{ role.sisa}}
+                    {{ role.sisa }}
                   </span>
                 </td>
               </tr>
