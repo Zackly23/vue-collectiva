@@ -1300,7 +1300,7 @@ const copyRekening = async () => {
             <transition name="dropdown">
               <div
                 v-if="isCreatorOpen"
-                class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6 px-2"
+                class="mt-3 px-2"
               >
                 <!-- Informasi Creator (Pembuat Proyek) -->
                 <div>
@@ -1428,7 +1428,7 @@ const copyRekening = async () => {
             <transition name="dropdown">
               <div
                 v-if="isBeneficiaryOpen"
-                class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6 px-2"
+                class="mt-3  px-2"
               >
                 <!-- Penerima Manfaat Section -->
                 <div class="">
@@ -1723,7 +1723,7 @@ const copyRekening = async () => {
                     >
                       Target project
                     </label>
-                    <span>{{ projectData.projectTargetAmount }}</span>
+                    <span>{{ projectData.projectCategory === 'donation' ? 'Rp ' : '' }} {{ projectData.projectTargetAmount }} {{ projectData.projectCategory === 'donation' ? '' : 'Partisipan' }}</span>
                   </div>
                 </div>
               </div>
@@ -1905,7 +1905,7 @@ const copyRekening = async () => {
                       for="address"
                       class="block mb-2 text-sm font-medium text-gray-700"
                     >
-                      Address
+                      Alamat
                     </label>
                     <span>{{ locationData.address }}</span>
                   </div>
@@ -1916,7 +1916,7 @@ const copyRekening = async () => {
                       for="province"
                       class="block mb-2 text-sm font-medium text-gray-700"
                     >
-                      Province
+                      Provinsi
                     </label>
                     <span
                       >{{ locationData.provinsi.nama_provinsi }} -

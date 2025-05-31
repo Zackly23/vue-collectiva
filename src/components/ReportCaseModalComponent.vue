@@ -2,15 +2,16 @@
 import { ref } from "vue";
 
 const caseTypes = ref([
-  "Functionality Issue",
-  "Visual/Aesthetic Issue",
-  "Performance Issue",
-  "Security Issue",
-  "Data/Content Issue",
-  "Crash/Error Issue",
-  "Localization/Internationalization Issue",
-  "Usability/UX Issue",
-  "Other",
+  "Penipuan Dana/Donasi",
+  "Pemaksaan dalam Kegiatan",
+  "Pelecehan Verbal atau Seksual",
+  "Konten atau Informasi Menyesatkan",
+  "Penyalahgunaan Data Pribadi",
+  "Tindakan Kekerasan atau Ancaman",
+  "Ketidaksesuaian dengan Tujuan Project",
+  "Perilaku Tidak Etis dari Creator atau Volunteer",
+  "Spam atau Aktivitas Mencurigakan",
+  "Lainnya",
 ]);
 
 const fileName = ref("");
@@ -133,6 +134,5 @@ const submitReport = () => {
         </div>
       </div>
     </div>
-    
   </div>
 </template>

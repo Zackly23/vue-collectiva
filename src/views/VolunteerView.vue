@@ -4,7 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useToast } from "vue-toast-notification";
 
-
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const token = localStorage.getItem("access_token");
 const toastNotification = useToast();
@@ -114,7 +113,7 @@ const storeVolunteerInvolvment = async () => {
     console.log("checked criteria : ", criteria);
     console.log("involvement start time : ", involvementDetail.value.startTime);
     console.log("involvement END time : ", involvementDetail.value.endTime);
-    console.log('role : ', roleChecked.value)
+    console.log("role : ", roleChecked.value);
 
     console.log("store volunteer Information");
     const formData = new FormData();
@@ -130,7 +129,7 @@ const storeVolunteerInvolvment = async () => {
           key: criteria.key,
           value: criteria.value,
           role: criteria.role,
-          checked: criteria.fulfilled
+          checked: criteria.fulfilled,
         }))
       )
     );
@@ -146,10 +145,15 @@ const storeVolunteerInvolvment = async () => {
     formData.append("involvement_end_time", involvementDetail.value.endTime);
     formData.append("role", roleChecked.value.key);
 
-    const response = await api.post(`/project/${projectId}/volunteer/store`, formData);
+    const response = await api.post(
+      `/project/${projectId}/volunteer/store`,
+      formData
+    );
 
     console.log("volunteer bergabung : ", response.data);
-    openNotificatication(`Anda Berhasil Bergabung dalam Volunteer ${projectDetail.projectTitle}`)
+    openNotificatication(
+      `Anda Berhasil Bergabung dalam Volunteer ${projectDetail.projectTitle}`
+    );
     router.push({
       path: `/project/${projectId}`,
     });
@@ -182,7 +186,8 @@ const getProjectDetail = async () => {
         ? project.project_roles.map((role) => ({
             key: role.role,
             value: role.jumlah,
-            sisa: role.sisa
+            sisa: role.sisa,
+            terisi: role.terisi,
           }))
         : [{ key: "", value: "" }],
     }));
@@ -200,10 +205,7 @@ const getProjectDetail = async () => {
 
 const fetchData = async () => {
   try {
-    await Promise.all([
-    getUserProfile(),
-    getProjectDetail()
-    ]);
+    await Promise.all([getUserProfile(), getProjectDetail()]);
   } catch (error) {
     console.error("Error fetching data:", error);
   }
@@ -212,7 +214,6 @@ const fetchData = async () => {
 onMounted(async () => {
   await fetchData(); // Tunggu semua data selesai
   emits("toggle-loading"); // Matikan loading setelah fetching selesai
-
 });
 
 onBeforeMount(() => {
@@ -415,23 +416,31 @@ onBeforeMount(() => {
                 >
                   <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center">
-                      <input
-                        type="checkbox"
-                        v-model="criteria.fulfilled"
-                        class="w-5 h-5 text-green-600 border-gray-300 focus:ring-green-500"
-                      />
+                      <div>
+                        <input
+                          type="checkbox"
+                          v-model="criteria.fulfilled"
+                          class="w-5 h-5 text-green-600 border-gray-300 focus:ring-green-500"
+                        />
+                      </div>
+
                       <label class="ml-3 flex flex-col">
                         <span class="font-medium text-gray-900">
                           {{ criteria.key }}
                         </span>
 
                         <span class="text-sm text-gray-500">
-                          <span class="font-semibold"
+                          <span class="font-semibold text-red-500"
                             >({{ criteria.value }})</span
                           >
                         </span>
                         <span class="text-sm text-gray-500">
-                          Role: {{ criteria.role !== 'all' ? criteria.role : 'Semua Role' }}
+                          Role:
+                          {{
+                            criteria.role !== "all"
+                              ? criteria.role
+                              : "Semua Role"
+                          }}
                         </span>
                       </label>
                     </div>
@@ -469,9 +478,21 @@ onBeforeMount(() => {
                     </label>
                   </div>
                   <!-- <img :src="role.icon" :alt="role.key" class="h-8" /> -->
-                  <span class="h-8">
-                    {{ role.sisa }}
-                  </span>
+                  <div class="flex flex-col items-end">
+                    <span class="h-8 text-sm text-gray-700">
+                      Terpenuhi:
+                      <span class="font-semibold">{{ role.terisi }}</span> /
+                      <span class="text-gray-500">{{ role.value }}</span>
+                    </span>
+                    <div class="w-24 h-2 bg-gray-200 rounded mt-1">
+                      <div
+                        class="h-2 bg-blue-500 rounded"
+                        :style="{
+                          width: (role.terisi / role.value) * 100 + '%',
+                        }"
+                      ></div>
+                    </div>
+                  </div>
                 </div>
                 <!-- <div
                   class="absolute top-0 right-0 h-full w-1 bg-blue-500 rounded-r-lg"
