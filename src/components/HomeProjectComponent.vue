@@ -19,6 +19,7 @@ const lastPage = ref();
 const provinsiList = ref();
 const projectList = ref();
 const projectCount = ref(0);
+const statisticData = ref();
 
 const statusList = ref([
   {
@@ -67,6 +68,38 @@ const formattedDate = (date) => {
   const menit = String(d.getMinutes()).padStart(2, "0"); // Menit
 
   return `${namaHari}, ${tanggal}-${namaBulan}-${tahun}`;
+};
+
+const getStatisticProject = async () => {
+  try {
+    const response = await api.get("/statistic");
+    console.log("statistic : ", response.data);
+
+    if (response.status === 200) {
+      const formatToRupiahUnit = (amount) => {
+        if (amount >= 1_000_000_000) {
+          return (amount / 1_000_000_000).toFixed(2) + " Miliar";
+        } else if (amount >= 1_000_000) {
+          return (amount / 1_000_000).toFixed(2) + " Juta";
+        }
+        return amount.toLocaleString(); // fallback: misal < 1 juta, pakai format biasa
+      };
+
+      const stat = response.data.statistic;
+
+      const statisticProject = {
+        totalProject: stat.total_project,
+        totalFund: formatToRupiahUnit(stat.total_dana), // <- sudah diformat
+        totalVolunteer: stat.total_volunteer,
+        totalDonatur: stat.total_donatur,
+      };
+
+      console.log("statisticData : ", statisticProject);
+      statisticData.value = statisticProject;
+    }
+  } catch (error) {
+    console.log("error statistic : ", error);
+  }
 };
 
 const getPublicProjectList = async () => {
@@ -142,7 +175,11 @@ const getProvinsi = async () => {
 
 const fetcData = async () => {
   try {
-    await Promise.all([getPublicProjectList(), getProvinsi()]);
+    await Promise.all([
+      getPublicProjectList(),
+      getProvinsi(),
+      getStatisticProject(),
+    ]);
   } catch (error) {
     console.log("Error fetch Home Page");
   }
@@ -163,31 +200,49 @@ onBeforeMount(() => {
 <template>
   <!-- Stats Section -->
   <div class="max-w-7xl mx-auto p-6">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 ">
-      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div
+        class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start"
+      >
         <h3 class="text-gray-500 md:text-sm text-lg">Total Proyek Aktif</h3>
-        <p class="md:text-2xl text-3xl font-bold">24 Proyek</p>
+        <p class="md:text-2xl text-3xl font-bold">
+          {{ statisticData?.totalProject }} Proyek
+        </p>
         <div class="flex items-center mt-2 text-green-600">
           <span class="md:text-xs text-sm">↑ 12% dari bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+      <div
+        class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start"
+      >
         <h3 class="text-gray-500 md:text-sm text-lg">Total Dana Terkumpul</h3>
-        <p class="md:text-2xl text-3xl font-bold">Rp 6.4 Miliar</p>
+        <p class="md:text-2xl text-3xl font-bold">
+          Rp {{ statisticData?.totalFund }}
+        </p>
         <div class="flex items-center mt-2 text-green-600">
           <span class="md:text-xs text-sm">↑ 8% dari bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
-        <h3 class="text-gray-500 md:text-sm text-lg">Total Volunteer Terlibat</h3>
-        <p class="md:text-2xl text-3xl font-bold">2032 Volunteer</p>
+      <div
+        class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start"
+      >
+        <h3 class="text-gray-500 md:text-sm text-lg">
+          Total Volunteer Terlibat
+        </h3>
+        <p class="md:text-2xl text-3xl font-bold">
+          {{ statisticData?.totalVolunteer }} Volunteer
+        </p>
         <div class="flex items-center mt-2 text-gray-600">
           <span class="md:text-xs text-sm">Sama dengan bulan lalu</span>
         </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start">
+      <div
+        class="bg-white p-6 rounded-lg shadow flex flex-col justify-center items-center md:justify-start md:items-start"
+      >
         <h3 class="text-gray-500 md:text-sm text-lg">Total Donatur</h3>
-        <p class="md:text-2xl text-3xl font-bold">1,240 Donatur</p>
+        <p class="md:text-2xl text-3xl font-bold">
+          {{ statisticData?.totalDonatur }} Donatur
+        </p>
         <div class="flex items-center mt-2 text-green-600">
           <span class="md:text-xs text-sm">↑ 15% dari bulan lalu</span>
         </div>
@@ -197,7 +252,7 @@ onBeforeMount(() => {
     <!-- Search and Filter Bar -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <div class="flex flex-wrap gap-4">
-        <div class="md:flex-1 min-w-[200px] ">
+        <div class="md:flex-1 min-w-[200px]">
           <input
             type="text"
             v-model="searchProjectBar"
@@ -287,9 +342,7 @@ onBeforeMount(() => {
             :alt="project.projectTitle"
             class="w-full h-48 object-cover"
           />
-          <div
-            class="absolute inset-0  flex items-center justify-center"
-          >
+          <div class="absolute inset-0 flex items-center justify-center">
             <!-- <div class="bg-white/90 backdrop-blur rounded-full p-4">
               <span class="text-green-700 font-bold"></span>
             </div> -->

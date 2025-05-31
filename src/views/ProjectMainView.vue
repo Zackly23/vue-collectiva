@@ -62,7 +62,7 @@ const getPublicProjectList = async () => {
       params: {
         kode_provinsi: selectedKodeProvinsi.value,
         kode_kabupaten: selectedKodeKabupaten.value,
-        limit: 3,
+        limit: 12,
         status: selectedStatus.value,
         category: selectedCategory.value,
         sort: selectedSort.value,

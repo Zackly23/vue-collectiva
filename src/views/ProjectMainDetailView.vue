@@ -1214,7 +1214,7 @@ onBeforeMount(() => {
                 <th
                   class="border px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-center"
                 >
-                  Jumlah
+                  Kuota Tersedia
                 </th>
               </tr>
             </thead>

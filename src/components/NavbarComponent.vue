@@ -135,7 +135,9 @@ onBeforeUnmount(() => {
             class="flex justify-center items-center gap-x-3 relative"
             data-te-dropdown-ref
           >
-            <span class="text-gray-700 font-medium hidden md:block">{{ user.full_name }}</span>
+            <span class="text-gray-700 font-medium hidden md:block">{{
+              user.full_name
+            }}</span>
             <button
               data-dropdown-button="profile"
               @click="toggleDropdown('profile')"
@@ -202,6 +204,19 @@ onBeforeUnmount(() => {
                     </div>
                   </li>
                   <li class="w-full">
+                    <div
+                      class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
+                    >
+                      <router-link
+                        to="/project/list"
+                        class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
+                      >
+                        <i class="text-[16px] uil uil-folder-open"></i>
+                        Projects
+                      </router-link>
+                    </div>
+                  </li>
+                  <li class="w-full">
                     <!-- Dropdown Setting -->
                     <div
                       class="p-0 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-box-dark-up rounded-4"
@@ -236,7 +251,7 @@ onBeforeUnmount(() => {
                       <button
                         class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                       >
-                        <i class="text-[16px] uil uil-users-alt"></i>
+                        <i class="text-[16px] uil uil-transaction"></i>
                         Activity
                       </button>
                     </div>
@@ -258,7 +273,7 @@ onBeforeUnmount(() => {
                         to="/dashboard/guidance"
                         class="inline-flex items-center text-light dark:text-subtitle-dark hover:text-primary hover:ps-6 w-full px-2.5 py-3 text-sm transition-[0.3s] gap-[10px]"
                       >
-                        <i class="text-[16px] uil uil-bell"></i>
+                        <i class="text-[16px] uil uil-question-circle"></i>
                         Help
                       </router-link>
                     </div>
