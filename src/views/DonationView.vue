@@ -72,7 +72,6 @@ const checkedEwallet = (ewallet) => {
   //   checkTotalAmountPayment();
 };
 
-
 const getProjectDetail = async () => {
   try {
     const responses = await api.get(`/project/${projectId}/public/detail`);
@@ -157,6 +156,7 @@ const showSnapModal = () => {
           phone_number: userProfile.value.phoneNumber,
           email: userProfile.value.email,
           full_name: userProfile.value.fullName,
+          gross_amount: amountPayment.value,
         };
 
         console.log("callback data : ", callBackData);
@@ -170,8 +170,7 @@ const showSnapModal = () => {
         status.value = "success";
         router.push({
           path: `/project/${projectId}`,
-          
-        })
+        });
       } catch (error) {
         console.error("Error updating payment status:", error);
       }
@@ -186,7 +185,6 @@ const showSnapModal = () => {
     },
   });
 };
-
 
 onMounted(() => {
   getUserProfile();
@@ -327,6 +325,24 @@ onMounted(() => {
             </div>
 
             <div class="p-6">
+              <div
+                class="rounded-lg bg-yellow-50 border-l-4 border-yellow-400 p-4 text-gray-700 mb-3"
+              >
+                <p class="font-semibold">Pemberitahuan</p>
+                <p>
+                  Sistem pembayaran ini saat ini masih berada dalam
+                  <strong>mode pengembangan</strong>. Transaksi tidak akan
+                  memproses pembayaran asli. Untuk menyimulasikan pembayaran,
+                  silakan kunjungi:
+                  <a
+                    href="https://simulator.sandbox.midtrans.com"
+                    target="_blank"
+                    class="text-blue-600 underline"
+                    >Midtrans Sandbox Simulator</a
+                  > setelah menekan tombol <span class="font-semibold">Donate Now.</span>
+                </p>
+              </div>
+
               <div class="space-y-4 mb-4">
                 <div class="flex justify-between items-center">
                   <p class="text-gray-600">Payment Number</p>
