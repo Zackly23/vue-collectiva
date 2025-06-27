@@ -1,14 +1,18 @@
 <script setup>
-import { ref, onMounted, onBeforeMount } from "vue";
+import { ref, onMounted, onBeforeMount, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useToast } from "vue-toast-notification";
+import { validateForm } from "@/validations/VolunteerErrorValidation";
+import SoftWarningComponent from "@/components/dashboard/modal/SoftWarningComponent.vue";
 
 const emits = defineEmits(["toggle-loading", "toggle-active-loading"]);
 const token = localStorage.getItem("access_token");
 const toastNotification = useToast();
 const router = useRouter();
 const route = useRoute();
+const errors = reactive({});
+const isConfirmatioModalOpen = ref(false);
 const projectId = route.params.projectId;
 const userId = JSON.parse(localStorage.getItem("user"))
   ? JSON.parse(localStorage.getItem("user")).user_id
@@ -49,9 +53,9 @@ const userProfile = ref({
   email: "",
 });
 
-const openNotificatication = (message) => {
+const openNotificatication = (message, type = "success") => {
   toastNotification.open({
-    type: "success",
+    type: type,
     message: message,
     position: "top-right",
     duration: 3000,
@@ -66,7 +70,9 @@ const checkedTab = (tab) => {
   tabCheked.value = tab;
 };
 
-const roleChecked = ref({});
+const roleChecked = ref({
+  key: "",
+});
 const roleProject = ref("");
 
 const isRoleChecked = (role) => {
@@ -101,21 +107,8 @@ const getUserProfile = async () => {
   }
 };
 
-const storeVolunteerInvolvment = async () => {
+const storeDataVolunteer = async () => {
   try {
-    const criteria = JSON.stringify(
-      projectDetail.value.projectCriteria.map((criteria) => ({
-        key: criteria.key,
-        value: criteria.value,
-        role: criteria.role,
-      }))
-    );
-    console.log("checked criteria : ", criteria);
-    console.log("involvement start time : ", involvementDetail.value.startTime);
-    console.log("involvement END time : ", involvementDetail.value.endTime);
-    console.log("role : ", roleChecked.value);
-
-    console.log("store volunteer Information");
     const formData = new FormData();
 
     formData.append("email", userProfile.value.email);
@@ -151,12 +144,69 @@ const storeVolunteerInvolvment = async () => {
     );
 
     console.log("volunteer bergabung : ", response.data);
+
+    isConfirmatioModalOpen.value = false;
+
     openNotificatication(
       `Anda Berhasil Bergabung dalam Volunteer ${projectDetail.projectTitle}`
     );
+
     router.push({
       path: `/project/${projectId}`,
     });
+  } catch (error) {
+    console.error("error menyimpan data : ", error);
+    openNotificatication(
+      "Gagal menyimpan data volunteer. Pastikan semua data terisi dengan benar.",
+      "error"
+    );
+  }
+};
+
+const storeVolunteerInvolvment = async () => {
+  try {
+    const criteria = JSON.stringify(
+      projectDetail.value.projectCriteria.map((criteria) => ({
+        key: criteria.key,
+        value: criteria.value,
+        role: criteria.role,
+      }))
+    );
+    console.log("checked criteria : ", criteria);
+    console.log("involvement start time : ", involvementDetail.value.startTime);
+    console.log("involvement END time : ", involvementDetail.value.endTime);
+    console.log("role : ", roleChecked.value);
+    console.log("phonumber : ", userProfile.value);
+
+    console.log("store volunteer Information");
+
+    // Reset error sebelum validasi
+    Object.keys(errors).forEach((key) => {
+      errors[key] = "";
+    });
+
+    // Validasi form sebelum mengirim data
+    const validationResult = validateForm(
+      userProfile,
+      involvementDetail,
+      criteria,
+      projectDetail.value.projectCriteria,
+      roleChecked
+    );
+
+    if (validationResult.isValid) {
+      //open softwarning
+      isConfirmatioModalOpen.value = true;
+    } else {
+      Object.assign(errors, validationResult.errors); // Salin error ke reactive object
+
+      // openNotificatication(
+      //   "Volunteer Gagal Disimpan! Pastikan Semua Data Terisi dengan Benar",
+      //   "error"
+      // );
+
+      console.log("Error validation:", errors);
+    }
   } catch (error) {
     console.log(error);
   }
@@ -267,9 +317,16 @@ onBeforeMount(() => {
                     id="fullName"
                     name="fullName"
                     v-model="userProfile.fullName"
+                    :class="{
+                      'border-red-500': errors?.fullName,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="Enter your full name"
                   />
+
+                  <p v-if="errors?.fullName" class="error-message">
+                    {{ errors?.fullName }}
+                  </p>
                 </div>
                 <div>
                   <label
@@ -282,9 +339,16 @@ onBeforeMount(() => {
                     id="email"
                     name="email"
                     v-model="userProfile.email"
+                    :class="{
+                      'border-red-500': errors?.email,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="your.email@example.com"
                   />
+
+                  <p v-if="errors?.email" class="error-message">
+                    {{ errors?.email }}
+                  </p>
                 </div>
                 <div>
                   <label
@@ -297,10 +361,17 @@ onBeforeMount(() => {
                     id="phone"
                     name="phone"
                     v-model="userProfile.phoneNumber"
+                    :class="{
+                      'border-red-500': errors?.phone,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="0812 3456 7890"
                   />
+                  <p v-if="errors?.phone" class="error-message">
+                    {{ errors?.phone }}
+                  </p>
                 </div>
+
                 <div>
                   <label
                     for="alamat"
@@ -312,8 +383,15 @@ onBeforeMount(() => {
                     id="alamat"
                     name="alamat"
                     v-model="userProfile.address"
+                    :class="{
+                      'border-red-500': errors?.address,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
+
+                  <p v-if="errors?.address" class="error-message">
+                    {{ errors?.address }}
+                  </p>
                 </div>
 
                 <!-- Project Volunteer memenuhi 1 baris penuh -->
@@ -412,6 +490,7 @@ onBeforeMount(() => {
                     'border-gray-200 hover:border-gray-300':
                       !criteria.fulfilled,
                     'border-green-300 bg-green-50': criteria.fulfilled,
+                    'border-red-500': errors?.criteriaChecked,
                   }"
                 >
                   <div class="p-4 flex items-center justify-between">
@@ -457,6 +536,7 @@ onBeforeMount(() => {
                   'mb-4 border rounded-lg  transition-all': true,
                   'border-gray-200 hover:border-gray-300': !isRoleChecked(role),
                   'border-blue-200  bg-blue-50': isRoleChecked(role),
+                  'border-red-500': errors?.roleChecked,
                 }"
                 @click="checkedRole(role)"
                 :key="role.key"
@@ -498,6 +578,20 @@ onBeforeMount(() => {
                   class="absolute top-0 right-0 h-full w-1 bg-blue-500 rounded-r-lg"
                 ></div> -->
               </div>
+              <div>
+                <p
+                  v-if="errors?.criteriaChecked && isTabChecked('criteria')"
+                  class="error-message"
+                >
+                  {{ errors?.criteriaChecked }}
+                </p>
+                <p
+                  v-if="errors?.roleChecked && isTabChecked('role')"
+                  class="error-message"
+                >
+                  {{ errors?.roleChecked }}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -529,8 +623,15 @@ onBeforeMount(() => {
                     id="start_date"
                     name="start_date"
                     v-model="involvementDetail.startDate"
+                    :class="{
+                      'border-red-500': errors?.startDate,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
+
+                  <p v-if="errors?.startDate" class="error-message">
+                    {{ errors?.startDate }}
+                  </p>
                 </div>
                 <div>
                   <label
@@ -544,8 +645,15 @@ onBeforeMount(() => {
                     id="end_date"
                     name="end_date"
                     v-model="involvementDetail.endDate"
+                    :class="{
+                      'border-red-500': errors?.endDate,
+                    }"
                     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
+
+                  <p v-if="errors?.endDate" class="error-message">
+                    {{ errors?.endDate }}
+                  </p>
                 </div>
               </div>
 
@@ -564,12 +672,18 @@ onBeforeMount(() => {
                       id="start_time"
                       name="start_time"
                       v-model="involvementDetail.startTime"
+                      :class="{
+                        'border-red-500': errors?.startTime,
+                      }"
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     />
                     <span class="absolute right-4 top-3 text-gray-400">
                       <i class="uil uil-time"></i>
                     </span>
                   </div>
+                  <p v-if="errors?.startTime" class="error-message">
+                    {{ errors?.startTime }}
+                  </p>
                 </div>
                 <div>
                   <label
@@ -584,12 +698,18 @@ onBeforeMount(() => {
                       id="end_time"
                       name="end_time"
                       v-model="involvementDetail.endTime"
+                      :class="{
+                        'border-red-500': errors?.endTime,
+                      }"
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     />
                     <span class="absolute right-4 top-3 text-gray-400">
                       <i class="uil uil-time"></i>
                     </span>
                   </div>
+                  <p v-if="errors?.endTime" class="error-message">
+                    {{ errors?.endTime }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -606,4 +726,21 @@ onBeforeMount(() => {
       </div>
     </div>
   </div>
+
+  <SoftWarningComponent
+    :is-confirmation-modal-open="isConfirmatioModalOpen"
+    :description="'Apakah Anda yakin ingin menyimpan data volunteer ini? Pastikan semua data sudah diisi dengan benar sebelum melanjutkan.'"
+    @close-confirmation-modal="() => (isConfirmatioModalOpen = false)"
+    @action-modal="storeDataVolunteer"
+    :action="'Simpan Data Volunteer'"
+    :title="'Konfirmasi Data Volunteer'"
+  />
 </template>
+
+<style scoped>
+.error-message {
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+</style>
