@@ -14,7 +14,11 @@ import accessDirective from './directives/access';
 import actionDirective from './directives/action';
 
 
-
+if (import.meta.env.MODE === 'production') {
+  console.log = () => {}
+  console.warn = () => {}
+  console.error = () => {}
+}
 
 
 const app = createApp(App);
